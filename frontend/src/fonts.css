@@ -1,0 +1,32 @@
+
+@font-face {
+  font-family: GothamRnd-Med;
+  src: local('GothamRnd'), url(./fonts/GothamRnd-Medium.otf)  format("opentype");
+}
+
+@font-face {
+  font-family: GothamRnd-Light;
+  src: local('GothamRnd'), url(./fonts/GothamRnd-Light.otf)  format("opentype");
+}
+
+@font-face {
+  font-family: GothamRnd-Book;
+  src: local('GothamRnd'), url(./fonts/GothamRnd-Book.otf)  format("opentype");
+}
+
+/*@font-face {
+  font-family: GothamRnd-Bold;
+  src: local('GothamRnd'), url(./fonts/GothamRnd-Bold.otf)  format("opentype");
+}*/
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'GothamRnd-Book';
+}
+
+span {
+  font-family: 'GothamRnd-Light';
+}
+
+
