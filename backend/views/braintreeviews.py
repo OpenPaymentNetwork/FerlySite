@@ -20,7 +20,7 @@ gateway = braintree.BraintreeGateway(
 @view_config(name='request-token', renderer='json')
 def request_token(request):
     param_map = get_params(request)
-    params = schema.WalletSchema().bind(
+    params = schema.DeviceSchema().bind(
         request=request).deserialize(param_map)
     device = get_device(request, params)
     user = device.user

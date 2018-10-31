@@ -60,7 +60,7 @@ def signup(request):
 def is_user(request):
     """Return if the device_id is associated with a user."""
     param_map = get_params(request)
-    params = schema.WalletSchema().bind(request=request).deserialize(param_map)
+    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
     device_id = params['device_id']
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
@@ -73,7 +73,7 @@ def is_user(request):
 def wallet(request):  # TODO rename as profile
     """Describe the profile currently associated with a device."""
     param_map = get_params(request)
-    params = schema.WalletSchema().bind(request=request).deserialize(param_map)
+    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession

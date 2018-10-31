@@ -68,7 +68,7 @@ class ContactSchema(Schema):
     email = SchemaNode(String(), missing=required, validator=Email())
 
 
-class WalletSchema(Schema):
+class DeviceSchema(Schema):
     device_id = device_id()
 
 

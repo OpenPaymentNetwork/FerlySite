@@ -13,7 +13,7 @@ import pyramid.httpexceptions as exc
 
 
 @view_config(name='version', context=API, renderer='json')
-def test(request):
+def version(request):
     return {'version': '0.0.0'}
 
 

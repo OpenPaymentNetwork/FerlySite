@@ -16,7 +16,7 @@ def list_users(request):
     Replace this with a /recipient-search view.
     """
     param_map = get_params(request)
-    params = schema.WalletSchema().bind(request=request).deserialize(param_map)
+    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
     device = get_device(request, params=params)
     user = device.user
     dbsession = request.dbsession
