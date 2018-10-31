@@ -36,7 +36,6 @@ def request_token(request):
     client_token = gateway.client_token.generate({
         "customer_id": customer.id
     })
-
     return {'token': client_token}
 
 
@@ -71,14 +70,13 @@ def create_purchase(request):
             'amount': amount
         }
 
-        response = wc_contact(
+        wc_contact(
             request,
             'POST',
             'design/{0}/send'.format(design.wc_id),
             params=post_params)
-        if response:
-            settle_response = gateway.transaction.submit_for_settlement(
-                result.transaction.id)
+        settle_response = gateway.transaction.submit_for_settlement(
+            result.transaction.id)
         return {'result': settle_response.is_success}
 
     return {'result': result.is_success}

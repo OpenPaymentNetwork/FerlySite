@@ -165,20 +165,14 @@ class TestWCContact(TestCase):
         mock_post.assert_called_once_with('url/urlTail', **header,
                                           data=data)
 
-    # @patch('requests.get')
-    # def test_404(self, mock_get):
-    #     request = pyramidtesting.DummyRequest()
-    #     mock_settings = request.ferlysettings = MagicMock()
-    #     mock_settings.wingcash_api_url = 'url'
-    #     # mock_response = mock_get.return_value = MagicMock()
-
-    #     response = self._call(request, 'GET', 'urlTail', access_token='token')
-    #     print('RESPONSE:', response)
-
-    # assert response is returned
-    # test 200, 400, 401, 403
-
-    # TODOtest all responses, 400/500 included, and invalids
+    @patch('requests.get')
+    def test_raise_for_status_called(self, get):
+        request = pyramidtesting.DummyRequest()
+        mock_settings = request.ferlysettings = MagicMock()
+        mock_settings.wingcash_api_url = 'url'
+        wc_response = get.return_value
+        self._call(request, 'GET', 'urlTail')
+        self.assertTrue(wc_response.raise_for_status.called)
 
 
 class TestGetDevice(TestCase):

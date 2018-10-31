@@ -34,10 +34,7 @@ def wc_contact(request, method, urlTail, params={},
     except Exception:
         try:
             error_json = response.json()
-            print('sent:')
-            print("Error:", error_json)
         except Exception:
-            print("WingCash cannot be reached")
             raise HTTPServiceUnavailable
         else:
             # return false and raise invalid in userview?
@@ -45,10 +42,7 @@ def wc_contact(request, method, urlTail, params={},
                 raise Invalid(None, msg=error_json['invalid'])
             else:
                 # wc ise, or bad token request.
-                print('WINGCASH ISE!!!!!!!!!!')
-                print('YOU ASKED:', method, urlTail, args, params)
-                print('YOU GOT BACK:', error_json)
-                return False
+                raise HTTPServiceUnavailable
     else:
         return response
 
@@ -61,8 +55,6 @@ def get_wc_token(request, user):
     }
 
     response = wc_contact(request, 'GET', 'p/token', params, auth=True)
-    # TODO handle wc_contact unexpectedly failing. no json()?, wc_contact
-    # returning False?
     access_token = response.json().get('access_token')
 
     # store in memcached

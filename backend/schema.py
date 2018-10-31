@@ -1,13 +1,25 @@
 from colander import Email
 from colander import Float
 from colander import Integer
+from colander import Invalid
 from colander import Length
 from colander import Range
-from colander import Regex
 from colander import required
 from colander import Schema
 from colander import SchemaNode
 from colander import String
+import re
+
+
+def validate_username(node, value):
+    if len(value) < 4:
+        raise Invalid(node, "Must contain at least 4 characters")
+    if len(value) > 20:
+        raise Invalid(node, "Must not be longer than 20 characters")
+    if value[0].isdigit():
+        raise Invalid(node, "Must not start with a number")
+    if re.compile(r'^[A-Za-z][A-Za-z0-9\.]{3,19}$').match(value) is None:
+        raise Invalid(node, "Can only contain letters, numbers, and periods")
 
 
 def device_id():
@@ -30,7 +42,7 @@ def username(missing=required):
     return SchemaNode(
         String(),
         missing=missing,
-        validator=Regex('^[a-zA-Z][a-zA-Z0-9.]{3,19}$'))
+        validator=validate_username)
 
 
 class EditProfileSchema(Schema):

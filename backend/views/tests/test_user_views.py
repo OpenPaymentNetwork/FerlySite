@@ -1,12 +1,13 @@
 from backend.models.models import Device
+from backend.views.userviews import edit_profile
 from backend.views.userviews import is_user
 from backend.views.userviews import signup
 from backend.views.userviews import wallet
 from colander import Invalid
 from pyramid import testing as pyramidtesting
 from unittest import TestCase
-from unittest.mock import MagicMock
 from unittest.mock import call
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 
@@ -23,14 +24,6 @@ class TestWallet(TestCase):
         expected_response = {'device_id': 'Required'}
         self.assertEqual(expected_response, e.asdict())
 
-    # test invalid device id? -no, just that get device is called
-    # test calls get_wc_token and and wc_contact params (one test?)
-    # test properly handles designs not in db ? - should n't show up,
-
-    # assert handles design from wc thats not in our db
-    # assert handles bad wc response, but 200
-        # (4xx and 5xx raise exceptions in wc_contact)
-
 
 class TestSignUp(TestCase):
 
@@ -45,6 +38,7 @@ class TestSignUp(TestCase):
         expected_response = {
             'device_id': 'Required',
             'first_name': 'Required',
+            'username': 'Required',
             'last_name': 'Required'
         }
         self.assertEqual(expected_response, e.asdict())
@@ -53,7 +47,8 @@ class TestSignUp(TestCase):
         request_params = {
             'device_id': 'deviceid',
             'first_name': 'firstname',
-            'last_name': 'lastname'
+            'last_name': 'lastname',
+            'username': 'username'
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -69,7 +64,8 @@ class TestSignUp(TestCase):
         request_params = {
             'device_id': device_id,
             'first_name': 'firstname',
-            'last_name': 'lastname'
+            'last_name': 'lastname',
+            'username': 'username',
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -85,10 +81,12 @@ class TestSignUp(TestCase):
     def test_add_user(self, mock_wc_contact, mock_user, mock_device):
         first_name = 'firstname'
         last_name = 'lastname'
+        username = 'username'
         request_params = {
             'device_id': 'deviceid',
             'first_name': first_name,
-            'last_name': last_name
+            'last_name': last_name,
+            'username': username
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -97,7 +95,7 @@ class TestSignUp(TestCase):
         wc_id = 'newid'
         mock_wc_contact.return_value.json.return_value = {'id': wc_id}
         mock_user.return_value.id = 'userid'
-        user = {'wc_id': wc_id, 'first_name': first_name,
+        user = {'wc_id': wc_id, 'first_name': first_name, 'username': username,
                 'last_name': last_name, 'expo_token': ''}
         self._call(request)
         mock_user.assert_called_once_with(**user)
@@ -109,12 +107,14 @@ class TestSignUp(TestCase):
     def test_save_expo_token(self, mock_wc_contact, mock_user, mock_device):
         first_name = 'firstname'
         last_name = 'lastname'
+        username = 'username'
         token = 'token'
         request_params = {
             'device_id': 'deviceid',
             'first_name': first_name,
             'last_name': last_name,
-            'expo_token': token
+            'expo_token': token,
+            'username': username
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -123,7 +123,7 @@ class TestSignUp(TestCase):
         wc_id = 'newid'
         mock_wc_contact.return_value.json.return_value = {'id': wc_id}
         mock_user.return_value.id = 'userid'
-        user = {'wc_id': wc_id, 'first_name': first_name,
+        user = {'wc_id': wc_id, 'first_name': first_name, 'username': username,
                 'last_name': last_name, 'expo_token': token}
         self._call(request)
         mock_user.assert_called_once_with(**user)
@@ -136,7 +136,8 @@ class TestSignUp(TestCase):
         request_params = {
             'device_id': device_id,
             'first_name': 'firstname',
-            'last_name': 'lastname'
+            'last_name': 'lastname',
+            'username': 'username'
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -155,7 +156,8 @@ class TestSignUp(TestCase):
         request_params = {
             'device_id': 'deviceid',
             'first_name': 'firstname',
-            'last_name': 'lastname'
+            'last_name': 'lastname',
+            'username': 'username'
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -174,7 +176,8 @@ class TestSignUp(TestCase):
         request_params = {
             'device_id': 'deviceid',
             'first_name': first_name,
-            'last_name': last_name
+            'last_name': last_name,
+            'username': 'username'
         }
         request = pyramidtesting.DummyRequest(params=request_params)
         mdbsession = request.dbsession = MagicMock()
@@ -193,113 +196,196 @@ class TestSignUp(TestCase):
         }
         mock_wc_contact.assert_called_once_with(*args, **kw)
 
-    # TODO test wc_contact fails
+    def test_deny_existing_username(self):
+        request = pyramidtesting.DummyRequest(params={
+            'first_name': 'firstname',
+            'last_name': 'lastname',
+            'username': 'username',
+            'device_id': 'deviceid'
+        })
+        mdbsession = request.dbsession = MagicMock()
+        mock_query_filter = mdbsession.query.return_value.filter.return_value
+        mock_query_filter.first.side_effect = [None, not None]
+        response = self._call(request)
+        self.assertEqual(response, {'error': 'existing_username'})
 
 
-# class TestPurchase(TestCase):
+class TestEditProfile(TestCase):
 
-#     def _call(self, *args, **kw):
-#         return purchase(*args, **kw)
+    def _call(self, *args, **kw):
+        return edit_profile(*args, **kw)
 
-#     def test_no_params(self):
-#         request = pyramidtesting.DummyRequest()
-#         with self.assertRaises(Invalid) as cm:
-#             self._call(request)
-#         e = cm.exception
-#         expected_response = {
-#             'device_id': 'Required',
-#             'design_id': 'Required',
-#             'amount': 'Required'
-#         }
-#         self.assertEqual(expected_response, e.asdict())
+    def test_username_required(self):
+        request = pyramidtesting.DummyRequest(params={})
+        with self.assertRaisesRegex(Invalid, "'username': 'Required'"):
+            self._call(request)
 
-#     @patch('backend.views.userviews.wc_contact')
-#     @patch('backend.views.userviews.get_device')
-#     def test_get_device_called(self, mock_get_device, mock_wc_contact):
-#         request_params = {
-#             'device_id': 'deviceid',
-#             'design_id': 'designid',
-#             'amount': 10
-#         }
-#         request = pyramidtesting.DummyRequest(params=request_params)
-#         request.dbsession = MagicMock()
-#         self._call(request)
-#         mock_get_device.assert_called_once_with(request)
+    def test_first_name_required(self):
+        request = pyramidtesting.DummyRequest(params={})
+        with self.assertRaisesRegex(Invalid, "'first_name': 'Required'"):
+            self._call(request)
 
-#     @patch('backend.views.userviews.wc_contact')
-#     @patch('backend.views.userviews.get_device')
-#     def test_wc_call(self, mock_get_device, mock_wc_contact):
-#         amount = 10
-#         request_params = {
-#             'device_id': 'deviceid',
-#             'design_id': 'designid',
-#             'amount': amount
-#         }
-#         request = pyramidtesting.DummyRequest(params=request_params)
-#         mdbsession = request.dbsession = MagicMock()
-#         mock_query = mdbsession.query.return_value
-#         mock_design = mock_query.get.return_value
-#         mock_design.distribution_id = dist_id = 'distributionid'
-#         mock_design.wc_id = design_wc_id = 'designwcid'
-#         mock_device = mock_get_device.return_value
-#         mock_user = mock_device.user
-#         mock_user.wc_id = user_wc_id = 'userwcid'
-#         self._call(request)
-#         args = (request, 'POST', 'design/{0}/send'.format(design_wc_id))
-#         params = {
-#             'distribution_plan_id': dist_id,
-#             'recipient_uid': 'wingcash:{0}'.format(user_wc_id),
-#             'amount': amount
-#         }
-#         mock_wc_contact.assert_called_once_with(*args, params=params)
+    def test_last_name_required(self):
+        request = pyramidtesting.DummyRequest(params={})
+        with self.assertRaisesRegex(Invalid, "'last_name': 'Required'"):
+            self._call(request)
 
-#     def test_string_amount(self):
-#         amount = 'ten'
-#         request_params = {
-#             'device_id': 'deviceid',
-#             'design_id': 'designid',
-#             'amount': amount
-#         }
-#         request = pyramidtesting.DummyRequest(params=request_params)
-#         with self.assertRaises(Invalid) as cm:
-#             self._call(request)
-#         e = cm.exception
-#         expected_response = {
-#             'amount': '"{0}" is not a number'.format(amount)
-#         }
-#         self.assertEqual(expected_response, e.asdict())
+    def test_device_id_required(self):
+        request = pyramidtesting.DummyRequest(params={})
+        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
+            self._call(request)
 
-#     def test_negative_amount(self):
-#         amount = -1
-#         request_params = {
-#             'device_id': 'deviceid',
-#             'design_id': 'designid',
-#             'amount': amount
-#         }
-#         request = pyramidtesting.DummyRequest(params=request_params)
-#         with self.assertRaises(Invalid) as cm:
-#             self._call(request)
-#         e = cm.exception
-#         expected_response = {
-#             'amount': '{0}.0 is less than minimum value 0.01'.format(amount)
-#         }
-#         self.assertEqual(expected_response, e.asdict())
+    def test_username_4_characters(self):
+        request = pyramidtesting.DummyRequest(params={
+            'username': 'abc'
+        })
+        with self.assertRaisesRegex(
+                Invalid,
+                "'username': 'Must contain at least 4 characters'"):
+            self._call(request)
 
-#     def test_invalid_design(self):
-#         request_params = {
-#             'device_id': 'invalid_device_id',
-#             'design_id': 'designid',
-#             'amount': 10
-#         }
-#         request = pyramidtesting.DummyRequest(params=request_params)
-#         mdbsession = request.dbsession = MagicMock()
-#         mock_query = mdbsession.query.return_value
-#         mock_query.get.return_value = None
-#         response = self._call(request)
-#         expected_response = {'error': 'invalid_design'}
-#         self.assertEqual(response, expected_response)
+    def test_username_not_21_characters(self):
+        request = pyramidtesting.DummyRequest(params={
+            'username': 'abcdefghijklmnopqrstu'
+        })
+        with self.assertRaisesRegex(
+                Invalid,
+                "'username': 'Must not be longer than 20 characters'"):
+            self._call(request)
 
-#     # TODO test wc_contact fails
+    def test_username_starts_with_letter(self):
+        request = pyramidtesting.DummyRequest(params={
+            'username': '1234'
+        })
+        with self.assertRaisesRegex(
+                Invalid,
+                "'username': 'Must not start with a number'"):
+            self._call(request)
+
+    def test_invalid_username(self):
+        request = pyramidtesting.DummyRequest(params={
+            'username': 'abc!'
+        })
+        with self.assertRaisesRegex(
+                Invalid,
+                ("'username': "
+                 "'Can only contain letters, numbers, and periods'")):
+            self._call(request)
+
+    @patch('backend.views.userviews.wc_contact')
+    @patch('backend.views.userviews.get_wc_token')
+    @patch('backend.views.userviews.get_device')
+    @patch('backend.schema.EditProfileSchema')
+    def test_unchanged_username(
+            self, schema, get_device, get_token, wc_contact):
+        request = pyramidtesting.DummyRequest()
+        request.dbsession = mdbsession = MagicMock()
+        mock_user = get_device.return_value.user
+        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = mock_user
+        response = self._call(request)
+        self.assertEqual(response, {})
+
+    @patch('backend.views.userviews.get_device')
+    @patch('backend.schema.EditProfileSchema')
+    def test_existing_username(self, schema, get_device):
+        request = pyramidtesting.DummyRequest()
+        request.dbsession = mdbsession = MagicMock()
+        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = not None
+        response = self._call(request)
+        self.assertEqual(response, {'error': 'existing_username'})
+
+    @patch('backend.views.userviews.get_wc_token')
+    @patch('backend.views.userviews.wc_contact')
+    @patch('backend.views.userviews.get_device')
+    def test_edit_username_only(self, get_device, wc_contact, get_wc_token):
+        mock_user = get_device.return_value.user
+        mock_user.first_name = current_first_name = 'firstname'
+        mock_user.last_name = current_last_name = 'lastname'
+        mock_user.username = 'current_username'
+        newusername = 'newusername'
+        request = pyramidtesting.DummyRequest(params={
+            'first_name': current_first_name,
+            'last_name': current_last_name,
+            'username': newusername,
+            'device_id': 'deviceid'
+        })
+        request.dbsession = mdbsession = MagicMock()
+        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = None
+        self._call(request)
+        self.assertFalse(get_wc_token.called)
+        self.assertFalse(wc_contact.called)
+        self.assertEqual(mock_user.first_name, current_first_name)
+        self.assertEqual(mock_user.last_name, current_last_name)
+        self.assertEqual(mock_user.username, newusername)
+
+    @patch('backend.views.userviews.get_wc_token')
+    @patch('backend.views.userviews.wc_contact')
+    @patch('backend.views.userviews.get_device')
+    def test_edit_first_name_only(self, get_device, wc_contact, get_wc_token):
+        mock_user = get_device.return_value.user
+        mock_user.first_name = 'firstname'
+        mock_user.last_name = current_last_name = 'lastname'
+        mock_user.username = current_username = 'username'
+        new_first_name = 'new_first_name'
+        request = pyramidtesting.DummyRequest(params={
+            'first_name': new_first_name,
+            'last_name': current_last_name,
+            'username': current_username,
+            'device_id': 'deviceid'
+        })
+        request.dbsession = mdbsession = MagicMock()
+        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = None
+        self._call(request)
+        get_wc_token.assert_called_with(request, mock_user)
+        wc_contact.assert_called_with(
+            request,
+            'POST',
+            'wallet/change-name',
+            access_token=get_wc_token.return_value,
+            params={
+                'first_name': new_first_name,
+                'last_name': current_last_name
+            })
+        self.assertEqual(mock_user.first_name, new_first_name)
+        self.assertEqual(mock_user.last_name, current_last_name)
+        self.assertEqual(mock_user.username, current_username)
+
+    @patch('backend.views.userviews.get_wc_token')
+    @patch('backend.views.userviews.wc_contact')
+    @patch('backend.views.userviews.get_device')
+    def test_edit_last_name_only(self, get_device, wc_contact, get_wc_token):
+        mock_user = get_device.return_value.user
+        mock_user.first_name = current_first_name = 'firstname'
+        mock_user.last_name = 'lastname'
+        mock_user.username = current_username = 'username'
+        new_last_name = 'new_first_name'
+        request = pyramidtesting.DummyRequest(params={
+            'first_name': current_first_name,
+            'last_name': new_last_name,
+            'username': current_username,
+            'device_id': 'deviceid'
+        })
+        request.dbsession = mdbsession = MagicMock()
+        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = None
+        self._call(request)
+        get_wc_token.assert_called_with(request, mock_user)
+        wc_contact.assert_called_with(
+            request,
+            'POST',
+            'wallet/change-name',
+            access_token=get_wc_token.return_value,
+            params={
+                'first_name': current_first_name,
+                'last_name': new_last_name
+            })
+        self.assertEqual(mock_user.first_name, current_first_name)
+        self.assertEqual(mock_user.last_name, new_last_name)
+        self.assertEqual(mock_user.username, current_username)
 
 
 class TestIsUser(TestCase):

@@ -138,10 +138,8 @@ def send(request):
     }
 
     access_token = get_wc_token(request, user)
-    response = wc_contact(request, 'POST', 'wallet/send',
-                          params=params, access_token=access_token)
-    if not response:
-        return {'error': 'unable_to_send'}
+    wc_contact(request, 'POST', 'wallet/send', params=params,
+               access_token=access_token)
 
     formatted_amount = '${:.2f}'.format(amount)
 
@@ -179,26 +177,17 @@ def edit_profile(request):
     if existing_user is not None and existing_user is not user:
         return {'error': 'existing_username'}
     else:
-        changed_fn = first_name != user.first_name
-        changed_ln = last_name != user.last_name
-        if changed_fn or changed_ln:
+        if first_name != user.first_name or last_name != user.last_name:
             post_params = {
                 'first_name': first_name,
                 'last_name': last_name
             }
             access_token = get_wc_token(request, user)
-            response = wc_contact(request, 'POST', 'wallet/change-name',
-                                  params=post_params,
-                                  access_token=access_token)
-            if not response:
-                return {'error': 'wc_error'}
-        # TODO only require one as param, and only change the ones given
-        if changed_fn:
-            user.first_name = first_name
-        if changed_ln:
-            user.last_name = last_name
-        if username != user.username:
-            user.username = username
+            wc_contact(request, 'POST', 'wallet/change-name',
+                       params=post_params, access_token=access_token)
+        user.first_name = first_name
+        user.last_name = last_name
+        user.username = username
     return {}
 
 
