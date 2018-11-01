@@ -214,11 +214,22 @@ def history(request):
     for transfer in results:
         amount = transfer['amount']
         timestamp = transfer['timestamp']
+        title = 'Unrecognized'
+        transfer_type = 'unrecognized'
         try:
+            # TODO Make sure all loop_ids are the same
             first_movement_loop = transfer['movements'][0]['loops'][0]
+            loop_id = first_movement_loop['loop_id']
+            # TODO Get CLC title from memcache by loop_id or call wingcash and
+            # cache it in parallel
+            design = dbsession.query(Design).filter(
+                Design.wc_id == loop_id).first()
+            if (design):
+                title = design.title
         except Exception:
-            # log ignored transfer
-            continue
+            # No money was moved. ie waiting or canceled transfer
+            pass
+
         sender_info = transfer['sender_info']
         recipient_info = transfer['recipient_info']
         if transfer['workflow_type'] == 'purchase_offer':
@@ -237,20 +248,6 @@ def history(request):
                 transfer_type = 'send'
             else:
                 transfer_type = 'redeem'
-        else:
-            # log unknown transfer
-            continue
-
-        # TODO Make sure all loop_ids are the same
-        loop_id = first_movement_loop['loop_id']
-
-        # TODO Get CLC title from memcache by loop_id or call wingcash and
-        # cache it in parallel
-        title = 'Unrecognized'
-        design = dbsession.query(Design).filter(
-            Design.wc_id == loop_id).first()
-        if (design):
-            title = design.title
 
         history.append({
             'amount': amount,
@@ -260,4 +257,4 @@ def history(request):
             'timestamp': timestamp,
             # 'loop_id': loop_id
         })
-    return {'history': history, 'more': has_more}
+    return {'history': history, 'has_more': has_more}
