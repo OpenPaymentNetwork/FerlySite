@@ -201,11 +201,11 @@ def history(request):
     user = device.user
     dbsession = request.dbsession
 
-    params = {'limit': params['limit'], 'offset': params['offset']}
+    post_params = {'limit': params['limit'], 'offset': params['offset']}
 
     access_token = get_wc_token(request, user)
     response = wc_contact(
-        request, 'GET', 'wallet/history', params=params,
+        request, 'GET', 'wallet/history', params=post_params,
         access_token=access_token)
 
     results = response.json()['results']

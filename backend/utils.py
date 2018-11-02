@@ -3,7 +3,6 @@ from pyramid.httpexceptions import HTTPUnauthorized
 import requests
 
 
-# TODO remove params argument - don't. must unbind in view first
 def get_device(request, params):
     device_id = params.get('device_id')
     dbsession = request.dbsession
@@ -28,4 +27,3 @@ def notify_user(user, title, body):
     r = requests.post(url, data={'to': token, 'title': title, 'body': body})
     # r.raise_for_status()
     return r
-
