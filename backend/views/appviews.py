@@ -49,6 +49,5 @@ def list_designs(request):
     with the Ferly profile.
     """
     dbsession = request.dbsession
-    designs = dbsession.query(Design).filter(
-        ~Design.title.in_(['Amazon', 'Apple'])).all()
+    designs = dbsession.query(Design).all()
     return [serialize_design(request, design) for design in designs]
