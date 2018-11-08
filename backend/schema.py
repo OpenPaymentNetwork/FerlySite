@@ -45,6 +45,26 @@ def username(missing=required):
         validator=validate_username)
 
 
+class UIDSchema(Schema):
+    device_id = device_id()
+    login = SchemaNode(String(), missing=required)
+    uidType = SchemaNode(String(), missing=required)
+
+
+class AddUIDCodeSchema(Schema):
+    device_id = device_id()
+    code = SchemaNode(String(), missing=required)
+    secret = SchemaNode(String(), missing=required)
+    attempt_id = SchemaNode(String(), missing=required)
+    replace_uid = SchemaNode(String(), missing=None)
+
+
+class AuthUIDCodeSchema(Schema):
+    device_id = device_id()
+    code = SchemaNode(String(), missing=required)
+    factor_id = SchemaNode(String(), missing=required)
+
+
 class EditProfileSchema(Schema):
     device_id = device_id()
     username = username(missing=required)

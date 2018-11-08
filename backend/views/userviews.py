@@ -10,6 +10,62 @@ from backend.utils import notify_user
 from pyramid.view import view_config
 
 
+@view_config(name='add-uid', renderer='json')
+def add_uid(request):
+    """Associate a email or phone number with a user's profile"""
+    param_map = get_params(request)
+    params = schema.UIDSchema().bind(
+        request=request).deserialize(param_map)
+    device = get_device(request, params)
+    user = device.user
+
+    wc_params = {
+        'login': params['login'],
+        'uid_type': params['uidType']
+    }
+
+    access_token = get_wc_token(request, user)
+    response = wc_contact(request, 'POST', 'wallet/add-uid', params=wc_params,
+                          access_token=access_token)
+    response_json = response.json()
+    r = {}
+    for key in response_json:
+        if key in ('secret', 'code_length', 'revealed_codes', 'attempt_id'):
+            r[key] = response_json[key]
+    return r
+
+
+@view_config(name='confirm-uid', renderer='json')
+def confirm_uid(request):
+    param_map = get_params(request)
+    params = schema.AddUIDCodeSchema().bind(
+        request=request).deserialize(param_map)
+    device = get_device(request, params)
+    user = device.user
+
+    wc_params = {
+        'secret': params['secret'],
+        'code': params['code'],
+        'attempt_id': params['attempt_id']
+    }
+    if params.get('replace_uid'):
+        wc_params['replace_uid'] = params['replace_uid']
+
+    access_token = get_wc_token(request, user)
+    response = wc_contact(
+        request, 'POST', 'wallet/add-uid-confirm', params=wc_params,
+        access_token=access_token, returnErrors=True)
+
+    if response != 200:
+        # Recaptcha required, or attempt expired
+        return {
+            'error': 'bad_attempt',
+            'error_description': 'Attempt denied, retry with new code.'
+        }
+
+    return {}
+
+
 @view_config(name='signup', renderer='json')
 def signup(request):
     """Associate a device with a new user and wallet."""
@@ -78,20 +134,14 @@ def wallet(request):  # TODO rename as profile
     user = device.user
     dbsession = request.dbsession
 
-    # Don't use profile access API for now, as it results in too many
-    # token requests, in conjunction with /history, too close together
-    # and crashes the app because WingCash doesn't want us doing that.
-    # use the outdated pull API until we cache tokens.
-    #
-    # access_token = get_wc_token(request, user)
-    # response = wc_contact(request, 'GET', 'wallet/info',
-    #                       access_token=access_token)
-    params = {'sender_uid': 'wingcash:{0}'.format(user.wc_id)}
-    response = wc_contact(request, 'GET', 'pull/redeemable', params=params)
+    access_token = get_wc_token(request, user)
+    response = wc_contact(request, 'GET', 'wallet/info',
+                          access_token=access_token)
 
+    profile = response.json()['profile']
+    uids = [uid_info['uid'] for uid_info in profile['confirmed_uids']]
     amounts = []
-    # loops = response.json()['profile'].get('holdings', [])
-    loops = response.json()['loops']
+    loops = profile.get('holdings', [])
     for loop in loops:
         # use memcached here
         design = dbsession.query(Design).filter(
@@ -108,7 +158,8 @@ def wallet(request):  # TODO rename as profile
         'last_name': user.last_name,
         'username': user.username,
         'profileImage': user.image_url,
-        'amounts': amounts
+        'amounts': amounts,
+        'uids': uids
     }
 
 

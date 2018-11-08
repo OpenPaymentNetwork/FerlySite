@@ -20,7 +20,7 @@ class TestGetWCToken(TestCase):
         mock_user = MagicMock()
         mock_user.wc_id = 'wc_id'
         self._call(request, mock_user)
-        params = {'uid': 'wingcash:' + mock_user.wc_id}
+        params = {'uid': 'wingcash:' + mock_user.wc_id, 'concurrent': True}
         args = (request, 'GET', 'p/token', params)
         kw = {'auth': True}
         mock_wc_contact.assert_called_once_with(*args, **kw)

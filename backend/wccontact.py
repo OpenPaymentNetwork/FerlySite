@@ -5,7 +5,7 @@ import requests
 
 
 def wc_contact(request, method, urlTail, params={},
-               access_token=None, auth=False):
+               access_token=None, auth=False, returnErrors=False):
     args = {}
 
     if method == 'POST':
@@ -41,8 +41,10 @@ def wc_contact(request, method, urlTail, params={},
             if 'invalid' in error_json:
                 raise Invalid(None, msg=error_json['invalid'])
             else:
-                # wc ise, or bad token request.
-                raise HTTPServiceUnavailable
+                if returnErrors:
+                    return response
+                else:
+                    raise HTTPServiceUnavailable
     else:
         return response
 
@@ -52,8 +54,8 @@ def get_wc_token(request, user):
 
     params = {
         'uid': 'wingcash:' + user.wc_id,
+        'concurrent': True
     }
-
     response = wc_contact(request, 'GET', 'p/token', params, auth=True)
     access_token = response.json().get('access_token')
 
