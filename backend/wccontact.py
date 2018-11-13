@@ -4,7 +4,7 @@ import os
 import requests
 
 
-def wc_contact(request, method, urlTail, params={},
+def wc_contact(request, method, urlTail, params={}, secret='',
                access_token=None, auth=False, returnErrors=False):
     args = {}
 
@@ -23,8 +23,12 @@ def wc_contact(request, method, urlTail, params={},
             request.ferlysettings.wingcash_client_secret)
         args.update({'auth': wcauth})
     else:
-        token = access_token or request.ferlysettings.ferly_token
-        args.update({'headers': {'Authorization': 'Bearer ' + token}})
+        if secret:
+            authorization = 'wingcash secret=\"{0}\"'.format(secret)
+        else:
+            token = access_token or request.ferlysettings.ferly_token
+            authorization = 'Bearer {0}'.format(token)
+        args.update({'headers': {'Authorization': authorization}})
 
     wingcash_api_url = request.ferlysettings.wingcash_api_url
     url = os.path.join(wingcash_api_url, urlTail.strip('/'))
@@ -37,12 +41,11 @@ def wc_contact(request, method, urlTail, params={},
         except Exception:
             raise HTTPServiceUnavailable
         else:
-            # return false and raise invalid in userview?
-            if 'invalid' in error_json:
-                raise Invalid(None, msg=error_json['invalid'])
+            if returnErrors:
+                return response
             else:
-                if returnErrors:
-                    return response
+                if 'invalid' in error_json:
+                    raise Invalid(None, msg=error_json['invalid'])
                 else:
                     raise HTTPServiceUnavailable
     else:

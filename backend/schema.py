@@ -45,24 +45,37 @@ def username(missing=required):
         validator=validate_username)
 
 
+class RecoverySchema(Schema):
+    device_id = device_id()
+    login = SchemaNode(String())
+
+
+class RecoveryCodeSchema(Schema):
+    device_id = device_id()
+    code = SchemaNode(String())
+    secret = SchemaNode(String())
+    factor_id = SchemaNode(String())
+    attempt_path = SchemaNode(String())
+
+
 class UIDSchema(Schema):
     device_id = device_id()
-    login = SchemaNode(String(), missing=required)
-    uidType = SchemaNode(String(), missing=required)
+    login = SchemaNode(String())
+    uidType = SchemaNode(String())
 
 
 class AddUIDCodeSchema(Schema):
     device_id = device_id()
-    code = SchemaNode(String(), missing=required)
-    secret = SchemaNode(String(), missing=required)
-    attempt_id = SchemaNode(String(), missing=required)
+    code = SchemaNode(String())
+    secret = SchemaNode(String())
+    attempt_id = SchemaNode(String())
     replace_uid = SchemaNode(String(), missing=None)
 
 
 class AuthUIDCodeSchema(Schema):
     device_id = device_id()
-    code = SchemaNode(String(), missing=required)
-    factor_id = SchemaNode(String(), missing=required)
+    code = SchemaNode(String())
+    factor_id = SchemaNode(String())
 
 
 class EditProfileSchema(Schema):
@@ -85,7 +98,7 @@ class DesignSchema(Schema):
 
 
 class ContactSchema(Schema):
-    email = SchemaNode(String(), missing=required, validator=Email())
+    email = SchemaNode(String(), validator=Email())
 
 
 class DeviceSchema(Schema):

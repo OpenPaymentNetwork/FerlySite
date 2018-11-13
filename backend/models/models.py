@@ -54,7 +54,3 @@ class Contact(Base):
 
 
 Index('user_index', User.wc_id, unique=True, mysql_length=255)
-Index('device_index', Device.user_id, unique=True, mysql_length=255)
-
-# Index('user_index', User.wingcash_profile_id, unique=True, mysql_length=255)
-# Index('device_index', Device.uuid, unique=True, mysql_length=255)
