@@ -133,6 +133,9 @@ def confirm_uid(request):
         request, 'POST', 'wallet/add-uid-confirm', params=wc_params,
         access_token=access_token, returnErrors=True)
 
+    if 'invalid' in response.json():
+        raise Invalid(None, msg=response.json()['invalid'])
+
     if response.status_code != 200:
         # Recaptcha required, or attempt expired
         return {
