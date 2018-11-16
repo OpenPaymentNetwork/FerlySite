@@ -29,7 +29,7 @@ def recover(request):
         raise invalid_response
 
     # must have not completed_mfa and must have factor_id else: unsupported
-    mfa = response_json.get('completed_mfa', False)
+    mfa = response_json.get('completed_mfa')
     factor_id = response_json.get('factor_id', False)
     if mfa or not factor_id:
         return {'error': 'unexpected auth attempt'}
@@ -89,7 +89,7 @@ def recover_code(request):
 
 @view_config(name='add-uid', renderer='json')
 def add_uid(request):
-    """Associate a email or phone number with a user's profile"""
+    """Associate an email or phone number with a user's profile"""
     param_map = get_params(request)
     params = schema.UIDSchema().bind(
         request=request).deserialize(param_map)
@@ -98,7 +98,7 @@ def add_uid(request):
 
     wc_params = {
         'login': params['login'],
-        'uid_type': params['uidType']
+        'uid_type': params['uid_type']
     }
 
     access_token = get_wc_token(request, user)
@@ -133,15 +133,15 @@ def confirm_uid(request):
         request, 'POST', 'wallet/add-uid-confirm', params=wc_params,
         access_token=access_token, returnErrors=True)
 
-    if 'invalid' in response.json():
-        raise Invalid(None, msg=response.json()['invalid'])
-
     if response.status_code != 200:
-        # Recaptcha required, or attempt expired
-        return {
-            'error': 'bad_attempt',
-            'error_description': 'Attempt denied, retry with new code.'
-        }
+        if 'invalid' in response.json():
+            raise Invalid(None, msg={'code': 'incorrect code'})
+        else:
+            # Recaptcha required, or attempt expired
+            return {
+                'error': 'bad_attempt',
+                'error_description': 'Attempt denied, retry with new code.'
+            }
 
     return {}
 

@@ -2,11 +2,11 @@ from backend.models.models import Device
 from backend.utils import get_device
 from backend.wccontact import get_wc_token
 from backend.wccontact import wc_contact
-from pyramid import testing as pyramidtesting
 from pyramid.httpexceptions import HTTPUnauthorized
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
+import pyramid.testing
 
 
 class TestGetWCToken(TestCase):
@@ -16,7 +16,7 @@ class TestGetWCToken(TestCase):
 
     @patch('backend.wccontact.wc_contact')
     def test_params(self, mock_wc_contact):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_user = MagicMock()
         mock_user.wc_id = 'wc_id'
         self._call(request, mock_user)
@@ -27,7 +27,7 @@ class TestGetWCToken(TestCase):
 
     @patch('backend.wccontact.wc_contact')
     def test_no_token(self, mock_wc_contact):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_wc_contact.return_value.json.return_value = {}
         mock_user = MagicMock()
         mock_user.wc_id = 'wc_id'
@@ -36,7 +36,7 @@ class TestGetWCToken(TestCase):
 
     @patch('backend.wccontact.wc_contact')
     def test_response(self, mock_wc_contact):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         token = '123'
         mock_wc_contact.return_value.json.return_value = {
             'access_token': token
@@ -55,7 +55,7 @@ class TestWCContact(TestCase):
     @patch('requests.get')
     @patch('requests.post')
     def test_get(self, mock_post, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         self._call(request, 'GET', 'urlTail', access_token='token')
@@ -65,7 +65,7 @@ class TestWCContact(TestCase):
     @patch('requests.get')
     @patch('requests.post')
     def test_post(self, mock_post, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         self._call(request, 'POST', 'urlTail', access_token='token')
@@ -75,7 +75,7 @@ class TestWCContact(TestCase):
     @patch('requests.get')
     @patch('requests.post')
     def test_invalid_method(self, mock_get, mock_post):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         with self.assertRaises(Exception) as cm:
             self._call(request, 'PUT', 'urlTail', access_token='token')
         expected_error = "Only 'GET' and 'POST' are accepted methods"
@@ -83,7 +83,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_auth(self, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         mock_settings.wingcash_client_id = 'client_id'
@@ -95,7 +95,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_headers(self, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
@@ -105,7 +105,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_settings_token(self, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
@@ -116,7 +116,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_token_priority(self, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
@@ -127,7 +127,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_params(self, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
@@ -140,7 +140,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_url_tail(self, mock_get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'https://www.example.com/'
         expected_url = 'https://www.example.com/urlTail'
@@ -154,7 +154,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.post')
     def test_data(self, mock_post):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
@@ -167,7 +167,7 @@ class TestWCContact(TestCase):
 
     @patch('requests.get')
     def test_raise_for_status_called(self, get):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         wc_response = get.return_value
@@ -181,7 +181,7 @@ class TestGetDevice(TestCase):
         return get_device(*args, **kw)
 
     def test_invalid_device_id(self):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mdbsession = request.dbsession = MagicMock()
         mock_query = mdbsession.query.return_value
         mock_query.filter.return_value.first.return_value = None
@@ -189,7 +189,7 @@ class TestGetDevice(TestCase):
             self._call(request, params={})
 
     def test_device_has_no_user(self):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mdbsession = request.dbsession = MagicMock()
         mdevice = MagicMock()
         mdevice.user = None
@@ -199,7 +199,7 @@ class TestGetDevice(TestCase):
             self._call(request, params={})
 
     def test_return_value(self):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mdbsession = request.dbsession = MagicMock()
         mdevice = MagicMock()
         mock_query = mdbsession.query.return_value
@@ -208,7 +208,7 @@ class TestGetDevice(TestCase):
         self.assertEqual(mdevice, response)
 
     def test_query(self):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         mdbsession = request.dbsession = MagicMock()
         mdevice = MagicMock()
         mock_query = mdbsession.query = MagicMock()

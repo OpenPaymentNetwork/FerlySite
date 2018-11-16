@@ -61,7 +61,7 @@ class TestCreatePurchase(TestCase):
     def _call(self, *args, **kw):
         return create_purchase(*args, **kw)
 
-    def make_request(self, **kw):
+    def _make_request(self, **kw):
         params = {
             'device_id': 'defaultdeviceid',
             'design_id': 'defaultdesignid',
@@ -102,7 +102,7 @@ class TestCreatePurchase(TestCase):
             self._call(request)
 
     def test_invalid_design_id(self):
-        request = self.make_request()
+        request = self._make_request()
         request.dbsession = mdbsession = MagicMock()
         mdbsession.query.return_value.get.return_value = None
         response = self._call(request)
@@ -111,7 +111,7 @@ class TestCreatePurchase(TestCase):
     @patch('backend.views.braintreeviews.wc_contact')
     @patch('backend.views.braintreeviews.gateway')
     def test_transaction_creation_args(self, gateway, wc_contact):
-        request = self.make_request()
+        request = self._make_request()
         self._call(request)
         expected_args = {
             'amount': '1.0',
@@ -123,14 +123,14 @@ class TestCreatePurchase(TestCase):
     @patch('backend.views.braintreeviews.gateway')
     def test_transaction_creation_fails(self, gateway):
         gateway.transaction.sale.return_value.is_success = False
-        response = self._call(self.make_request())
+        response = self._call(self._make_request())
         self.assertEqual(response, {'result': False})
 
     @patch('backend.views.braintreeviews.wc_contact')
     @patch('backend.views.braintreeviews.gateway')
     @patch('backend.views.braintreeviews.get_device')
     def test_wc_contact_params(self, get_device, gateway, wc_contact):
-        request = self.make_request()
+        request = self._make_request()
         mock_design = request.dbsession.query.return_value.get.return_value
         mock_design.distribution_id = 'distribution_id'
         mock_design.id = 'wc_id'
@@ -149,7 +149,7 @@ class TestCreatePurchase(TestCase):
     @patch('backend.views.braintreeviews.gateway')
     def test_submit_on_success(self, gateway, wc_contact):
         result = gateway.transaction.sale.return_value
-        self._call(self.make_request())
+        self._call(self._make_request())
         gateway.transaction.submit_for_settlement.assert_called_with(
             result.transaction.id)
 
@@ -157,5 +157,5 @@ class TestCreatePurchase(TestCase):
     @patch('backend.views.braintreeviews.gateway')
     def test_response_on_submit(self, gateway, wc_contact):
         result = gateway.transaction.submit_for_settlement.return_value
-        response = self._call(self.make_request())
+        response = self._call(self._make_request())
         self.assertEqual(response, {'result': result.is_success})

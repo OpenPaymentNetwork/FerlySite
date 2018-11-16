@@ -3,6 +3,7 @@ from colander import Float
 from colander import Integer
 from colander import Invalid
 from colander import Length
+from colander import OneOf
 from colander import Range
 from colander import required
 from colander import Schema
@@ -23,15 +24,15 @@ def validate_username(node, value):
 
 
 def device_id():
-    return SchemaNode(String(), missing=required)
+    return SchemaNode(String())
 
 
 def design_id():
-    return SchemaNode(String(), missing=required)
+    return SchemaNode(String())
 
 
 def amount():
-    return SchemaNode(Float(), validator=Range(min=0.01), missing=required)
+    return SchemaNode(Float(), validator=Range(min=0.01))
 
 
 def name(missing=''):
@@ -61,7 +62,7 @@ class RecoveryCodeSchema(Schema):
 class UIDSchema(Schema):
     device_id = device_id()
     login = SchemaNode(String())
-    uidType = SchemaNode(String())
+    uid_type = SchemaNode(String(), validator=OneOf(['phone', 'email']))
 
 
 class AddUIDCodeSchema(Schema):

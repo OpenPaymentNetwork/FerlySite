@@ -1,9 +1,9 @@
 from backend.views.appviews import create_contact
 from colander import Invalid
-from pyramid import testing as pyramidtesting
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
+import pyramid.testing
 
 
 class TestCreateContact(TestCase):
@@ -12,7 +12,7 @@ class TestCreateContact(TestCase):
         return create_contact(*args, **kw)
 
     def test_no_params(self):
-        request = pyramidtesting.DummyRequest()
+        request = pyramid.testing.DummyRequest()
         with self.assertRaises(Invalid) as cm:
             self._call(request)
         e = cm.exception
@@ -25,7 +25,7 @@ class TestCreateContact(TestCase):
             request_params = {
                 'email': invalid_email
             }
-            request = pyramidtesting.DummyRequest(params=request_params)
+            request = pyramid.testing.DummyRequest(params=request_params)
             with self.assertRaises(Invalid) as cm:
                 self._call(request)
             e = cm.exception
@@ -38,7 +38,7 @@ class TestCreateContact(TestCase):
         request_params = {
             'email': email
         }
-        request = pyramidtesting.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params)
         mcontact = mock_contact.return_value
         mdbsession = request.dbsession = MagicMock()
         self._call(request)
