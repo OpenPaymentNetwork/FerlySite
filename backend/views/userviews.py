@@ -135,7 +135,7 @@ def confirm_uid(request):
 
     if response.status_code != 200:
         if 'invalid' in response.json():
-            raise Invalid(None, msg={'code': 'incorrect code'})
+            raise Invalid(None, msg=response.json()['invalid'])
         else:
             # Recaptcha required, or attempt expired
             return {
