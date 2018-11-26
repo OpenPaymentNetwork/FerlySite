@@ -4,14 +4,16 @@ from backend.models.models import Design
 from backend.models.models import User
 from backend.serialize import serialize_design
 from backend.serialize import serialize_user
-from backend.utils import get_params
-from pyramid.view import view_config
 from backend.utils import get_device
+from backend.utils import get_params
+from backend.wccontact import wc_contact
+from pyramid.view import view_config
 
 
 @view_config(name='recaptcha-sitekey', renderer='json')
 def recaptcha_sitekey(request):
-
+    response = wc_contact(request, 'GET', 'aa/recaptcha_invisible_sitekey')
+    return response.json()
 
 
 @view_config(name='users', renderer='json')

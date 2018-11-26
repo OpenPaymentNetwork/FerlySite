@@ -35,6 +35,10 @@ def amount():
     return SchemaNode(Float(), validator=Range(min=0.01))
 
 
+def recaptcha_response(missing=None):
+    return SchemaNode(String(), missing=missing)
+
+
 def name(missing=''):
     return SchemaNode(String(), missing=missing, validator=Length(0, 50))
 
@@ -56,6 +60,7 @@ class RecoveryCodeSchema(Schema):
     code = SchemaNode(String())
     secret = SchemaNode(String())
     factor_id = SchemaNode(String())
+    recaptcha_response = recaptcha_response()
     attempt_path = SchemaNode(String())
 
 
@@ -70,6 +75,7 @@ class AddUIDCodeSchema(Schema):
     code = SchemaNode(String())
     secret = SchemaNode(String())
     attempt_id = SchemaNode(String())
+    recaptcha_response = recaptcha_response()
     replace_uid = SchemaNode(String(), missing=None)
 
 

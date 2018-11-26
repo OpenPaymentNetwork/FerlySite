@@ -72,13 +72,13 @@ class TestRecover(TestCase):
             'factor_id': 'myfactor_id',
         }
         response = self._call(self._make_request())
-        self.assertEqual(response, {'error': 'unexpected auth attempt'})
+        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
     @patch('backend.views.userviews.wc_contact')
     def test_no_factor_id(self, wc_contact):
         wc_contact.return_value.json.return_value = {}
         response = self._call(self._make_request())
-        self.assertEqual(response, {'error': 'unexpected auth attempt'})
+        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
     @patch('backend.views.userviews.wc_contact')
     def test_revealed_codes(self, wc_contact):
@@ -152,7 +152,7 @@ class TestRecoverCode(TestCase):
         query = request.dbsession.query.return_value
         query.filter.return_value.first.return_value = 'existing_device'
         response = self._call(request)
-        self.assertEqual(response, {'error': 'unexpected auth attempt'})
+        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
     @patch('backend.views.userviews.wc_contact')
     def test_wc_params(self, wc_contact):
@@ -160,15 +160,22 @@ class TestRecoverCode(TestCase):
         attempt_path = 'my/attempt/path'
         secret = 'mysecret'
         factor_id = 'myfactor_id'
-        request = self._make_request(code=code, attempt_path=attempt_path,
-                                     secret=secret, factor_id=factor_id)
+        recaptcha_response = 'recaptcha'
+        request = self._make_request(
+            code=code, attempt_path=attempt_path, secret=secret,
+            factor_id=factor_id, recaptcha_response=recaptcha_response)
         query = request.dbsession.query.return_value
         query.filter.return_value.first.return_value = None
         self._call(request)
         expected_url_tail = attempt_path + '/auth-uid'
-        expected_wc_params = {'code': code, 'factor_id': factor_id}
-        wc_contact.assert_called_with(request, 'POST', expected_url_tail,
-                                      secret=secret, params=expected_wc_params)
+        expected_wc_params = {
+            'code': code,
+            'factor_id': factor_id,
+            'g-recaptcha-response': recaptcha_response
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', expected_url_tail, secret=secret,
+            params=expected_wc_params, returnErrors=True)
 
     @patch('backend.views.userviews.wc_contact')
     def test_no_mfa(self, wc_contact):
@@ -178,8 +185,9 @@ class TestRecoverCode(TestCase):
         wc_contact.return_value.json.return_value = {
             'profile_id': 'myprofile_id'
         }
+        wc_contact().status_code = 200
         response = self._call(request)
-        self.assertEqual(response, {'error': 'unexpected auth attempt'})
+        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
     @patch('backend.views.userviews.wc_contact')
     def test_no_profile_id(self, wc_contact):
@@ -189,8 +197,9 @@ class TestRecoverCode(TestCase):
         wc_contact.return_value.json.return_value = {
             'completed_mfa': True
         }
+        wc_contact().status_code = 200
         response = self._call(request)
-        self.assertEqual(response, {'error': 'unexpected auth attempt'})
+        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
     @patch('backend.views.userviews.Device')
     @patch('backend.views.userviews.wc_contact')
@@ -206,6 +215,7 @@ class TestRecoverCode(TestCase):
         }
         query.filter.return_value.one.return_value = user = MagicMock()
         user.id = 'myuserid'
+        wc_contact().status_code = 200
         self._call(request)
         mock_device.assert_called_with(device_id=device_id, user_id=user.id)
         request.dbsession.add.assert_called_with(mock_device.return_value)
@@ -330,12 +340,15 @@ class TestConfirmUid(TestCase):
     @patch('backend.views.userviews.get_wc_token')
     @patch('backend.views.userviews.wc_contact')
     def test_wc_params(self, wc_contact, get_wc_token):
-        wc_params = {
+        params = {
             'secret': 'mysecret',
             'attempt_id': 'myattemptid',
-            'code': 'mycode'
+            'code': 'mycode',
         }
-        request = self._make_request(**wc_params)
+        captcha_response = 'captcha'
+        wc_params = {**params, 'g-recaptcha-response': captcha_response}
+        call_params = {**params, 'recaptcha_response': captcha_response}
+        request = self._make_request(**call_params)
         get_wc_token.return_value = access_token = MagicMock()
         self._call(request)
         wc_contact.assert_called_with(
@@ -354,12 +367,9 @@ class TestConfirmUid(TestCase):
     @patch('backend.views.userviews.wc_contact')
     def test_recaptcha_required(self, wc_contact, get_wc_token):
         wc_contact().json.return_value = {'error': 'recaptcha_required'}
-        wc_contact().status_code = 400
+        wc_contact().status_code = 410
         response = self._call(self._make_request())
-        self.assertEqual(response, {
-            'error': 'bad_attempt',
-            'error_description': 'Attempt denied, retry with new code.'
-        })
+        self.assertEqual(response, {'error': 'code_expired'})
 
 
 class TestWallet(TestCase):

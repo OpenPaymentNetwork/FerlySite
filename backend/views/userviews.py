@@ -32,7 +32,7 @@ def recover(request):
     mfa = response_json.get('completed_mfa')
     factor_id = response_json.get('factor_id', False)
     if mfa or not factor_id:
-        return {'error': 'unexpected auth attempt'}
+        return {'error': 'unexpected_auth_attempt'}
     unauthenticated = response_json['unauthenticated']
     login_type = [x.split(':')[0] for x in unauthenticated.keys()][0]
     if login_type == 'username':
@@ -63,20 +63,32 @@ def recover_code(request):
         Device.device_id == device_id).first()
     if device:
         # Trying to recover a device in use
-        return {'error': 'unexpected auth attempt'}
+        return {'error': 'unexpected_auth_attempt'}
     wc_params = {
         'code': params['code'],
         'factor_id': params['factor_id'],
+        'g-recaptcha-response': params['recaptcha_response']
     }
 
     urlTail = params['attempt_path'] + '/auth-uid'
     response = wc_contact(request, 'POST', urlTail, secret=params['secret'],
-                          params=wc_params)
+                          params=wc_params, returnErrors=True)
     response_json = response.json()
+
+    if response.status_code != 200:
+        if 'invalid' in response.json():
+            raise Invalid(None, msg=response_json['invalid'])
+        else:
+            # Recaptcha required, or attempt expired
+            error = response_json.get('error')
+            if error == 'captcha_required':
+                return {'error': 'recaptcha_required'}
+            else:
+                return {'error': 'code_expired'}
     mfa = response_json.get('completed_mfa', False)
     profile_id = response_json.get('profile_id')
     if not mfa or profile_id is None:
-        return {'error': 'unexpected auth attempt'}
+        return {'error': 'unexpected_auth_attempt'}
 
     wc_id = profile_id
     user = dbsession.query(User).filter(User.wc_id == wc_id).one()
@@ -123,7 +135,8 @@ def confirm_uid(request):
     wc_params = {
         'secret': params['secret'],
         'code': params['code'],
-        'attempt_id': params['attempt_id']
+        'attempt_id': params['attempt_id'],
+        'g-recaptcha-response': params['recaptcha_response']
     }
     if params.get('replace_uid'):
         wc_params['replace_uid'] = params['replace_uid']
@@ -138,10 +151,11 @@ def confirm_uid(request):
             raise Invalid(None, msg=response.json()['invalid'])
         else:
             # Recaptcha required, or attempt expired
-            return {
-                'error': 'bad_attempt',
-                'error_description': 'Attempt denied, retry with new code.'
-            }
+            error = response.json().get('error')
+            if error == 'captcha_required':
+                return {'error': 'recaptcha_required'}
+            else:
+                return {'error': 'code_expired'}
 
     return {}
 
