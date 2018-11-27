@@ -154,8 +154,10 @@ def confirm_uid(request):
             error = response.json().get('error')
             if error == 'captcha_required':
                 return {'error': 'recaptcha_required'}
-            else:
+            elif response.status_code == 410:
                 return {'error': 'code_expired'}
+            else:
+                return {'error': 'unexpected_wc_response'}
 
     return {}
 
