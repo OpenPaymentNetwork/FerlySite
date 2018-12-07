@@ -1,3 +1,11 @@
+def serialize_invitation(request, invitation):
+    return {
+        'id': invitation.id,
+        'created': str(invitation.created),
+        'recipient': invitation.recipient,
+        'status': invitation.status
+    }
+
 
 def serialize_user(request, user):
     return {

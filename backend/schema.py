@@ -3,13 +3,54 @@ from colander import Float
 from colander import Integer
 from colander import Invalid
 from colander import Length
+from colander import null
 from colander import OneOf
 from colander import Range
 from colander import required
 from colander import Schema
 from colander import SchemaNode
 from colander import String
+import phonenumbers
 import re
+
+
+phone_detect_re = re.compile(r'^[(+\s]*[0-9]')
+
+_email_validator = Email()
+
+
+class RecipientSchema(String):
+
+    def deserialize(self, node, cstruct):
+        value = String.deserialize(self, node, cstruct)
+        if not value:
+            return null
+
+        value = value.strip()
+        if not value:
+            return null
+
+        if '@' in value:
+            try:
+                _email_validator(node, value)
+            except Invalid:
+                raise Invalid(node, 'Invalid email address')
+            else:
+                return value
+        elif phone_detect_re.match(value):
+            try:
+                pn = phonenumbers.parse(value, 'US')
+            except Exception:
+                raise Invalid(node, msg='Invalid phone number.')
+            else:
+                if phonenumbers.is_valid_number(pn):
+                    e164value = phonenumbers.format_number(
+                        pn, phonenumbers.PhoneNumberFormat.E164)
+                    return e164value
+                else:
+                    raise Invalid(node, msg='Invalid phone number')
+        else:
+            raise Invalid(node, msg='Must be a valid email or phone number')
 
 
 def validate_username(node, value):
@@ -21,6 +62,10 @@ def validate_username(node, value):
         raise Invalid(node, "Must not start with a number")
     if re.compile(r'^[A-Za-z][A-Za-z0-9\.]{3,19}$').match(value) is None:
         raise Invalid(node, "Can only contain letters, numbers, and periods")
+
+
+def recipient():
+    return SchemaNode(RecipientSchema())
 
 
 def device_id():
@@ -48,6 +93,24 @@ def username(missing=required):
         String(),
         missing=missing,
         validator=validate_username)
+
+
+class DeleteInvitationSchema(Schema):
+    device_id = device_id()
+    invite_id = SchemaNode(String())
+
+
+class ExistingInvitationsSchema(Schema):
+    device_id = device_id()
+    status = SchemaNode(
+        String(),
+        missing=None,
+        validator=OneOf(['pending', 'deleted', 'accepted']))
+
+
+class InviteSchema(Schema):
+    device_id = device_id()
+    recipient = recipient()
 
 
 class RecoverySchema(Schema):

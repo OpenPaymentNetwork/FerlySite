@@ -4,10 +4,15 @@ from sqlalchemy import (
     Integer,
     String,
     ForeignKey,
+    DateTime,
+    func
 )
 from sqlalchemy.orm import relationship
 
 from .meta import Base
+
+
+now_utc = func.timezone('UTC', func.current_timestamp())
 
 
 class User(Base):
@@ -51,6 +56,17 @@ class Contact(Base):
     __tablename__ = 'contact'
     id = Column(Integer, primary_key=True)
     email = Column(String, nullable=False)
+
+
+class Invitation(Base):
+    __tablename__ = 'invitation'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    created = Column(DateTime, nullable=False, server_default=now_utc)
+    recipient = Column(String, nullable=False)
+    status = Column(String, server_default='pending')
+
+    user = relationship(User)
 
 
 Index('user_index', User.wc_id, unique=True, mysql_length=255)
