@@ -65,6 +65,7 @@ class Invitation(Base):
     created = Column(DateTime, nullable=False, server_default=now_utc)
     recipient = Column(String, nullable=False)
     status = Column(String, server_default='pending')
+    response = Column(String)
 
     user = relationship(User)
 

@@ -37,9 +37,23 @@ class FerlySettings(object):
 
     @reify
     def ferly_token(self):
-        # res = os.environ.get('FERLY_TOKEN')
-        # if res:
-        #     return res
-        # return self._settings['keys']['ferly_token']
-        # print('ferly_token:', self._settings['ferly_token'])
+        res = os.environ.get('FERLY_TOKEN')
+        if res:
+            return res
         return self._settings['ferly_token']
+
+    @reify
+    def sendgrid_api_key(self):
+        return os.environ.get('SENDGRID_API_KEY')
+
+    @reify
+    def twilio_sid(self):
+        return os.environ.get('TWILIO_SID')
+
+    @reify
+    def twilio_auth_token(self):
+        return os.environ.get('TWILIO_AUTH_TOKEN')
+
+    @reify
+    def twilio_from(self):
+        return os.environ.get('TWILIO_FROM')

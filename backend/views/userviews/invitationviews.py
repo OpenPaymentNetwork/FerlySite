@@ -1,5 +1,6 @@
 from backend import schema
 from backend.communications import send_email
+from backend.communications import send_sms
 from backend.models.models import Invitation
 from backend.serialize import serialize_invitation
 from backend.utils import get_device
@@ -49,13 +50,23 @@ def invite(request):
     dbsession = request.dbsession
 
     recipient = params['recipient']
+    message = 'You have been invited to join Ferly.'
     if '@' in recipient:
-        sendgrid_response = send_email(
+        response = send_email(
+            request,
             recipient,
-            'Ferly Inivtation',
-            'You have been invited to join Ferly')
-        print("sendgrid_response", sendgrid_response)
+            'Ferly Invitation',
+            message
+        )
+        status = 'sendgrid:{0}'.format(response)
+    else:
+        response = send_sms(request, recipient, message)
+        status = 'twilio:{0}'.format(response)
 
-    invitation = Invitation(user_id=user.id, recipient=params['recipient'])
+    invitation = Invitation(
+        user_id=user.id,
+        recipient=recipient,
+        response=status
+    )
     dbsession.add(invitation)
     return {}
