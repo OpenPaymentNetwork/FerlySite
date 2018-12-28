@@ -1,3 +1,5 @@
+from backend.communications import send_email
+from backend.communications import send_sms
 from backend.models.models import Device
 from backend.utils import get_device
 from backend.wccontact import get_wc_token
@@ -218,3 +220,39 @@ class TestGetDevice(TestCase):
         self._call(request, params={'device_id': device_id})
         expression = Device.device_id == device_id
         self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+
+
+class TestSendEmail(TestCase):
+
+    def _call(self, *args, **kw):
+        return send_email(*args, **kw)
+
+    def test_no_api_key(self):
+        request = MagicMock()
+        request.ferlysettings.sendgrid_api_key = None
+        response = self._call(request, 'to@example.com', 'subject', 'text')
+        self.assertEqual(response, 'no-credentials')
+
+
+class TestSendSms(TestCase):
+
+    def _call(self, *args, **kw):
+        return send_sms(*args, **kw)
+
+    def test_no_sid(self):
+        request = MagicMock()
+        request.ferlysettings.twilio_sid = None
+        response = self._call(request, '+12025551234', 'text')
+        self.assertEqual(response, 'no-credentials')
+
+    def test_no_auth_token(self):
+        request = MagicMock()
+        request.ferlysettings.twilio_auth_token = None
+        response = self._call(request, '+12025551234', 'text')
+        self.assertEqual(response, 'no-credentials')
+
+    def test_no_from(self):
+        request = MagicMock()
+        request.ferlysettings.twilio_from = None
+        response = self._call(request, '+12025551234', 'text')
+        self.assertEqual(response, 'no-credentials')

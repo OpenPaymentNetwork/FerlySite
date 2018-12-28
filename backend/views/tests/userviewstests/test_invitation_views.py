@@ -32,22 +32,51 @@ class TestInvite(TestCase):
         with self.assertRaisesRegex(Invalid, "'recipient': 'Required'"):
             self._call(pyramid.testing.DummyRequest(params={}))
 
+    @patch('backend.views.userviews.invitationviews.send_email')
     @patch('backend.views.userviews.invitationviews.get_device')
     @patch('backend.views.userviews.invitationviews.Invitation')
-    def test_invitation_params(self, invitation, get_device):
-        recipient = 'friendsemail@example.com'
-        request = self._make_request(recipient=recipient)
-        user = get_device.return_value.user
-        self._call(request)
-        invitation.assert_called_with(user_id=user.id, recipient=recipient)
-
-    @patch('backend.views.userviews.invitationviews.get_device')
-    @patch('backend.views.userviews.invitationviews.Invitation')
-    def test_invitation_added(self, invitation, get_device):
+    def test_invitation_added(self, invitation, get_device, send_email):
         request = self._make_request()
         mock_invitation = invitation.return_value
         self._call(request)
         request.dbsession.add.assert_called_with(mock_invitation)
+
+    @patch('backend.views.userviews.invitationviews.send_email')
+    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.views.userviews.invitationviews.Invitation')
+    def test_email_invitation(self, invitation, get_device, send_email):
+        recipient = 'friendsemail@example.com'
+        sendgrid_response = send_email.return_value = '202'
+        expected_response = 'sendgrid:{0}'.format(sendgrid_response)
+        request = self._make_request(recipient=recipient)
+        user = get_device.return_value.user
+        self._call(request)
+        send_email.assert_called_with(
+            request,
+            recipient,
+            'Ferly Invitation',
+            'You have been invited to join Ferly.'
+        )
+        invitation.assert_called_with(
+            user_id=user.id, recipient=recipient, response=expected_response)
+
+    @patch('backend.views.userviews.invitationviews.send_sms')
+    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.views.userviews.invitationviews.Invitation')
+    def test_sms_invitation(self, invitation, get_device, send_sms):
+        recipient = '+12025551234'
+        twilio_response = send_sms.return_value = 'queued'
+        expected_response = 'twilio:{0}'.format(twilio_response)
+        request = self._make_request(recipient=recipient)
+        user = get_device.return_value.user
+        self._call(request)
+        send_sms.assert_called_with(
+            request,
+            recipient,
+            'You have been invited to join Ferly.'
+        )
+        invitation.assert_called_with(
+            user_id=user.id, recipient=recipient, response=expected_response)
 
 
 class TestExistingInvitations(TestCase):
