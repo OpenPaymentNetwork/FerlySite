@@ -17,6 +17,8 @@ def signup(request):
     params = schema.RegisterSchema().bind(
         request=request).deserialize(param_map)
     device_id = params['device_id']
+    expo_token = params['expo_token']
+    os = params['os']
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
         Device.device_id == device_id).first()
@@ -47,11 +49,12 @@ def signup(request):
         first_name = params['first_name']
         last_name = params['last_name']
         user = User(wc_id=wc_id, first_name=first_name, last_name=last_name,
-                    username=username, expo_token=params['expo_token'])
+                    username=username)
         dbsession.add(user)
         dbsession.flush()
 
-        device = Device(device_id=device_id, user_id=user.id)
+        device = Device(device_id=device_id, user_id=user.id,
+                        expo_token=expo_token, os=os)
         dbsession.add(device)
     return {}
 
@@ -66,6 +69,7 @@ def is_user(request):
     device = dbsession.query(Device).filter(
         Device.device_id == device_id).first()
     response = {'is_user': device is not None}
+    # Doing more than this requires updating device.last_used to models.now_utc
     return response
 
 
@@ -136,12 +140,12 @@ def send(request):
     wc_contact(request, 'POST', 'wallet/send', params=params,
                access_token=access_token)
 
-    formatted_amount = '${:.2f}'.format(amount)
+    # formatted_amount = '${:.2f}'.format(amount)
 
-    title = 'Gift Received!'
-    body = 'You have received {0} {1} from {2}'.format(
-            formatted_amount, design.title, user.title)
-    notify_user(recipient, title, body)
+    # title = 'Gift Received!'
+    # body = 'You have received {0} {1} from {2}'.format(
+    #         formatted_amount, design.title, user.title)
+    # notify_user(recipient, title, body)
 
     # title = 'Gift Sent!'
     # body = 'You have sent ${:.2f} {1} to {2}'.format(

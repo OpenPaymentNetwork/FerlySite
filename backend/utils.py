@@ -1,4 +1,5 @@
 from backend.models.models import Device
+from backend.models.models import now_utc
 from pyramid.httpexceptions import HTTPUnauthorized
 import requests
 
@@ -10,6 +11,7 @@ def get_device(request, params):
         Device.device_id == device_id).first()
     if device is None or device.user is None:
         raise HTTPUnauthorized
+    device.last_used = now_utc
     return device
 
 

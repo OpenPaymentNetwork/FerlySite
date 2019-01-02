@@ -57,6 +57,8 @@ def recover_code(request):
 
     dbsession = request.dbsession
     device_id = params['device_id']
+    expo_token = params['expo_token']
+    os = params['os']
     device = dbsession.query(Device).filter(
         Device.device_id == device_id).first()
     if device:
@@ -91,7 +93,8 @@ def recover_code(request):
     wc_id = profile_id
     user = dbsession.query(User).filter(User.wc_id == wc_id).one()
 
-    new_device = Device(device_id=device_id, user_id=user.id)
+    new_device = Device(device_id=device_id, user_id=user.id,
+                        expo_token=expo_token, os=os)
     dbsession.add(new_device)
 
     return {}
@@ -157,4 +160,3 @@ def confirm_uid(request):
             else:
                 return {'error': 'unexpected_wc_response'}
     return {}
-

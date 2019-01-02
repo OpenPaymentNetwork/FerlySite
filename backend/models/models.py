@@ -24,7 +24,7 @@ class User(Base):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     username = Column(String, nullable=False)
-    expo_token = Column(String)
+    created = Column(DateTime, nullable=False, server_default=now_utc)
     image_url = Column(String)
 
     @property
@@ -38,6 +38,9 @@ class Device(Base):
     device_id = Column(String, unique=True, nullable=False, index=True)
     user_id = Column(
         Integer, ForeignKey('user.id'), nullable=False, index=True)
+    expo_token = Column(String)
+    last_used = Column(DateTime, nullable=False, server_default=now_utc)
+    os = Column(String)
 
     user = relationship(User)
 

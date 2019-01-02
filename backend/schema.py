@@ -95,6 +95,10 @@ def username(missing=required):
         validator=validate_username)
 
 
+def expo_token(missing=''):
+    return SchemaNode(String(), missing=missing)
+
+
 class DeleteInvitationSchema(Schema):
     device_id = device_id()
     invite_id = SchemaNode(String())
@@ -125,6 +129,8 @@ class RecoveryCodeSchema(Schema):
     factor_id = SchemaNode(String())
     recaptcha_response = recaptcha_response()
     attempt_path = SchemaNode(String())
+    expo_token = expo_token()
+    os = SchemaNode(String())
 
 
 class UIDSchema(Schema):
@@ -160,7 +166,8 @@ class RegisterSchema(Schema):
     first_name = name(missing=required)
     last_name = name(missing=required)
     username = username(missing=required)
-    expo_token = SchemaNode(String(), missing='')
+    expo_token = expo_token()
+    os = SchemaNode(String())
 
 
 class DesignSchema(Schema):

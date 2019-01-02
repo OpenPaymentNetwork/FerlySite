@@ -114,7 +114,9 @@ class TestRecoverCode(TestCase):
             'code': '123456789',
             'secret': 'defaultsecret',
             'factor_id': 'defaultfactor_id',
-            'attempt_path': 'default/attempt/path'
+            'attempt_path': 'default/attempt/path',
+            'expo_token:': 'defaulttoken',
+            'os': 'android'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
@@ -139,6 +141,10 @@ class TestRecoverCode(TestCase):
 
     def test_attempt_path_required(self):
         with self.assertRaisesRegex(Invalid, "'attempt_path': 'Required'"):
+            self._call(pyramid.testing.DummyRequest(params={}))
+
+    def test_os_required(self):
+        with self.assertRaisesRegex(Invalid, "'os': 'Required'"):
             self._call(pyramid.testing.DummyRequest(params={}))
 
     def test_existing_device(self):
@@ -199,7 +205,10 @@ class TestRecoverCode(TestCase):
     @patch('backend.views.userviews.recoveryviews.wc_contact')
     def test_device_added(self, wc_contact, mock_device):
         device_id = 'mydevice_id'
-        request = self._make_request(device_id=device_id)
+        os = 'android:28'
+        expo_token = 'myexpo_token'
+        request = self._make_request(
+            device_id=device_id, os=os, expo_token=expo_token)
         query = request.dbsession.query.return_value
         query.filter.return_value.first.return_value = None
         profile_id = 'myprofile_id'
@@ -211,7 +220,8 @@ class TestRecoverCode(TestCase):
         user.id = 'myuserid'
         wc_contact().status_code = 200
         self._call(request)
-        mock_device.assert_called_with(device_id=device_id, user_id=user.id)
+        mock_device.assert_called_with(
+            device_id=device_id, user_id=user.id, expo_token=expo_token, os=os)
         request.dbsession.add.assert_called_with(mock_device.return_value)
 
 
