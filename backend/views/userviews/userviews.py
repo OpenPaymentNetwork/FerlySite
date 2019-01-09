@@ -122,6 +122,7 @@ def send(request):
     recipient_id = params['recipient_id']
     design_id = params['design_id']
     amount = params['amount']
+    message = params['message']
 
     dbsession = request.dbsession
     recipient = dbsession.query(User).get(recipient_id)
@@ -136,25 +137,21 @@ def send(request):
         'accepted_policy': True
     }
 
+    if message:
+        params['message'] = message
+
     access_token = get_wc_token(request, user)
     wc_contact(request, 'POST', 'wallet/send', params=params,
                access_token=access_token)
 
-    # formatted_amount = '${:.2f}'.format(amount)
+    formatted_amount = '${:.2f}'.format(amount)
 
-    # title = 'Gift Received!'
-    # body = 'You have received {0} {1} from {2}'.format(
-    #         formatted_amount, design.title, user.title)
-    # notify_user(recipient, title, body)
+    title = 'Received {0} {1}'.format(formatted_amount, design.title)
+    sender = 'from {0}'.format(user.title)
+    body = '{0}\n{1}'.format(message, sender) if message else sender
+    notify_user(request, recipient, title, body)
 
-    # title = 'Gift Sent!'
-    # body = 'You have sent ${:.2f} {1} to {2}'.format(
-    #         amount, design.title, recipient.title)
-    # notify_user(user, title, body)
-
-    return {
-        # new wallet, profile object . title
-    }
+    return {}
 
 
 @view_config(name='edit-profile', renderer='json')
@@ -249,11 +246,49 @@ def history(request):
                 transfer_type = 'redeem'
 
         history.append({
+            'id': transfer['id'],
             'amount': amount,
             'transfer_type': transfer_type,
             'counter_party': counter_party,
-            'title': title,
+            'design_title': title,
+            'design_image_url': design.image_url,
             'timestamp': timestamp,
             # 'loop_id': loop_id
         })
     return {'history': history, 'has_more': has_more}
+
+
+@view_config(name='transfer', renderer='json')
+def transfer(request):
+    """Request and return WingCash transfer details of a transfer."""
+    param_map = get_params(request)
+    params = schema.TransferSchema().bind(
+        request=request).deserialize(param_map)
+    device = get_device(request, params)
+    user = device.user
+    dbsession = request.dbsession
+
+    access_token = get_wc_token(request, user)
+    transfer = wc_contact(
+        request,
+        'GET',
+        't/{0}'.format(params['transfer_id']),
+        access_token=access_token).json()
+
+    sender_info = transfer['sender_info']
+    recipient_info = transfer['recipient_info']
+    if transfer['recipient_id'] == user.wc_id:
+        counter_party = sender_info
+    elif transfer['sender_id'] == user.wc_id:
+        counter_party = recipient_info
+
+    image_url = ''
+    if bool(counter_party['is_individual']):
+        cp_user = dbsession.query(User).filter(
+            User.wc_id == counter_party['uid_value']).first()
+        image_url = cp_user.image_url
+
+    return {
+        'message': transfer['message'],
+        'counter_party_image_url': image_url
+    }

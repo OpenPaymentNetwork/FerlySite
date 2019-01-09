@@ -187,6 +187,7 @@ class SendSchema(Schema):
     design_id = design_id()
     device_id = device_id()
     recipient_id = SchemaNode(String(), missing=required)
+    message = SchemaNode(String(), missing='', validator=Length(max=500))
 
 
 class PurchaseSchema(Schema):
@@ -208,3 +209,8 @@ class HistorySchema(Schema):
         Integer(), title="limit", missing='10', validator=Range(min=0))
     offset = SchemaNode(
         Integer(), title="offset", missing='0', validator=Range(min=0))
+
+
+class TransferSchema(Schema):
+    device_id = device_id()
+    transfer_id = SchemaNode(String())
