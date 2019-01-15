@@ -286,7 +286,8 @@ def transfer(request):
     if bool(counter_party['is_individual']):
         cp_user = dbsession.query(User).filter(
             User.wc_id == counter_party['uid_value']).first()
-        image_url = cp_user.image_url
+        if cp_user is not None:
+            image_url = cp_user.image_url
 
     return {
         'message': transfer['message'],
