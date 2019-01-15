@@ -27,8 +27,15 @@ def list_users(request):
     device = get_device(request, params=params)
     user = device.user
     dbsession = request.dbsession
+    ignored_users = [
+        'cf345e5a',  # expo android
+        'c4f25505',  # expo ios
+        '9005095d',  # test flight
+        '91095509',  # test account/surilan
+        '9356530a'  # test account/recovery
+    ]
     users = dbsession.query(User).filter(User.id != user.id).filter(
-        ~User.id.in_([10, 11, 71, 51, 89])).all()
+        ~User.id.in_(ignored_users)).all()
     # User.device_id != request.params.get('device_id')).all()
     return [serialize_user(request, u) for u in users]
 
