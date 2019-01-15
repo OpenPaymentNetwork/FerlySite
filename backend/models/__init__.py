@@ -5,10 +5,7 @@ import zope.sqlalchemy
 
 # import or define all models here to ensure they are attached to the
 # Base.metadata prior to any initialization routines
-# from .mymodel import MyModel  # flake8: noqa
-from .models import User
-from .models import Device
-from .models import Design
+from backend.models.models import all_metadata_defined as __all
 
 # run configure_mappers after defining all of the models to ensure
 # all relationships can be setup
