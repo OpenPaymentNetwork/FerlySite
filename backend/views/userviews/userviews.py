@@ -207,10 +207,12 @@ def history(request):
     results = response.json()['results']
     has_more = bool(response.json()['more'])
     history = []
+    designs = {}
     for transfer in results:
         amount = transfer['amount']
         timestamp = transfer['timestamp']
         title = 'Unrecognized'
+        image_url = ''
         transfer_type = 'unrecognized'
         try:
             # TODO Make sure all loop_ids are the same
@@ -218,10 +220,14 @@ def history(request):
             loop_id = first_movement_loop['loop_id']
             # TODO Get CLC title from memcache by loop_id or call wingcash and
             # cache it in parallel
-            design = dbsession.query(Design).filter(
-                Design.wc_id == loop_id).first()
-            if (design):
+            design = designs.get(loop_id)
+            if not design:
+                design = dbsession.query(Design).filter(
+                    Design.wc_id == loop_id).first()
+                designs[loop_id] = design
+            if design:
                 title = design.title
+                image_url = design.image_url
         except Exception:
             # No money was moved. ie waiting or canceled transfer
             pass
@@ -251,7 +257,7 @@ def history(request):
             'transfer_type': transfer_type,
             'counter_party': counter_party,
             'design_title': title,
-            'design_image_url': design.image_url,
+            'design_image_url': image_url,
             'timestamp': timestamp,
             # 'loop_id': loop_id
         })
