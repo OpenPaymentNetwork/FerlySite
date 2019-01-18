@@ -130,7 +130,7 @@ class RecoveryCodeSchema(Schema):
     recaptcha_response = recaptcha_response()
     attempt_path = SchemaNode(String())
     expo_token = expo_token()
-    os = SchemaNode(String())
+    os = SchemaNode(String(), missing='')
 
 
 class UIDSchema(Schema):
