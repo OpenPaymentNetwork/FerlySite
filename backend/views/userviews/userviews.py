@@ -204,8 +204,10 @@ def history(request):
         request, 'GET', 'wallet/history', params=post_params,
         access_token=access_token)
 
-    results = response.json()['results']
-    has_more = bool(response.json()['more'])
+    json = response.json()
+
+    results = json.get('results', [])
+    has_more = bool(json.get('more'))
     history = []
     designs = {}
     for transfer in results:
@@ -213,11 +215,14 @@ def history(request):
         timestamp = transfer['timestamp']
         title = 'Unrecognized'
         image_url = ''
-        transfer_type = 'unrecognized'
         try:
             # TODO Make sure all loop_ids are the same
             first_movement_loop = transfer['movements'][0]['loops'][0]
             loop_id = first_movement_loop['loop_id']
+        except Exception:
+            # No money was moved. ie waiting or canceled transfer
+            pass
+        else:
             # TODO Get CLC title from memcache by loop_id or call wingcash and
             # cache it in parallel
             design = designs.get(loop_id)
@@ -228,17 +233,12 @@ def history(request):
             if design:
                 title = design.title
                 image_url = design.image_url
-        except Exception:
-            # No money was moved. ie waiting or canceled transfer
-            pass
 
         sender_info = transfer['sender_info']
         recipient_info = transfer['recipient_info']
-        if transfer['workflow_type'] == 'purchase_offer':
-            transfer_type = 'purchase'
-            amount = first_movement_loop['amount']
-            counter_party = sender_info['title']
-        elif transfer['recipient_id'] == user.wc_id:
+        transfer_type = 'unrecognized'
+        counter_party = ''
+        if transfer['recipient_id'] == user.wc_id:
             counter_party = sender_info['title']
             if not bool(sender_info['is_individual']):
                 transfer_type = 'purchase'
@@ -289,6 +289,7 @@ def transfer(request):
         counter_party = recipient_info
 
     image_url = ''
+    #  is_individual may not always be accurate, according to WingCash.
     if bool(counter_party['is_individual']):
         cp_user = dbsession.query(User).filter(
             User.wc_id == counter_party['uid_value']).first()

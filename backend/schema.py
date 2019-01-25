@@ -206,7 +206,7 @@ class AcceptSchema(Schema):
 class HistorySchema(Schema):
     device_id = device_id()
     limit = SchemaNode(
-        Integer(), title="limit", missing='10', validator=Range(min=0))
+        Integer(), title="limit", missing='10', validator=Range(min=1))
     offset = SchemaNode(
         Integer(), title="offset", missing='0', validator=Range(min=0))
 
