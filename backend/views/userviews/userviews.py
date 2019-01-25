@@ -205,7 +205,6 @@ def history(request):
         access_token=access_token)
 
     json = response.json()
-
     results = json.get('results', [])
     has_more = bool(json.get('more'))
     history = []
@@ -287,6 +286,8 @@ def transfer(request):
         counter_party = sender_info
     elif transfer['sender_id'] == user.wc_id:
         counter_party = recipient_info
+    else:
+        return {'error': 'permission_denied'}
 
     image_url = ''
     #  is_individual may not always be accurate, according to WingCash.

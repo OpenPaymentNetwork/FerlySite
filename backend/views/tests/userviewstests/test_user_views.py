@@ -1,9 +1,11 @@
 from backend.models.models import Design
 from backend.models.models import Device
+from backend.models.models import User
 from backend.views.userviews.userviews import edit_profile
 from backend.views.userviews.userviews import history
 from backend.views.userviews.userviews import is_user
 from backend.views.userviews.userviews import signup
+from backend.views.userviews.userviews import transfer
 from backend.views.userviews.userviews import wallet
 from colander import Invalid
 from unittest import TestCase
@@ -684,3 +686,170 @@ class TestHistory(TestCase):
         response = self._call(request)
         transfer = response['history'][0]
         self.assertEqual(transfer['transfer_type'], 'unrecognized')
+
+
+class TestTransfer(TestCase):
+
+    def _call(self, *args, **kw):
+        return transfer(*args, **kw)
+
+    def _make_request(self, **params):
+        request_params = {
+            'device_id': 'defaultdeviceid',
+            'transfer_id': 'defaulttransferid'
+        }
+        request_params.update(**params)
+        request = pyramid.testing.DummyRequest(params=request_params)
+        request.dbsession = MagicMock()
+        return request
+
+    def _make_transfer(self, **kw):
+        sender_id = kw.pop('sender_id', 'defaultsenderid')
+        recipient_id = kw.pop('recipient_id', 'defaultrecipientid')
+        sender_is_individual = kw.pop('sender_is_individual', True)
+        recipient_is_individual = kw.pop('recipient_is_individual', True)
+        transfer = {
+            'sender_info': {
+                'uid_value': sender_id,
+                'is_individual': sender_is_individual
+            },
+            'recipient_info': {
+                'uid_value': recipient_id,
+                'is_individual': recipient_is_individual
+            },
+            'recipient_id': recipient_id,
+            'sender_id': sender_id,
+            'message': 'defaultmessage'
+        }
+        transfer.update(**kw)
+        return transfer
+
+    def test_device_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
+            self._call(pyramid.testing.DummyRequest(params={}))
+
+    def test_transfer_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'transfer_id': 'Required'"):
+            self._call(pyramid.testing.DummyRequest(params={}))
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_get_wc_contact_args(self, get_device, wc_contact, get_wc_token):
+        transfer_id = 'mytransferid'
+        user = get_device.return_value.user
+        access_token = get_wc_token.return_value
+        request = self._make_request(transfer_id=transfer_id)
+        self._call(request)
+        get_device.assert_called()
+        get_wc_token.assert_called_with(request, user)
+        wc_contact.assert_called_with(
+            request, 'GET', 't/{0}'.format(transfer_id),
+            access_token=access_token)
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_message_is_returned(self, get_device, wc_contact, get_wc_token):
+        message = 'mymessage'
+        user_id = 'myuserid'
+        user = get_device.return_value.user
+        user.wc_id = user_id
+        transfer = self._make_transfer(sender_id=user_id, message=message)
+        wc_contact.return_value.json.return_value = transfer
+        response = self._call(self._make_request())
+        self.assertEqual(response['message'], message)
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_sender_counter_party(self, get_device, wc_contact, get_wc_token):
+        recipient_id = 'myrecipientid'
+        sender_id = 'mysenderid'
+        user = get_device.return_value.user
+        user.wc_id = recipient_id
+        transfer = self._make_transfer(
+            recipient_id=recipient_id, sender_id=sender_id)
+        wc_contact.return_value.json.return_value = transfer
+        request = self._make_request()
+        mock_filter = request.dbsession.query.return_value.filter
+        self._call(request)
+        expression = User.wc_id == sender_id
+        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_recipient_counter_party(
+            self, get_device, wc_contact, get_wc_token):
+        sender_id = 'mysenderid'
+        recipient_id = 'myrecipientid'
+        user = get_device.return_value.user
+        user.wc_id = sender_id
+        transfer = self._make_transfer(
+            recipient_id=recipient_id, sender_id=sender_id)
+        wc_contact.return_value.json.return_value = transfer
+        request = self._make_request()
+        mock_filter = request.dbsession.query.return_value.filter
+        self._call(request)
+        expression = User.wc_id == recipient_id
+        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_permission_denied(self, get_device, wc_contact, get_wc_token):
+        recipient_id = 'myrecipientid'
+        sender_id = 'mysenderid'
+        user = get_device.return_value.user
+        user.wc_id = 'differentid'
+        transfer = self._make_transfer(
+            recipient_id=recipient_id, sender_id=sender_id)
+        wc_contact.return_value.json.return_value = transfer
+        response = self._call(self._make_request())
+        self.assertEqual(response, {'error': 'permission_denied'})
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_query_for_users_only(self, get_device, wc_contact, get_wc_token):
+        sender_id = 'mysenderid'
+        user = get_device.return_value.user
+        user.wc_id = sender_id
+        transfer = self._make_transfer(
+            sender_id=sender_id, recipient_is_individual=False)
+        wc_contact.return_value.json.return_value = transfer
+        request = self._make_request()
+        self._call(request)
+        request.dbsession.query.assert_not_called()
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_no_counter_party_user(self, get_device, wc_contact, get_wc_token):
+        sender_id = 'mysenderid'
+        user = get_device.return_value.user
+        user.wc_id = sender_id
+        transfer = self._make_transfer(sender_id=sender_id)
+        wc_contact.return_value.json.return_value = transfer
+        request = self._make_request()
+        mock_filter = request.dbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = None
+        response = self._call(request)
+        self.assertEqual(response['counter_party_image_url'], '')
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_image_url_is_returned(self, get_device, wc_contact, get_wc_token):
+        sender_id = 'mysenderid'
+        user = get_device.return_value.user
+        user.wc_id = sender_id
+        transfer = self._make_transfer(sender_id=sender_id)
+        wc_contact.return_value.json.return_value = transfer
+        request = self._make_request()
+        image_url = 'myimageurl'
+        mock_filter = request.dbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value.image_url = image_url
+        response = self._call(request)
+        self.assertEqual(response['counter_party_image_url'], image_url)
