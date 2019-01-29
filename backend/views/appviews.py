@@ -8,6 +8,9 @@ from backend.utils import get_device
 from backend.utils import get_params
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
+from sqlalchemy import cast
+from sqlalchemy import func
+from sqlalchemy import Unicode
 
 
 @view_config(name='recaptcha-sitekey', renderer='json')
@@ -65,3 +68,22 @@ def list_designs(request):
     dbsession = request.dbsession
     designs = dbsession.query(Design).all()
     return [serialize_design(request, design) for design in designs]
+
+
+@view_config(name='search-market', renderer='json')
+def search_market(request):
+    """Search the list of designs"""
+    param_map = get_params(request)
+    params = schema.SearchSchema().bind(request=request).deserialize(param_map)
+    dbsession = request.dbsession
+
+    # Create an expression that converts the query
+    # to a prefix match filter on the design table.
+    text_parsed = func.regexp_replace(
+        cast(func.plainto_tsquery(params['query']), Unicode),
+        r"'( |$)", r"':*\1", 'g')
+
+    designs = dbsession.query(Design).filter(
+        Design.tsvector.match(text_parsed))
+
+    return {'results': [serialize_design(request, x) for x in designs]}

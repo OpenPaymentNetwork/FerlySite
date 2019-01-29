@@ -214,3 +214,7 @@ class HistorySchema(Schema):
 class TransferSchema(Schema):
     device_id = device_id()
     transfer_id = SchemaNode(String())
+
+
+class SearchSchema(Schema):
+    query = SchemaNode(String())

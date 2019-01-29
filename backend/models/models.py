@@ -1,5 +1,6 @@
 from backend.models.meta import string_sequencer
 from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import relationship
 from sqlalchemy import (
     Column,
@@ -70,6 +71,10 @@ class Design(Base):
     title = Column(String)
     image_url = Column(String)
     wallet_url = Column(String)
+    tsvector = Column(TSVECTOR)
+
+    def update_tsvector(self):
+        self.tsvector = func.to_tsvector(self.title)
 
 
 class Contact(Base):

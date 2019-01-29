@@ -28,8 +28,8 @@ target_metadata = Base.metadata
 def get_url():
     return os.getenv(
         'SQLALCHEMY_URL',
-        'postgres://ferlydb:ferlydbpassword@18.191.73.21:5432/ferlytestdb')
-        # 'postgres://bbwilkes:ferlytestdb2password@18.217.173.132:5432/ferlytestdb2')
+        # 'postgres://ferlydb:ferlydbpassword@18.191.73.21:5432/ferlytestdb')
+        'postgres://bbwilkes:ferlytestdb2password@18.217.173.132:5432/ferlytestdb2')
 
 
 def run_migrations_offline():
