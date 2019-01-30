@@ -328,6 +328,6 @@ def search_users(request):
 
     users = dbsession.query(User).filter(
         User.tsvector.match(text_parsed),
-        User.id != user.id)
+        User.id != user.id).order_by(User.username)
 
     return {'results': [serialize_user(request, x) for x in users]}

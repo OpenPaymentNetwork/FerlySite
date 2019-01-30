@@ -66,7 +66,7 @@ def list_designs(request):
     with the Ferly profile.
     """
     dbsession = request.dbsession
-    designs = dbsession.query(Design).all()
+    designs = dbsession.query(Design).order_by(Design.title).all()
     return [serialize_design(request, design) for design in designs]
 
 
@@ -85,6 +85,6 @@ def search_market(request):
         r"'( |$)", r"':*\1", 'g')
 
     designs = dbsession.query(Design).filter(
-        Design.tsvector.match(text_parsed))
+        Design.tsvector.match(text_parsed)).order_by(Design.title)
 
     return {'results': [serialize_design(request, x) for x in designs]}
