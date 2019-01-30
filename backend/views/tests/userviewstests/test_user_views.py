@@ -137,6 +137,17 @@ class TestSignUp(TestCase):
         request.dbsession.assert_has_calls(
             [call.add(muser), call.flush, call.add(mdevice)])
 
+    @patch('backend.views.userviews.userviews.Device')
+    @patch('backend.views.userviews.userviews.User')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    def test_update_tsvector(self, mock_wc_contact, mock_user, mock_device):
+        request = self._make_request()
+        mock_query = request.dbsession.query.return_value
+        mock_query.filter.return_value.first.return_value = None
+        muser = mock_user.return_value
+        self._call(request)
+        muser.update_tsvector.assert_called()
+
     @patch('backend.views.userviews.userviews.wc_contact')
     def test_wc_contact_params(self, mock_wc_contact):
         first_name = 'firstname'
@@ -342,6 +353,23 @@ class TestEditProfile(TestCase):
         self.assertEqual(mock_user.first_name, current_first_name)
         self.assertEqual(mock_user.last_name, new_last_name)
         self.assertEqual(mock_user.username, current_username)
+
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    @patch('backend.views.userviews.userviews.get_device')
+    def test_update_tsvector(self, get_device, wc_contact, get_wc_token):
+        mock_user = get_device.return_value.user
+        request = pyramid.testing.DummyRequest(params={
+            'first_name': 'defaultfirstname',
+            'last_name': 'defaultlastname',
+            'username': 'defaultusername',
+            'device_id': 'deviceid'
+        })
+        request.dbsession = mdbsession = MagicMock()
+        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter.first.return_value = None
+        self._call(request)
+        mock_user.update_tsvector.assert_called()
 
 
 class TestIsUser(TestCase):

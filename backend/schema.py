@@ -223,4 +223,3 @@ class SearchMarketSchema(Schema):
 class SearchUsersSchema(Schema):
     device_id = device_id()
     query = SchemaNode(String())
-
