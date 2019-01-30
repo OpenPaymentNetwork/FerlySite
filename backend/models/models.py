@@ -41,9 +41,18 @@ class User(Base):
     created = Column(DateTime, nullable=False, server_default=now_utc)
     image_url = Column(String)
 
+    tsvector = Column(TSVECTOR)
+
     @property
     def title(self):
         return '{0} {1}'.format(self.first_name, self.last_name)
+
+    def update_tsvector(self):
+        text_parts = [self.first_name, self.last_name, self.username]
+        tsvector = func.to_tsvector(text_parts[0])
+        for text_part in text_parts[1:]:
+            tsvector = tsvector.concat(func.to_tsvector(text_part))
+        self.tsvector = tsvector
 
 
 class Device(Base):

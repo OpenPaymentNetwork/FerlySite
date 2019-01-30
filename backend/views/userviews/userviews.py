@@ -2,12 +2,16 @@ from backend import schema
 from backend.models.models import Design
 from backend.models.models import Device
 from backend.models.models import User
+from backend.serialize import serialize_user
 from backend.utils import get_device
 from backend.utils import get_params
 from backend.utils import notify_user
 from backend.wccontact import get_wc_token
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
+from sqlalchemy import cast
+from sqlalchemy import func
+from sqlalchemy import Unicode
 
 
 @view_config(name='signup', renderer='json')
@@ -50,6 +54,7 @@ def signup(request):
         last_name = params['last_name']
         user = User(wc_id=wc_id, first_name=first_name, last_name=last_name,
                     username=username)
+        user.update_tsvector()
         dbsession.add(user)
         dbsession.flush()
 
@@ -184,6 +189,7 @@ def edit_profile(request):
         user.first_name = first_name
         user.last_name = last_name
         user.username = username
+        user.update_tsvector()
     return {}
 
 
@@ -301,3 +307,27 @@ def transfer(request):
         'message': transfer['message'],
         'counter_party_image_url': image_url
     }
+
+
+@view_config(name='search-users', renderer='json')
+def search_users(request):
+    """Search the list of users"""
+    param_map = get_params(request)
+    params = schema.SearchUsersSchema().bind(
+        request=request).deserialize(param_map)
+    dbsession = request.dbsession
+    device = get_device(request, params)
+    user = device.user
+    dbsession = request.dbsession
+
+    # Create an expression that converts the query
+    # to a prefix match filter on the design table.
+    text_parsed = func.regexp_replace(
+        cast(func.plainto_tsquery(params['query']), Unicode),
+        r"'( |$)", r"':*\1", 'g')
+
+    users = dbsession.query(User).filter(
+        User.tsvector.match(text_parsed),
+        User.id != user.id)
+
+    return {'results': [serialize_user(request, x) for x in users]}

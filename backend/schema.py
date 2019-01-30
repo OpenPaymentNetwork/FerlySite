@@ -216,5 +216,11 @@ class TransferSchema(Schema):
     transfer_id = SchemaNode(String())
 
 
-class SearchSchema(Schema):
+class SearchMarketSchema(Schema):
     query = SchemaNode(String())
+
+
+class SearchUsersSchema(Schema):
+    device_id = device_id()
+    query = SchemaNode(String())
+

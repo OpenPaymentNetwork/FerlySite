@@ -74,7 +74,8 @@ def list_designs(request):
 def search_market(request):
     """Search the list of designs"""
     param_map = get_params(request)
-    params = schema.SearchSchema().bind(request=request).deserialize(param_map)
+    params = schema.SearchMarketSchema().bind(
+        request=request).deserialize(param_map)
     dbsession = request.dbsession
 
     # Create an expression that converts the query
