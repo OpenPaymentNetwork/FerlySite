@@ -1,16 +1,5 @@
 <div>
-Dear Sender: ${sender_name},
+${sender_name},
 
-<p><strong>${recipient_name}</strong> received the ${describe_notes_html}
-that you sent.</p>
-
-% if has_loyalty_notes:
-<p>
-Also, you got cash back!
-<strong>${recipient_name}</strong> sent you ${describe_loyalty_notes_html}.
-Thanks for your business and come again soon.
-</p>
-% endif
-
-<p><a href="${sender_transfer_url}">${sender_transfer_url}</a></p>
+<p><strong>${recipient_name}</strong> received ${describe_notes_html} from you.</p>
 </div>

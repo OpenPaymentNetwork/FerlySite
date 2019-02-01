@@ -1,15 +1,9 @@
 ${recipient_name},
 
-${describe_notes_text_caps}, sent to you by ${sender_name}, has been added to your wallet.
+${sender_name} has sent you a gift of ${describe_notes_text}.
 
 % if show_message_once:
-The sender said:
+With the message:
+% endif
 
 ${message}
-
-% endif
-% if has_loyalty_notes:
-You also sent loyalty cash back: ${describe_loyalty_notes_text}.
-
-% endif
-${recipient_transfer_url}

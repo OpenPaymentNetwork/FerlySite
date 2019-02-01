@@ -1,19 +1,12 @@
 <div>
 ${recipient_name},
 
-<p>${describe_notes_html_caps}, sent to you by <strong>${sender_name}</strong>,
-has been added to your wallet.</p>
+<p><strong>${sender_name}</strong> has sent you a gift of ${describe_notes_html}.</p>
 
 % if show_message_once:
-<p>The sender said:</p>
+<p>With the message:</p>
 
 <p><em>${message}</em></p>
 % endif
 
-% if has_loyalty_notes:
-<p>You also sent loyalty cash back:
-${describe_loyalty_notes_html}.</p>
-% endif
-
-<p><a href="${recipient_transfer_url}">${recipient_transfer_url}</a></p>
 </div>
