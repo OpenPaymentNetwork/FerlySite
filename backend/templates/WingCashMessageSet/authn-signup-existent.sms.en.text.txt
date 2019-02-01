@@ -1,0 +1,1 @@
+${sms_prefix} You already have an account. If you want to sign in, use this code: ${code_formatted}. (Do not share this private code.)

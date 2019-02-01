@@ -1,0 +1,7 @@
+${site_title} received a negative acknowledgment from FedLine Command for transfer ${transfer_id_dashed}. 
+
+File Status: ${ack_file_status} 
+
+Please help resolve the issue. 
+
+${admin_transfer_url}

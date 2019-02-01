@@ -1,0 +1,5 @@
+${sender_name},
+
+You sent ${describe_notes_text} to ${recipient_name} using a funds transfer.
+
+${sender_transfer_url}

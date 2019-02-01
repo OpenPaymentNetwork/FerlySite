@@ -1,0 +1,11 @@
+${recipient_name},
+
+% unwrap:
+${odfi_name} sent account confirmation entries to
+you. You can use these amounts to confirm that you own this wallet.
+The amounts are shown below. No cash was transferred.
+% endunwrap
+
+${ach_confirmation_amounts_text}
+
+${recipient_transfer_url}

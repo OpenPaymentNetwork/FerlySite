@@ -1,0 +1,25 @@
+${profile_name},
+
+${site_title} received and settled an ACH file.
+
+- Filename: ${filename}
+- Credits Received: ${received_credits_count} (${received_credits_total})
+- Credits Settled: ${settled_credits_count} (${settled_credits_total})
+- Debits Received: ${received_debits_count} (${received_debits_total})
+- Return Entries Created: ${returns_count} (${returns_total})
+
+% unwrap:
+% if unsettled_count:
+Not all credits could be settled at this time.
+% if not_yet_effective:
+Some of the credits have not yet reached the effective date.
+% endif
+% endif
+% endunwrap
+% if not unsettled_count:
+All entries in this file have been settled.
+% endif
+
+Follow the link below for more details.
+
+${profile_transfer_url}

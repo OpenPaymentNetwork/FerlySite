@@ -1,0 +1,103 @@
+<div>
+${sender_name},
+
+% if not billpay_confirmed:
+<p>Your purchase from ${recipient_name} is almost complete.
+% if billpay_cashtie_enabled:
+Next, choose one of two ways to pay:
+% endif
+</p>
+
+% if billpay_cashtie_enabled:
+<h2>1. Pay With Cash</h2>
+
+<p>Bring physical cash and a payment slip to a local retailer.
+The retailer will require a ${billpay_cashtie_convenience_fee} convenience fee.
+Print or view your payment slip by visiting this web page:</p>
+
+<p><a href="${billpay_cashtie_payslip_url}">${billpay_cashtie_payslip_url}</a></p>
+
+<h2>2. Bill Payment</h2>
+% endif
+
+<p>You can use the bill pay service at your bank or credit union to complete
+the purchase. After signing in to your financial institution's web site, visit
+the bill pay service, add ${site_title} as a payee, and send the payment.  Complete
+the payee form using the information below.
+</p>
+
+% else:
+
+<p>${site_title} has not yet received your bill payment of ${transfer_amount_formatted}
+for ${recipient_name}. ${site_title} will notify you when the payment
+arrives. If you have not sent the payment yet, here are the payee details
+again. Using the bill pay service at your financial institution's web site,
+add ${site_title} as a payee and send the payment.  If ${site_title} does not receive
+the payment within 2 weeks of the original purchase date, the purchase will be
+canceled.
+</p>
+
+<p>Thanks for using ${site_title}!</p>
+
+% endif
+
+<table>
+    <tr>
+        <th style="text-align:right;padding-right:1em">Amount</th>
+        <td>${transfer_amount_formatted}</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">Payee Name</th>
+        <td>${site_title}</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">Payee Account Number</th>
+        <td>${sender_bankcard_number}</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">Address (Line 1)</th>
+        <td>5406 West 11000 North</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">Address (Line 2)</th>
+        <td>Suite 103 PMB 101</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">City</th>
+        <td>Highland</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">State</th>
+        <td>Utah</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">ZIP</th>
+        <td>84003</td>
+    </tr>
+    <tr>
+        <th style="text-align:right;padding-right:1em">Phone</th>
+        <td>801-839-4010</td>
+    </tr>
+</table>
+
+% if not billpay_confirmed:
+
+<p>Next, visit this web page to confirm the bill payment:</p>
+
+<p><a href="${billpay_confirm_url}">${billpay_confirm_url}</a></p>
+
+<p>This link will expire soon.</p>
+
+<p>If you need to cancel this payment, please visit the
+page linked above and fill out the cancellation form.
+</p>
+
+% else:
+
+<p>If you need to cancel this payment, please visit this page
+and fill out the cancellation form:
+<a href="${billpay_update_url}">${billpay_update_url}</a></p>
+
+% endif
+
+</div>

@@ -1,0 +1,14 @@
+<div>
+${recipient_name},
+
+<p>${site_title} accepted a payment from <strong>${sender_name}</strong>,
+who received ${describe_notes_html_caps}.
+</p>
+
+% if has_loyalty_notes:
+<p>You also sent loyalty cash back:
+${describe_loyalty_notes_html}.</p>
+% endif
+
+<p><a href="${recipient_transfer_url}">${recipient_transfer_url}</a></p>
+</div>

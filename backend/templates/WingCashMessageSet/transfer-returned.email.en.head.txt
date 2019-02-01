@@ -1,0 +1,6 @@
+To: ${sender_email_formatted}
+From: ${system_email_formatted}
+% if recipient_email_formatted_unconfirmed:
+Reply-To: ${recipient_email_formatted_unconfirmed}
+% endif
+Subject: ${email_subject_prefix} ${describe_notes_text} Returned By ${recipient_name}

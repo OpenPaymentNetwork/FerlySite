@@ -1,0 +1,6 @@
+The following errors occurred in transfer ${transfer_id_dashed}.
+An administrator needs to resolve them.
+
+${error_list_text}
+
+${admin_transfer_url}

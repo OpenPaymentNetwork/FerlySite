@@ -1,0 +1,1 @@
+${sms_prefix} Sorry, there is no account for this phone number at ${site_title}.

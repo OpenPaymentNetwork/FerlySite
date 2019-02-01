@@ -1,0 +1,3 @@
+To: ${sender_email_formatted}
+From: ${system_email_formatted}
+Subject: ${email_subject_prefix} Confirm Your Offer

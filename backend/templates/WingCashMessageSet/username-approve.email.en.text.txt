@@ -1,0 +1,5 @@
+${contact_name}, 
+
+Your request for ${site_title} username "${username}" was approved! Your profile is now located at the following address: 
+
+${contact_url}

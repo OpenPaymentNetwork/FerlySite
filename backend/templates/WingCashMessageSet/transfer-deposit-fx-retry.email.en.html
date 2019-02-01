@@ -1,0 +1,15 @@
+<div>
+${sender_name},
+
+<p>Your transfer of <strong>${dest_amount_formatted}</strong> to
+% if recipient_account_individual_name:
+<strong>${recipient_account_rdfi_name}</strong> for <strong>${recipient_account_individual_name}</strong>
+% else:
+<strong>${recipient_account_rdfi_name}</strong>
+% endif
+has been delayed due to a temporary error. ${site_title} will continue to
+attempt your transfer automatically and will notify you when it's complete.
+</p>
+
+<p><a href="${sender_transfer_url}">${sender_transfer_url}</a></p>
+</div>

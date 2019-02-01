@@ -1,0 +1,14 @@
+${sender_name},
+
+% unwrap:
+Your transfer of ${dest_amount_formatted} to
+% if recipient_account_individual_name:
+${recipient_account_rdfi_name} for ${recipient_account_individual_name}
+% else:
+${recipient_account_rdfi_name}
+% endif
+has been delayed due to a temporary error. ${site_title} will continue to
+attempt your transfer automatically and will notify you when it's complete.
+% endunwrap
+
+${sender_transfer_url}

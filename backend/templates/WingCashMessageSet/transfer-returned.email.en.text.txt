@@ -1,0 +1,5 @@
+${sender_name},
+
+${recipient_name} returned to you the ${describe_notes_text} that you offered.
+
+${sender_transfer_url}

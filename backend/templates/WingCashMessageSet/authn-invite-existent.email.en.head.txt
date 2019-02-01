@@ -1,0 +1,3 @@
+To: ${invite_email_formatted}
+From: ${system_email_formatted}
+Subject: ${email_subject_prefix} Add ${invite_org_name} to your account at ${site_title}

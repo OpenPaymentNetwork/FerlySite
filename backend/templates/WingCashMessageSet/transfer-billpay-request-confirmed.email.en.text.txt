@@ -1,0 +1,5 @@
+${sender_name}, 
+
+Your bill payment is now confirmed and WingCash is waiting for the payment to arrive. Please allow 5-7 business days. If you need to cancel this payment or you want to view the payment status, please visit this link: 
+
+${billpay_update_url}

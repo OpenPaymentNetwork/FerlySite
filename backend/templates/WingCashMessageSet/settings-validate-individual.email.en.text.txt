@@ -1,0 +1,7 @@
+${contact_name}, 
+
+You have requested to add this email address, ${contact_email}, to your ${site_title} profile. Please click the link below to confirm that this email address belongs to you. 
+
+${action_url} 
+
+This link will expire in ${email_validation_days} days.

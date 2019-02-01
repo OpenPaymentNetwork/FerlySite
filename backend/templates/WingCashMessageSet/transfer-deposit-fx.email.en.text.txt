@@ -1,0 +1,21 @@
+${sender_name},
+
+% unwrap:
+${site_title} received ${source_amount_formatted} from you,
+exchanged it for ${dest_amount_formatted},
+and deposited the exchanged money in account
+${recipient_account_number_redacted} at
+% if recipient_account_individual_name:
+${recipient_account_rdfi_name} for ${recipient_account_individual_name}.
+% else:
+${recipient_account_rdfi_name}.
+% endif
+% endunwrap
+
+- Exchange rate: ${source_unit_formatted} = ${fx_rate_formatted}
+- Fee: ${source_fee_amount_formatted}
+- Amount paid (without fee): ${source_amount_without_fee_formatted}
+- Amount paid (with fee): ${source_amount_formatted}
+- Amount sent after exchange: ${dest_amount_formatted}
+
+${sender_transfer_url}

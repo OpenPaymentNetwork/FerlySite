@@ -1,0 +1,15 @@
+${sender_name},
+
+% unwrap:
+${site_title} received your payment for ${recipient_name} and added
+${describe_notes_text} to your wallet.
+% endunwrap
+
+% if has_loyalty_notes:
+% unwrap:
+Also, you got cash back! ${recipient_name} sent you ${describe_loyalty_notes_text}.
+Thanks for your business and come again soon.
+% endunwrap
+
+% endif
+${sender_transfer_url}

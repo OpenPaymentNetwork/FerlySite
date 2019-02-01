@@ -1,0 +1,18 @@
+<div>
+${sender_name},
+
+<p>${site_title} received your payment for
+<strong>${recipient_name}</strong> and added
+${describe_notes_html} to your wallet.
+</p>
+
+% if has_loyalty_notes:
+<p>
+Also, you got cash back!
+<strong>${recipient_name}</strong> sent you ${describe_loyalty_notes_html}.
+Thanks for your business and come again soon.
+</p>
+% endif
+
+<p><a href="${sender_transfer_url}">${sender_transfer_url}</a></p>
+</div>

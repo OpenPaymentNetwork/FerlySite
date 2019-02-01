@@ -1,0 +1,5 @@
+${contact_name}, 
+
+Sorry, your request for ${site_title} username "${username}" was not approved. You are welcome to apply for a different name. 
+
+${contact_url}

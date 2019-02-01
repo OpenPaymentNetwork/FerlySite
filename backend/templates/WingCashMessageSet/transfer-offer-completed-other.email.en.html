@@ -1,0 +1,29 @@
+<div>
+${profile_name},
+
+<p><a href="${sender_url}">${sender_name}</a>
+% if offer_payment_type_free:
+    accepted
+% else:
+    purchased
+% endif
+offer <a href="${offer_url_with_referrer}">${offer_name}</a>
+% if offer_payment_type_wingcash:
+    for ${transfer_amount_formatted} cash.
+% elif offer_payment_type_free:
+    for no charge.
+% elif offer_payment_type_paycard:
+    using a payment card for ${transfer_amount_formatted}.
+    When the payment settles,
+    <a href="${merchant_url}">${merchant_name}</a>
+    will receive the payment.
+% endif
+</p>
+
+<p><a href="${merchant_url}">${merchant_name}</a>
+completed the purchase by sending ${describe_notes_html} to
+<a href="${sender_url}">${sender_name}</a>.
+</p>
+
+<p><a href="${profile_transfer_url}">${profile_transfer_url}</a></p>
+</div>

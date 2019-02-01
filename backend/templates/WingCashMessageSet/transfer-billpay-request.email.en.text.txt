@@ -1,0 +1,69 @@
+${sender_name},
+
+% if not billpay_confirmed:
+% unwrap:
+Your purchase from ${recipient_name} is almost complete.
+% if billpay_cashtie_enabled:
+Next, choose one of two ways to pay:
+% endif
+% endunwrap
+
+% if billpay_cashtie_enabled:
+1. Pay With Cash
+
+% unwrap:
+Bring physical cash and a payment slip to a local retailer.
+The retailer will require a ${billpay_cashtie_convenience_fee} convenience fee.
+Print or view your payment slip by visiting this web page:
+% endunwrap
+
+${billpay_cashtie_payslip_url}
+
+2. Bill Payment
+
+% endif
+% unwrap:
+You can use the bill pay service at your bank or credit union to complete
+the purchase. After signing in to your financial institution's web site, visit
+the bill pay service, add ${site_title} as a payee, and send the payment.  Complete
+the payee form using the information below.
+% endunwrap
+% else:
+% unwrap:
+${site_title} has not yet received your bill payment of ${transfer_amount_formatted}
+for ${recipient_name}. ${site_title} will notify you when the payment
+arrives. If you have not sent the payment yet, here are the payee details
+again. Using the bill pay service at your financial institution's web site,
+add ${site_title} as a payee and send the payment.  If ${site_title} does not receive
+the payment within 2 weeks of the original purchase date, the purchase will be
+canceled.
+% endunwrap
+
+Thanks for using ${site_title}!
+
+% endif
+
+- Amount: ${transfer_amount_formatted}
+- Payee Name: ${site_title}
+- Payee Account Number: ${sender_bankcard_number}
+- Address (Line 1): 5406 West 11000 North
+- Address (Line 2): Suite 103 PMB 101
+- City: Highland
+- State: Utah
+- ZIP: 84003
+- Phone: 801-839-4010
+
+% if not billpay_confirmed:
+Next, visit this web page to confirm the bill payment:
+
+${billpay_confirm_url}
+
+This link will expire soon.
+
+If you need to cancel this payment, please visit the page linked above and fill out the cancellation form.
+% else:
+If you need to cancel this payment, please visit this page
+and fill out the cancellation form:
+
+${billpay_update_url}
+% endif

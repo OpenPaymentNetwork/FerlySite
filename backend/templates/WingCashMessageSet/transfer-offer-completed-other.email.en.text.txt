@@ -1,0 +1,28 @@
+${profile_name},
+
+% unwrap:
+${sender_name}
+% if offer_payment_type_free:
+    accepted
+% else:
+    purchased
+% endif
+offer ${offer_name}
+% if offer_payment_type_wingcash:
+    for ${transfer_amount_formatted} cash.
+% elif offer_payment_type_free:
+    for no charge.
+% elif offer_payment_type_paycard:
+    using a payment card for ${transfer_amount_formatted}.
+    When the payment settles,
+    ${merchant_name}
+    will receive the payment.
+% endif
+% endunwrap
+
+% unwrap:
+${merchant_name} completed the purchase by sending ${describe_notes_text}
+to ${sender_name}.
+% endunwrap
+
+${profile_transfer_url}

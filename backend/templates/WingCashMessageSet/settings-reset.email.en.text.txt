@@ -1,0 +1,7 @@
+${contact_name}, 
+
+Here is the password reset link you requested. Click it to reset your ${site_title} password. 
+
+${action_url} 
+
+This link will expire in ${email_validation_days} days.

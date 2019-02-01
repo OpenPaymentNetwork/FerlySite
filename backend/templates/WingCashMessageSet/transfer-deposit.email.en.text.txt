@@ -1,0 +1,5 @@
+${sender_name},
+
+${site_title} has submitted ${redeem_amount} for deposit in your account.
+
+${sender_transfer_url}

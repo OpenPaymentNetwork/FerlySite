@@ -1,0 +1,56 @@
+<div>
+${profile_name},
+
+<p>${site_title} received and settled an ACH file.</p>
+
+<table>
+    <tr>
+        <th style="text-align: left">Filename</th>
+        <td>${filename}</td>
+    </tr>
+    <tr>
+        <th style="text-align: left">Credits Received</th>
+        <td>
+            ${received_credits_count}
+            (${received_credits_total})
+        </td>
+    </tr>
+    <tr>
+        <th style="text-align: left">Credits Settled</th>
+        <td>
+            ${settled_credits_count}
+            (${settled_credits_total})
+        </td>
+    </tr>
+    <tr>
+        <th style="text-align: left">Debits Received</th>
+        <td>
+            ${received_debits_count}
+            (${received_debits_total})
+        </td>
+    </tr>
+    <tr>
+        <th style="text-align: left">Return Entries Created</th>
+        <td>
+            ${returns_count}
+            (${returns_total})
+        </td>
+    </tr>
+</table>
+
+% if unsettled_count:
+<p><strong>Not all credits could be settled at this time.</strong>
+% if not_yet_effective:
+Some of the credits have not yet reached the effective date.
+% endif
+</p>
+% endif
+
+% if not unsettled_count:
+<p>All entries in this file have been settled.</p>
+% endif
+
+<p>Follow the link below for more details.</p>
+
+<p><a href="${profile_transfer_url}">${profile_transfer_url}</a></p>
+</div>

@@ -1,0 +1,5 @@
+Hi ${owner_name}, 
+
+Did you just try to add this email address (${contact_email}) to another ${site_title} account?  ${contact_name} is trying to add this email address, but they can not add it to their account as long as it is connected with your account. 
+
+If this was not you, you can safely ignore this email.

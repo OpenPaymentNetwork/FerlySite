@@ -1,0 +1,7 @@
+${contact_name}, 
+
+You're almost finished signing up for ${site_title}. Please click the link below to confirm that this email address (${contact_email}) belongs to you. 
+
+${action_url} 
+
+This link will expire in ${email_validation_days} days.

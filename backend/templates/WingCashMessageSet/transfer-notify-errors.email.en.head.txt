@@ -1,0 +1,3 @@
+To: ${admin_email}
+From: ${system_email_formatted}
+Subject: ${email_subject_prefix} Errors in Transfer ${transfer_id_dashed}

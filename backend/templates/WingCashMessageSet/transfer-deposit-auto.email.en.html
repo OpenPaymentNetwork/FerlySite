@@ -1,0 +1,17 @@
+<div>
+${sender_name},
+
+<p>${site_title} initiated an automatic deposit of <strong>${redeem_amount}</strong>
+to your <strong>${ach_type_formatted}</strong>
+at <strong>${recipient_account_rdfi_name}</strong>.</p>
+
+<p>For more information about this deposit, visit:
+<a href="${sender_transfer_url}">${sender_transfer_url}</a>
+</p>
+
+% if sender_feature_reports:
+<p>Also see the Received and Receivable report for details
+about the cash you've received:
+<a href="${sender_url}/report/receivable">${sender_url}/report/receivable</a></p>
+% endif
+</div>

@@ -1,0 +1,7 @@
+${sender_name},
+
+${recipient_name} sent the following message in response to the cash you sent.
+
+${reply_message}
+
+${sender_transfer_url}

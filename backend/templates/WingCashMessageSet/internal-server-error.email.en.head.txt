@@ -1,0 +1,3 @@
+To: ${ise_recipient}
+From: ${system_email_formatted}
+Subject: [${site_title} ISE] ${error_id}

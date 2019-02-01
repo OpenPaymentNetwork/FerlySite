@@ -1,0 +1,16 @@
+${sender_name},
+
+% unwrap:
+${site_title} initiated an automatic deposit of ${redeem_amount}
+to your ${ach_type_formatted} at ${recipient_account_rdfi_name}.
+% endunwrap
+
+For more information about this deposit, visit:
+
+${sender_transfer_url}
+
+% if sender_feature_reports:
+Also see the Received and Receivable report for details about the cash you've received:
+
+${sender_url}/report/receivable
+% endif

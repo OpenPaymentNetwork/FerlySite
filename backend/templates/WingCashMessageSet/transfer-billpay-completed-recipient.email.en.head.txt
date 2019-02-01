@@ -1,0 +1,6 @@
+To: ${recipient_email_formatted}
+From: ${system_email_formatted}
+% if sender_email_formatted_unconfirmed:
+Reply-To: ${sender_email_formatted_unconfirmed}
+% endif
+Subject: ${email_subject_prefix} Payment From ${sender_name}

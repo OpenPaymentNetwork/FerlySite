@@ -1,0 +1,9 @@
+Hi ${contact_name}, 
+
+Someone (maybe you) is trying to reset your ${site_title} password. If this was you, enter the following code when prompted: 
+
+${code_formatted} 
+
+If this was not you, you can safely ignore this email. 
+
+This email contains private information, so please do not forward or share it. If you have any questions, email us at ${support_email}.

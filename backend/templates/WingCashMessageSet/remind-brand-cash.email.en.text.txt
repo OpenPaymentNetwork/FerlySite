@@ -1,0 +1,35 @@
+${profile_name},
+
+% if remind_expiring:
+The following cash in your ${site_title} wallet will expire soon.
+
+% loop remind_expiring:
+% unwrap:
+- ${remind_item_amount} ${remind_item_title} (accepted by ${remind_item_redeemer_names})
+% if remind_item_expires_24:
+expires today!
+% elif remind_item_expires_48:
+expires tomorrow.
+% else:
+expires in ${remind_item_expires_delta}.
+% endif
+% endunwrap
+% endloop
+% endif
+
+% if remind_expiring:
+% if remind_non_expiring:
+Also, ${site_title} would like to remind you of some cash in your wallet:
+
+% endif
+% elif remind_non_expiring:
+${site_title} would like to remind you of some cash in your wallet:
+
+% endif
+% if remind_non_expiring:
+% loop remind_non_expiring:
+- ${remind_item_amount} ${remind_item_title} (accepted by ${remind_item_redeemer_names})
+% endloop
+
+% endif
+Thanks for using ${site_title}!

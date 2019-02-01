@@ -1,0 +1,7 @@
+Thank you for creating an account at ${site_title}! 
+
+Enter the following code when prompted by ${site_title}: 
+
+${code_formatted} 
+
+This email contains private information, so please do not forward or share it. If you have any questions, email us at ${support_email}.

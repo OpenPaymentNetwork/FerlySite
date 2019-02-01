@@ -1,0 +1,7 @@
+Hi ${contact_name}, 
+
+To finish adding this email address to your account, enter the following code when prompted by ${site_title}: 
+
+${code_formatted} 
+
+This email contains private information, so please do not forward or share it. If you have any questions, email us at ${support_email}.

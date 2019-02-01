@@ -1,0 +1,29 @@
+${sender_name},
+
+% unwrap:
+Thank you for
+% if offer_payment_type_free:
+accepting
+% else:
+purchasing
+% endif
+offer ${offer_name}!
+% if offer_payment_type_wingcash:
+${merchant_name}
+received ${transfer_amount_formatted} from you and sent you
+${describe_notes_text}.
+% elif offer_payment_type_free:
+${merchant_name}
+sent you ${describe_notes_text}.
+% elif offer_payment_type_paycard:
+${merchant_name}
+charged ${transfer_amount_formatted} to your payment card and sent you
+${describe_notes_text}.
+% endif
+% endunwrap
+
+% if offer_email_instructions_text:
+${offer_email_instructions_text}
+
+% endif
+${sender_transfer_url}

@@ -1,0 +1,7 @@
+${invite_full_name}, 
+
+${invite_sender_name} invited you to add ${invite_org_name} to your account at ${site_title}. Visit the link below to continue. 
+
+${action_url} 
+
+This email contains private information, so please do not forward or share it. If you have any questions, email us at ${support_email}.

@@ -1,0 +1,16 @@
+<div>
+Hello ${recipient_name},
+
+% if message:
+<p><strong>${sender_name}</strong> sent you ${describe_notes_html} using ${site_title}, saying:</p>
+
+<p><em>${message}</em></p>
+
+<p>To claim it, open the link below in your web browser.</p>
+% else:
+<p><strong>${sender_name}</strong> sent you ${describe_notes_html} using ${site_title}.
+To claim it, open the link below in your web browser.</p>
+% endif
+
+<p><a href="${secret_invitation_url}">${secret_invitation_url}</a></p>
+</div>

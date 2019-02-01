@@ -1,0 +1,1 @@
+${sms_prefix} ${invite_sender_name} invited you to add ${invite_org_name}: ${action_url} (Do not share this private link.)

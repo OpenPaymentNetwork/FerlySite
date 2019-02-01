@@ -1,0 +1,7 @@
+${sender_name}, 
+
+To finish accepting the offer ${offer_name} (or to cancel), please visit the following link in your web browser. 
+
+${offer_confirm_url} 
+
+Hurry! This link will expire soon. Thanks for using ${site_title}.

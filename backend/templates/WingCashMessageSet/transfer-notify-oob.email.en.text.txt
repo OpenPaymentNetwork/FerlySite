@@ -1,0 +1,3 @@
+Please complete the out-of-band part of transfer ${transfer_id_dashed} (sent from ${sender_name} to ${recipient_name}.) 
+
+${profile_transfer_url}

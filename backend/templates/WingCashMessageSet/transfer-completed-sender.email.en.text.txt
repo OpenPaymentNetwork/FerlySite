@@ -1,0 +1,12 @@
+Dear Sender: ${sender_name},
+
+${recipient_name} received the ${describe_notes_text} that you sent.
+
+% if has_loyalty_notes:
+% unwrap:
+Also, you got cash back! ${recipient_name} sent you ${describe_loyalty_notes_text}.
+Thanks for your business and come again soon.
+% endunwrap
+
+% endif
+${sender_transfer_url}

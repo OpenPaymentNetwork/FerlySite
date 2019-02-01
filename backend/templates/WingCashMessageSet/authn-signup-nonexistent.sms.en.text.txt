@@ -1,0 +1,1 @@
+${sms_prefix} Use code ${code_formatted} to continue creating an account. (Do not share this private code.)

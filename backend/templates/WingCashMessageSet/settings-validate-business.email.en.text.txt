@@ -1,0 +1,7 @@
+To the owners of WingCash profile "${business_name}": 
+
+WingCash user ${profile_name} requested to add this email address (${business_email}) to the business profile named ${business_name}. Please click the link below to confirm that this email address belongs to ${business_name}.  
+
+${action_url} 
+
+This link will expire in ${email_validation_days} days.

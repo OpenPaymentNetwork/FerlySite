@@ -1,0 +1,3 @@
+To: ${ise_recipient}
+From: ${system_email_formatted}
+Subject: ${email_subject_prefix} Errors in pushtransfers

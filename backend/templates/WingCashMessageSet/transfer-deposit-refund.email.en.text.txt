@@ -1,0 +1,5 @@
+${sender_name},
+
+${recipient_account_rdfi_name} returned the ${redeem_amount} you sent. It has been restored to your wallet.
+
+${sender_transfer_url}

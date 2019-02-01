@@ -1,0 +1,52 @@
+<div class="reminder-email-content">
+<span class="reminder-email-recipient">${profile_name}</span>,
+
+% if remind_expiring:
+<p class="expiring-list-header">
+The following cash in your ${site_title} wallet will expire soon.
+</p>
+<ul class="expiring-list">
+% loop remind_expiring:
+<li class="expiring-list-item">
+<strong>${remind_item_amount}</strong> <em>${remind_item_title}</em>
+(accepted by ${remind_item_redeemer_names})
+% if remind_item_expires_24:
+expires today!
+% elif remind_item_expires_48:
+expires tomorrow.
+% else:
+expires in ${remind_item_expires_delta}.
+% endif
+</li>
+% endloop
+</ul>
+% endif
+
+% if remind_expiring:
+% if remind_non_expiring:
+<p class="reminder-list-header">
+Also, ${site_title} would like to remind you of some cash in your wallet:
+</p>
+% endif
+% elif remind_non_expiring:
+<p class="reminder-list-header">
+${site_title} would like to remind you of some cash in your wallet:
+</p>
+% endif
+
+% if remind_non_expiring:
+<ul class="reminder-list">
+% loop remind_non_expiring:
+<li class="reminder-list-item">
+<strong>${remind_item_amount}</strong> <em>${remind_item_title}</em>
+(accepted by ${remind_item_redeemer_names})
+</li>
+% endloop
+</ul>
+% endif
+
+<p class="reminder-email-footer">
+Thanks for using ${site_title}!
+</p>
+
+</div>

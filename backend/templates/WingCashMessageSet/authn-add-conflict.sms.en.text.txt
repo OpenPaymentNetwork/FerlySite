@@ -1,0 +1,1 @@
+${sms_prefix} ${owner_name}, did you just try to add this phone number to another ${site_title} account? ${contact_name} can not add this phone number as long as it is connected with your account.

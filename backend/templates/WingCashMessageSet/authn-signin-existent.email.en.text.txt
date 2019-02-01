@@ -1,0 +1,7 @@
+Hi ${contact_name}, 
+
+Welcome back to ${site_title}! Use the following code to continue signing in. 
+
+${code_formatted} 
+
+This email contains private information, so please do not forward or share it. If you have any questions, email us at ${support_email}.

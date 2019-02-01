@@ -1,0 +1,9 @@
+${recipient_name},
+
+${site_title} accepted a payment from ${sender_name}, who received ${describe_notes_text_caps}.
+
+% if has_loyalty_notes:
+You also sent loyalty cash back: ${describe_loyalty_notes_text}.
+
+% endif
+${recipient_transfer_url}
