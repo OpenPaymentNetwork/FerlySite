@@ -9,7 +9,9 @@ from colander import Range
 from colander import required
 from colander import Schema
 from colander import SchemaNode
+from colander import SchemaType
 from colander import String
+import cgi
 import phonenumbers
 import re
 
@@ -223,3 +225,18 @@ class SearchMarketSchema(Schema):
 class SearchUsersSchema(Schema):
     device_id = device_id()
     query = SchemaNode(String())
+
+
+class FieldStorage(SchemaType):
+    def serialize(self, node, appstruct):
+        return appstruct
+
+    def deserialize(self, node, cstruct):
+        if not isinstance(cstruct, cgi.FieldStorage):
+            raise Invalid(node, '%r is not of type FieldStorage' % cstruct)
+        return cstruct
+
+
+class UploadProfileImageSchema(Schema):
+    device_id = device_id()
+    image = SchemaNode(FieldStorage())

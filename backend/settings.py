@@ -57,3 +57,11 @@ class FerlySettings(object):
     @reify
     def twilio_from(self):
         return os.environ.get('TWILIO_FROM')
+
+    @reify
+    def aws_access_key_id(self):
+        return os.environ.get('AWS_ACCESS_KEY_ID')
+
+    @reify
+    def aws_secret_key(self):
+        return os.environ.get('AWS_SECRET_KEY')

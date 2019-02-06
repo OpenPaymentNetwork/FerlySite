@@ -12,6 +12,9 @@ from pyramid.view import view_config
 from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy import Unicode
+import boto3
+import os
+import uuid
 
 
 @view_config(name='signup', renderer='json')
@@ -331,3 +334,47 @@ def search_users(request):
         User.id != user.id).order_by(User.username)
 
     return {'results': [serialize_user(request, x) for x in users]}
+
+
+@view_config(name='upload-profile-image', renderer='json')
+def upload_profile_image(request):
+    """Allow a user to upload an image for their profile picture"""
+    param_map = get_params(request)
+    params = schema.UploadProfileImageSchema().bind(
+        request=request).deserialize(param_map)
+    device = get_device(request, params)
+    user = device.user
+    image = params['image']
+    input_file = image.file
+    filename = image.filename
+    file_type = filename.split('.')[-1]
+
+    access_key_id = request.ferlysettings.aws_access_key_id
+    secret_key = request.ferlysettings.aws_secret_key
+    new_file_name = '{0}|{1}.{2}'.format(
+        user.id, str(uuid.uuid4()), file_type)
+    region = 'us-east-2'
+    session = boto3.Session(
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_key,
+        region_name=region
+    )
+    s3Url = 'https://s3.{0}.amazonaws.com/'.format(region)
+    bucket_name = 'ferly-user-images'
+    s3_resource = session.resource('s3')
+
+    current_image = user.image_url
+    if current_image:
+        current_image_split = current_image.split('/')
+        current_image_file = current_image_split[-1]
+        current_bucket = current_image_split[-2]
+        obj = s3_resource.Object(current_bucket, current_image_file)
+        obj.delete()
+
+    s3_resource.Bucket(bucket_name).upload_fileobj(
+        Fileobj=input_file,
+        Key=new_file_name,
+        ExtraArgs={'ACL': 'public-read'})
+    user.image_url = os.path.join(s3Url, bucket_name, new_file_name)
+
+    return {}
