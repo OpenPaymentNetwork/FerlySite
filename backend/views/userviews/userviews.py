@@ -345,9 +345,8 @@ def upload_profile_image(request):
     device = get_device(request, params)
     user = device.user
     image = params['image']
-    input_file = image.file
-    filename = image.filename
-    file_type = filename.split('.')[-1]
+    content_type = image.type
+    file_type = content_type.split('/')[-1]
 
     access_key_id = request.ferlysettings.aws_access_key_id
     secret_key = request.ferlysettings.aws_secret_key
@@ -372,9 +371,9 @@ def upload_profile_image(request):
         obj.delete()
 
     s3_resource.Bucket(bucket_name).upload_fileobj(
-        Fileobj=input_file,
+        Fileobj=image.file,
         Key=new_file_name,
-        ExtraArgs={'ACL': 'public-read'})
+        ExtraArgs={'ACL': 'public-read', 'ContentType': content_type})
     user.image_url = os.path.join(s3Url, bucket_name, new_file_name)
 
     return {}
