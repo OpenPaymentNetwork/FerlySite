@@ -6,11 +6,54 @@ from backend.serialize import serialize_design
 from backend.serialize import serialize_user
 from backend.utils import get_device
 from backend.utils import get_params
+from backend.utils import notify_user
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
 from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy import Unicode
+
+
+_last_transfer_notified = ''
+
+
+@view_config(name='redemption-notification', renderer='json')
+def redemption_notification(request):
+    """Use WingCash webhooks to notify users when their card is used."""
+    param_map = get_params(request)
+    source_url = param_map.get('source_url', '')
+    ferly_wc_id = request.ferlysettings.ferly_wc_id
+    if not source_url.startswith(
+            'https://sandbox.ferly.com/p/{0}/webhook'.format(ferly_wc_id)):
+        return {}
+    transfers = param_map.get('transfers', [])
+    for transfer in transfers:
+        try:
+            amount = transfer['amount']
+            completed = transfer['completed']
+            loop_id = transfer['movements'][0]['loops'][0]['loop_id']
+            recipient_id = transfer['recipient_id']
+            sender_id = transfer['sender_id']
+            transfer_id = transfer['id']
+        except Exception:
+            continue
+        if not completed or recipient_id != ferly_wc_id:
+            continue
+        global _last_transfer_notified
+        if _last_transfer_notified == transfer_id:
+            continue
+        _last_transfer_notified = transfer_id
+        dbsession = request.dbsession
+        user = dbsession.query(User).filter(User.wc_id == sender_id).first()
+        design = dbsession.query(Design).filter(
+            Design.wc_id == loop_id).first()
+        if not user or not design:
+            continue
+
+        body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
+            amount, design.title)
+        notify_user(request, user, 'Redemption', body)
+    return {}
 
 
 @view_config(name='recaptcha-sitekey', renderer='json')
