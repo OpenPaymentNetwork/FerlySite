@@ -1,6 +1,8 @@
 from backend.models.meta import string_sequencer
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import relationship
 from sqlalchemy import (
     Column,
@@ -27,6 +29,30 @@ class SequenceKey(Base):
     skip32_key = Column(BYTEA(10), nullable=False)
 
 
+class MutableList(Mutable, list):
+    """Allows operating on existing database arrays."""
+    def add(self, value):
+        """Move or add a value to the beginning of list, capping it at a
+        certain number of elements.
+        """
+        if value in self:
+            self.remove(value)
+        self.insert(0, value)
+        new_list = self[:5]
+        self.clear()
+        self.extend(new_list)
+        self.changed()
+
+    @classmethod
+    def coerce(cls, key, value):
+        if not isinstance(value, MutableList):
+            if isinstance(value, list):
+                return MutableList(value)
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+
 class User(Base):
     __tablename__ = 'user'
     id = Column(
@@ -40,7 +66,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     image_url = Column(String)
-
+    recents = Column(MutableList.as_mutable(ARRAY(String)), nullable=False)
     tsvector = Column(TSVECTOR)
 
     @property

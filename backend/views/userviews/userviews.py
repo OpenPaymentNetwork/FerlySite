@@ -109,13 +109,17 @@ def wallet(request):  # TODO rename as profile
                 'amount': loop['amount'],
                 'wallet_url': design.wallet_url,
                 'logo_url': design.image_url})
+
+    recents = [dbsession.query(User).get(recent) for recent in user.recents]
+
     return {
         'first_name': user.first_name,
         'last_name': user.last_name,
         'username': user.username,
         'profileImage': user.image_url,
         'amounts': amounts,
-        'uids': uids
+        'uids': uids,
+        'recents': [serialize_user(request, u) for u in recents]
     }
 
 
@@ -147,6 +151,9 @@ def send(request):
 
     if message:
         params['message'] = message
+
+    recipient.recents.add(user.id)
+    user.recents.add(recipient.id)
 
     access_token = get_wc_token(request, user)
     wc_contact(request, 'POST', 'wallet/send', params=params,
