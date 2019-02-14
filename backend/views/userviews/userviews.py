@@ -152,7 +152,6 @@ def send(request):
     if message:
         params['message'] = message
 
-    recipient.recents.add(user.id)
     user.recents.add(recipient.id)
 
     access_token = get_wc_token(request, user)

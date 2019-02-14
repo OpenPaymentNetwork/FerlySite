@@ -38,7 +38,7 @@ class MutableList(Mutable, list):
         if value in self:
             self.remove(value)
         self.insert(0, value)
-        new_list = self[:5]
+        new_list = self[:8]
         self.clear()
         self.extend(new_list)
         self.changed()
