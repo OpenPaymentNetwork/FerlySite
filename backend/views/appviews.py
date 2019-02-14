@@ -50,7 +50,7 @@ def redemption_notification(request):
 
         body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
             amount, design.title)
-        notify_user(request, user, 'Redemption', body)
+        notify_user(request, user, 'Redemption', body, channel_id='card-used')
     return {}
 
 

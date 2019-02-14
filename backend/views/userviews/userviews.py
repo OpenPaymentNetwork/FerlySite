@@ -163,7 +163,7 @@ def send(request):
     title = 'Received {0} {1}'.format(formatted_amount, design.title)
     sender = 'from {0}'.format(user.title)
     body = '{0}\n{1}'.format(message, sender) if message else sender
-    notify_user(request, recipient, title, body)
+    notify_user(request, recipient, title, body, channel_id='gift-received')
 
     return {}
 

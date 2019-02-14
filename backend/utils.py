@@ -23,7 +23,7 @@ def get_params(request):
         return request.params
 
 
-def notify_user(request, user, title, body):
+def notify_user(request, user, title, body, channel_id=None):
     url = 'https://exp.host/--/api/v2/push/send'
     devices = request.dbsession.query(Device).filter(
         Device.user_id == user.id).all()
@@ -34,8 +34,11 @@ def notify_user(request, user, title, body):
             notification = {
                 'to': device.expo_token,
                 'title': title,
-                'body': body
+                'body': body,
+                'sound': 'default'
             }
+            if channel_id:
+                notification['channelId'] = channel_id
             notifications.append(notification)
 
     if notifications:
