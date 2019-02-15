@@ -20,8 +20,7 @@ class Header extends Component {
     this.links = {
       about: {label: 'About', key: 'about'},
       retailers: {label: 'For Merchants', key: 'retailers'},
-      consumers: {label: 'For Consumers', key: 'consumers'},
-      contact: {label: 'Contact', key: 'contact'},
+      consumers: {label: 'For Consumers', key: 'consumers'}
     };
   }
 

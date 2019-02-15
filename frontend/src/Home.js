@@ -1,17 +1,15 @@
 import binoculars from './images/binoculars.png';
 import Button from 'material-ui/Button';
-import call from './images/phone.png';
 import card from './images/card.png';
 import chevron from './images/chevron.png';
 import construction from './images/construction.png';
 import debit from './images/debit.png';
-import email from './images/email.png';
 import Footer from './Footer';
 import gear from './images/gear.png';
+import gift from './images/gift.png';
 import graph from './images/graph.png';
 import Header from './Header';
 import introBackground from './images/background.png';
-import mail from './images/mail.png';
 import man from './images/man.png';
 import mobile from './images/mobile.png';
 import money from './images/money.png';
@@ -132,16 +130,6 @@ class Home extends Component {
         <p style={{fontSize: '14px', maxWidth: '260px', textAlign: 'left'}}>
           {description}
         </p>
-      </div>
-    );
-  }
-
-  renderContact(icon, info) {
-    return (
-      <div style={{margin: '40px', maxWidth: '48%'}}>
-        <img src={icon} height={50} style={{marginBottom: '15px'}} alt="" />
-        <br />
-        {info}
       </div>
     );
   }
@@ -358,6 +346,7 @@ class Home extends Component {
             onChange={this.handleConsumerTabChange.bind(this)}>
           {this.renderConsumerTab("Features", "features")}
           {this.renderConsumerTab("Download Our App", "app")}
+          {this.renderConsumerTab("Pricing", "pricing")}
         </Tabs>
         {tab === 'features' ?
           (
@@ -390,6 +379,21 @@ class Home extends Component {
                 Our app is currently under construction. It will be available on
                 Apple and Android platforms soon. We appreciate your patience!
               </p>
+            </div>
+          ) : null}
+          {tab === 'pricing' ?
+          (
+            <div style={{
+              display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap'
+            }}>
+              {this.renderConsumerInfo(mobile,
+                "Download and use the app for free.")}
+              {this.renderConsumerInfo(debit,
+                "Pick up a Ferly Card at a merchant location free of charge.")}
+              {this.renderConsumerInfo(
+                gift,
+                "Purchase gift card value at face value in the in-app " +
+                "marketplace.")}
             </div>
           ) : null}
       </div>
@@ -452,21 +456,6 @@ class Home extends Component {
       background: `linear-gradient(${colors.lightBlue}, white)`,
     };
 
-    const contactStyle = {
-      minHeight: '350px',
-      maxWidth: '960px',
-      margin: '0 auto',
-      paddingTop: '50px',
-      color: colors.darkBlue,
-      textAlign: 'center',
-    };
-
-    const contactEntriesStyle = {
-      display: 'flex',
-      justifyContent: 'space-around',
-      flexWrap: 'wrap'
-    };
-
     const merchantInfoStyle = {
       backgroundColor: colors.darkBlue,
       minHeight: '300px',
@@ -525,15 +514,6 @@ class Home extends Component {
         {this.renderMerchantSection()}
         <div id='consumers' style={consumersStyle}>
           {this.renderConsumersSection()}
-        </div>
-        <div id='contact' style={contactStyle}>
-          <h2>Contact Us</h2>
-          <div style={contactEntriesStyle}>
-            {this.renderContact(email, "info@ferly.com")}
-            {this.renderContact(mail,
-              <p>481 E 1000 S Suite B<br />Pleasant Grove, UT 84062-3623</p>)}
-            {this.renderContact(call, "801-839-4010")}
-          </div>
         </div>
         <Footer />
       </div>

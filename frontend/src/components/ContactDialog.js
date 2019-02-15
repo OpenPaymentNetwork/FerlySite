@@ -8,10 +8,8 @@ import Dialog, {
   DialogContent
 } from 'material-ui/Dialog';
 import { MuiThemeProvider } from 'material-ui/styles';
-// import {colors} from '../Home';
 import {theme} from '../theme';
 import {post} from '../fetch';
-// import {withStyles} from 'material-ui/styles';
 
 class ContactDialog extends Component {
 
@@ -23,7 +21,6 @@ class ContactDialog extends Component {
   }
 
   submit(e) {
-    console.log('submitting')
     post('create-contact', {'email': this.state.email})
     this.props.close();
   }
@@ -37,7 +34,7 @@ class ContactDialog extends Component {
       <Dialog open={this.props.open}>
         <MuiThemeProvider theme={theme}>
           <DialogTitle>Subscribe</DialogTitle>
-          <form onSubmit={this.submit.bind(this)} action="javascript:void(0);">
+          <form onSubmit={this.submit.bind(this)} action="">
             <DialogContent>
               <DialogContentText>
                 Enter your email address so you can receive important updates.
