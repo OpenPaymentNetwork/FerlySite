@@ -34,7 +34,7 @@ class ContactDialog extends Component {
       <Dialog open={this.props.open}>
         <MuiThemeProvider theme={theme}>
           <DialogTitle>Subscribe</DialogTitle>
-          <form onSubmit={this.submit.bind(this)} action="">
+          <form onSubmit={this.submit.bind(this)} action="javascript:void(0);">
             <DialogContent>
               <DialogContentText>
                 Enter your email address so you can receive important updates.

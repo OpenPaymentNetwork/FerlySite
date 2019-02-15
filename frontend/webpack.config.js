@@ -43,6 +43,10 @@ module.exports = {
             name: 'images/[hash]-[name].[ext]'
           }
         }]
+      },
+      {
+        test: /\.(pdf)$/,
+        use: 'file-loader?name=[path][name].[ext]'
       }
     ]
   }
