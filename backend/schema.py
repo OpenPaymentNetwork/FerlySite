@@ -21,17 +21,24 @@ phone_detect_re = re.compile(r'^[(+\s]*[0-9]')
 _email_validator = Email()
 
 
-class RecipientSchema(String):
-
+class StrippedString(String):
+    """A regular string with whitespace stripped from the ends"""
     def deserialize(self, node, cstruct):
         value = String.deserialize(self, node, cstruct)
         if not value:
             return null
-
         value = value.strip()
         if not value:
             return null
+        return value
 
+
+class RecipientSchema(StrippedString):
+
+    def deserialize(self, node, cstruct):
+        value = StrippedString.deserialize(self, node, cstruct)
+        if not value:
+            return null
         if '@' in value:
             try:
                 _email_validator(node, value)
@@ -87,7 +94,8 @@ def recaptcha_response(missing=None):
 
 
 def name(missing=''):
-    return SchemaNode(String(), missing=missing, validator=Length(0, 50))
+    return SchemaNode(
+        StrippedString(), missing=missing, validator=Length(0, 50))
 
 
 def username(missing=required):
@@ -121,12 +129,12 @@ class InviteSchema(Schema):
 
 class RecoverySchema(Schema):
     device_id = device_id()
-    login = SchemaNode(String())
+    login = SchemaNode(StrippedString())
 
 
 class RecoveryCodeSchema(Schema):
     device_id = device_id()
-    code = SchemaNode(String())
+    code = SchemaNode(StrippedString())
     secret = SchemaNode(String())
     factor_id = SchemaNode(String())
     recaptcha_response = recaptcha_response()
@@ -137,13 +145,13 @@ class RecoveryCodeSchema(Schema):
 
 class UIDSchema(Schema):
     device_id = device_id()
-    login = SchemaNode(String())
+    login = SchemaNode(StrippedString())
     uid_type = SchemaNode(String(), validator=OneOf(['phone', 'email']))
 
 
 class AddUIDCodeSchema(Schema):
     device_id = device_id()
-    code = SchemaNode(String())
+    code = SchemaNode(StrippedString())
     secret = SchemaNode(String())
     attempt_id = SchemaNode(String())
     recaptcha_response = recaptcha_response()
@@ -152,7 +160,7 @@ class AddUIDCodeSchema(Schema):
 
 class AuthUIDCodeSchema(Schema):
     device_id = device_id()
-    code = SchemaNode(String())
+    code = SchemaNode(StrippedString())
     factor_id = SchemaNode(String())
 
 
@@ -177,7 +185,7 @@ class DesignSchema(Schema):
 
 
 class ContactSchema(Schema):
-    email = SchemaNode(String(), validator=Email())
+    email = SchemaNode(StrippedString(), validator=Email())
 
 
 class DeviceSchema(Schema):
@@ -189,7 +197,8 @@ class SendSchema(Schema):
     design_id = design_id()
     device_id = device_id()
     recipient_id = SchemaNode(String(), missing=required)
-    message = SchemaNode(String(), missing='', validator=Length(max=500))
+    message = SchemaNode(
+        StrippedString(), missing='', validator=Length(max=500))
 
 
 class PurchaseSchema(Schema):
@@ -197,12 +206,6 @@ class PurchaseSchema(Schema):
     design_id = design_id()
     device_id = device_id()
     nonce = SchemaNode(String(), missing=required)
-
-
-class AcceptSchema(Schema):
-    offer_id = SchemaNode(String(), missing=required)
-    option_id = SchemaNode(String(), missing=required)
-    device_id = device_id()
 
 
 class HistorySchema(Schema):
