@@ -66,7 +66,8 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     image_url = Column(String)
-    recents = Column(MutableList.as_mutable(ARRAY(String)), nullable=False)
+    recents = Column(
+        MutableList.as_mutable(ARRAY(String)), nullable=False, default=[])
     tsvector = Column(TSVECTOR)
 
     @property
