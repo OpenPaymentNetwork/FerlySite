@@ -48,16 +48,16 @@ class FerlySettings(object):
 
     @reify
     def twilio_sid(self):
-        return os.environ.get('TWILIO_SID', self._settings['twilio_sid'])
+        return os.environ.get('TWILIO_SID', self._settings.get('twilio_sid'))
 
     @reify
     def twilio_auth_token(self):
         return os.environ.get(
-            'TWILIO_AUTH_TOKEN', self._settings['twilio_auth_token'])
+            'TWILIO_AUTH_TOKEN', self._settings.get('twilio_auth_token'))
 
     @reify
     def twilio_from(self):
-        return os.environ.get('TWILIO_FROM', self._settings['twilio_from'])
+        return os.environ.get('TWILIO_FROM', self._settings.get('twilio_from'))
 
     @reify
     def aws_access_key_id(self):
