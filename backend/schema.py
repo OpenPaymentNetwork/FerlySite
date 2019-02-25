@@ -85,8 +85,11 @@ def design_id():
     return SchemaNode(String())
 
 
-def amount():
-    return SchemaNode(Float(), validator=Range(min=0.01))
+def amount(minimum=0.01):
+    return SchemaNode(
+        Float(),
+        validator=Range(
+            min=minimum, min_err='${:.2f} is the minimum'.format(minimum)))
 
 
 def recaptcha_response(missing=None):
@@ -202,10 +205,10 @@ class SendSchema(Schema):
 
 
 class PurchaseSchema(Schema):
-    amount = amount()
+    amount = amount(minimum=0.50)
     design_id = design_id()
     device_id = device_id()
-    nonce = SchemaNode(String(), missing=required)
+    stripe_token = SchemaNode(String(), missing=required)
 
 
 class HistorySchema(Schema):

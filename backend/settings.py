@@ -66,3 +66,8 @@ class FerlySettings(object):
     @reify
     def aws_secret_key(self):
         return os.environ.get('AWS_SECRET_KEY')
+
+    @reify
+    def stripe_api_key(self):
+        return os.environ.get(
+            'STRIPE_API_KEY', self._settings.get('stripe_api_key'))
