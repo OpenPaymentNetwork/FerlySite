@@ -208,7 +208,7 @@ class PurchaseSchema(Schema):
     amount = amount(minimum=0.50)
     design_id = design_id()
     device_id = device_id()
-    stripe_token = SchemaNode(String(), missing=required)
+    stripe_source = SchemaNode(String(), missing=required)
 
 
 class HistorySchema(Schema):

@@ -69,6 +69,7 @@ class User(Base):
     recents = Column(
         MutableList.as_mutable(ARRAY(String)), nullable=False, default=[])
     tsvector = Column(TSVECTOR)
+    stripe_id = Column(String)
 
     @property
     def title(self):

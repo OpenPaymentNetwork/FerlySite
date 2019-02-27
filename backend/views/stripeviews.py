@@ -1,10 +1,38 @@
-from backend.models.models import Design
-from backend.wccontact import wc_contact
 from backend import schema
+from backend.models.models import Design
 from backend.utils import get_device
 from backend.utils import get_params
+from backend.wccontact import wc_contact
+from colander import Invalid
 from pyramid.view import view_config
 import stripe
+
+
+def get_customer(request, stripe_id):
+    if not stripe_id:
+        return None
+    try:
+        customer = stripe.Customer.retrieve(
+            stripe_id,
+            api_key=request.ferlysettings.stripe_api_key
+        )
+    except stripe.error.InvalidRequestError:
+        return None
+    else:
+        return customer
+
+
+@view_config(name='list-stripe-sources', renderer='json')
+def list_stripe_sources(request):
+    param_map = get_params(request)
+    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
+    device = get_device(request, params)
+    user = device.user
+
+    customer = get_customer(request, user.stripe_id)
+    sources = [] if not customer else customer.sources.data
+    return {'sources': [
+        {'id': s.id, 'last_four': s.last4, 'brand': s.brand} for s in sources]}
 
 
 @view_config(name='purchase', renderer='json')
@@ -22,18 +50,38 @@ def purchase(request):
 
     amount = params['amount']
     amount_in_cents = int(amount * 100)
-    token = params['stripe_token']
+    stripe_source = params['stripe_source']
+
+    customer = get_customer(request, user.stripe_id)
+    if not customer:
+        customer = stripe.Customer.create(
+          api_key=request.ferlysettings.stripe_api_key
+        )
+        user.stripe_id = customer.id
+
+    if stripe_source.startswith('tok_'):
+        try:
+            card = customer.sources.create(source=stripe_source)
+        except stripe.error.CardError:
+            return {'result': False}
+        else:
+            card_id = card.id
+    elif stripe_source.startswith('card_'):
+        card_id = stripe_source
+    else:
+        raise Invalid(None, msg={'stripe_source': "Invalid payment method"})
 
     try:
         charge = stripe.Charge.create(
-          amount=amount_in_cents,  # must be in cents ie $1 -> 100
+          amount=amount_in_cents,  # must be in cents as int, ie $1.0 -> 100
           currency='USD',
           capture=False,
-          source=token,
+          customer=customer.id,
+          source=card_id,
           api_key=request.ferlysettings.stripe_api_key,
           statement_descriptor='Ferly Card App'  # 22 character max
         )
-    except stripe.error:
+    except stripe.error.CardError:
         return {'result': False}
     if not charge.paid:
         return {'result': False}
