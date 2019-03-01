@@ -1,5 +1,5 @@
 from colander import Email
-from colander import Float
+from colander import Decimal
 from colander import Integer
 from colander import Invalid
 from colander import Length
@@ -12,6 +12,7 @@ from colander import SchemaNode
 from colander import SchemaType
 from colander import String
 import cgi
+import decimal
 import phonenumbers
 import re
 
@@ -87,7 +88,7 @@ def design_id():
 
 def amount(minimum=0.01):
     return SchemaNode(
-        Float(),
+        Decimal(quant='0.01', rounding=decimal.ROUND_HALF_UP),
         validator=Range(
             min=minimum, min_err='${:.2f} is the minimum'.format(minimum)))
 
