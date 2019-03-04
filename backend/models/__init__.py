@@ -1,6 +1,7 @@
-from sqlalchemy import engine_from_config
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import configure_mappers
+import os
 import zope.sqlalchemy
 
 # import or define all models here to ensure they are attached to the
@@ -12,8 +13,9 @@ from backend.models.models import all_metadata_defined as __all
 configure_mappers()
 
 
-def get_engine(settings, prefix='sqlalchemy.'):
-    return engine_from_config(settings, prefix)
+def get_engine(settings):
+    url = os.environ.get('SQLALCHEMY_URL', settings.get('sqlalchemy_url'))
+    return create_engine(url)
 
 
 def get_session_factory(engine):

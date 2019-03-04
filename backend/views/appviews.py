@@ -20,9 +20,9 @@ def redemption_notification(request):
     """Use WingCash webhooks to notify users when their card is used."""
     param_map = get_params(request)
     source_url = param_map.get('source_url', '')
-    ferly_wc_id = request.ferlysettings.ferly_wc_id
+    ferly_id = request.ferlysettings.wingcash_profile_id
     if not source_url.startswith(
-            'https://sandbox.ferly.com/p/{0}/webhook'.format(ferly_wc_id)):
+            'https://sandbox.ferly.com/p/{0}/webhook'.format(ferly_id)):
         return {}
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
@@ -35,7 +35,7 @@ def redemption_notification(request):
             transfer_id = transfer['id']
         except Exception:
             continue
-        if not completed or recipient_id != ferly_wc_id:
+        if not completed or recipient_id != ferly_id:
             continue
         global _last_transfer_notified
         if _last_transfer_notified == transfer_id:

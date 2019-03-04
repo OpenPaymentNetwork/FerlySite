@@ -16,31 +16,23 @@ class FerlySettings(object):
         return self._settings['wingcash_api_url']
 
     @reify
-    def ferly_wc_id(self):
-        return self._settings['ferly_wc_id']
+    def wingcash_profile_id(self):
+        return self._settings['wingcash_profile_id']
 
     @reify
     def wingcash_client_id(self):
-        res = os.environ.get('FERLY_WINGCASH_CLIENT_ID')
-        if res:
-            return res
-        # return self._settings['keys']['client_id']
-        return self._settings['client_id']
+        return os.environ.get('WINGCASH_CLIENT_ID',
+                              self._settings.get('wingcash_client_id'))
 
     @reify
     def wingcash_client_secret(self):
-        res = os.environ.get('FERLY_WINGCASH_CLIENT_SECRET')
-        if res:
-            return res
-        # return self._settings['keys']['client_secret']
-        return self._settings['client_secret']
+        return os.environ.get('WINGCASH_CLIENT_SECRET',
+                              self._settings.get('wingcash_client_secret'))
 
     @reify
-    def ferly_token(self):
-        res = os.environ.get('FERLY_TOKEN')
-        if res:
-            return res
-        return self._settings['ferly_token']
+    def wingcash_api_token(self):
+        return os.environ.get('WINGCASH_API_TOKEN',
+                              self._settings.get('wingcash_api_token'))
 
     @reify
     def sendgrid_api_key(self):
@@ -52,8 +44,8 @@ class FerlySettings(object):
 
     @reify
     def twilio_auth_token(self):
-        return os.environ.get(
-            'TWILIO_AUTH_TOKEN', self._settings.get('twilio_auth_token'))
+        return os.environ.get('TWILIO_AUTH_TOKEN',
+                              self._settings.get('twilio_auth_token'))
 
     @reify
     def twilio_from(self):
@@ -69,5 +61,5 @@ class FerlySettings(object):
 
     @reify
     def stripe_api_key(self):
-        return os.environ.get(
-            'STRIPE_API_KEY', self._settings.get('stripe_api_key'))
+        return os.environ.get('STRIPE_API_KEY',
+                              self._settings.get('stripe_api_key'))

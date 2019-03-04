@@ -111,7 +111,7 @@ class TestWCContact(TestCase):
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
-        mock_settings.ferly_token = access_token
+        mock_settings.wingcash_api_token = access_token
         self._call(request, 'GET', 'urlTail')
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
         mock_get.assert_called_once_with('url/urlTail', **header, params={})
@@ -122,7 +122,7 @@ class TestWCContact(TestCase):
         mock_settings = request.ferlysettings = MagicMock()
         mock_settings.wingcash_api_url = 'url'
         access_token = 'token'
-        mock_settings.ferly_token = 'wrong_token'
+        mock_settings.wingcash_api_token = 'wrong_token'
         self._call(request, 'GET', 'urlTail', access_token=access_token)
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
         mock_get.assert_called_once_with('url/urlTail', **header, params={})

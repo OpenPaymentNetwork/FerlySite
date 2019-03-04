@@ -18,7 +18,7 @@ def wc_contact(request, method, urlTail, params={}, secret='',
         raise Exception("Only 'GET' and 'POST' are accepted methods")
 
     if auth:
-        wcauth = (  # TODO Use devkeys for these, not the ini file
+        wcauth = (
             request.ferlysettings.wingcash_client_id,
             request.ferlysettings.wingcash_client_secret)
         args.update({'auth': wcauth})
@@ -26,7 +26,7 @@ def wc_contact(request, method, urlTail, params={}, secret='',
         if secret:
             authorization = 'wingcash secret=\"{0}\"'.format(secret)
         else:
-            token = access_token or request.ferlysettings.ferly_token
+            token = access_token or request.ferlysettings.wingcash_api_token
             authorization = 'Bearer {0}'.format(token)
         args.update({'headers': {'Authorization': authorization}})
 
