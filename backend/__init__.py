@@ -9,6 +9,8 @@ def main(global_config, **settings):
     def make_root(request):
         return request.site
 
+    settings['env_file'] = global_config['__file__'].split('/')[-1]
+
     config = Configurator(
         root_factory=make_root,
         settings=settings,

@@ -14,7 +14,11 @@ import pyramid.httpexceptions as exc
 
 @view_config(name='version', context=API, renderer='json')
 def version(request):
-    return {'version': '0.0.0'}
+    prod = request.ferlysettings.environment == 'production'
+    return {
+        'environment': 'production' if prod else 'staging',
+        'version': '0.0.0'
+    }
 
 
 @view_config(name='', context=Site)

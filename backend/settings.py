@@ -63,3 +63,7 @@ class FerlySettings(object):
     def stripe_api_key(self):
         return os.environ.get('STRIPE_API_KEY',
                               self._settings.get('stripe_api_key'))
+
+    @reify
+    def environment(self):
+        return self._settings.get('env_file').split('.')[0]
