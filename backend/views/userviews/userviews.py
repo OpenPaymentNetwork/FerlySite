@@ -366,6 +366,8 @@ def upload_profile_image(request):
     )
     s3Url = 'https://s3.{0}.amazonaws.com/'.format(region)
     bucket_name = 'ferly-user-images'
+    if request.ferlysettings.environment == 'production':
+        bucket_name = 'ferly-prod-user-images'
     s3_resource = session.resource('s3')
 
     current_image = user.image_url
