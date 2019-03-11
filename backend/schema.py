@@ -181,7 +181,7 @@ class RegisterSchema(Schema):
     last_name = name(missing=required)
     username = username(missing=required)
     expo_token = expo_token()
-    os = SchemaNode(String())
+    os = SchemaNode(String(), missing='')
 
 
 class DesignSchema(Schema):
