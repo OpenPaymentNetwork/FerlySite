@@ -71,7 +71,9 @@ def signup(request):
 def is_user(request):
     """Return if the device_id is associated with a user."""
     param_map = get_params(request)
-    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
+    params = schema.IsUserSchema().bind(request=request).deserialize(param_map)
+    if params['expected_env'] != request.ferlysettings.environment:
+        return {'error': 'unexpected_environment'}
     device_id = params['device_id']
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(

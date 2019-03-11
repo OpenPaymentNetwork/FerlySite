@@ -377,48 +377,39 @@ class TestIsUser(TestCase):
     def _call(self, *args, **kw):
         return is_user(*args, **kw)
 
-    def test_no_params(self):
-        request = pyramid.testing.DummyRequest()
-        with self.assertRaises(Invalid) as cm:
-            self._call(request)
-        e = cm.exception
-        expected_response = {'device_id': 'Required'}
-        self.assertEqual(expected_response, e.asdict())
+    def _make_request(self, **args):
+        request_params = {'device_id': args.get('device_id', 'defaultdevice')}
+        if args.get('expected_env'):
+            request_params.update({'expected_env', args['expected_env']})
+        request = pyramid.testing.DummyRequest(params=request_params)
+        settings = request.ferlysettings = MagicMock()
+        settings.environment = args.get('environment', 'staging')
+        request.dbsession = MagicMock()
+        return request
+
+    def test_device_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
+            self._call(pyramid.testing.DummyRequest(params={}))
+
+    def test_expected_env_default(self):
+        response = self._call(self._make_request(environment='production'))
+        self.assertEqual(response, {'error': 'unexpected_environment'})
 
     def test_invalid_device_id(self):
-        request_params = {
-            'device_id': 'asdf'
-        }
-        request = pyramid.testing.DummyRequest(params=request_params)
-        mdbsession = request.dbsession = MagicMock()
-        mock_query = mdbsession.query.return_value
+        request = self._make_request()
+        mock_query = request.dbsession.query.return_value
         mock_query.filter.return_value.first.return_value = None
         response = self._call(request)
         self.assertFalse(response.get('is_user'))
 
     def test_valid_device_id(self):
-        request_params = {
-            'device_id': 'asdf'
-        }
-        request = pyramid.testing.DummyRequest(params=request_params)
-        mdbsession = request.dbsession = MagicMock()
-        mock_query = mdbsession.query.return_value
-        mock_device = MagicMock()
-        mock_query.filter.return_value.first.return_value = mock_device
-        response = self._call(request)
+        response = self._call(self._make_request())
         self.assertTrue(response.get('is_user'))
 
     def test_query(self):
         device_id = '123'
-        request_params = {
-            'device_id': device_id
-        }
-        request = pyramid.testing.DummyRequest(params=request_params)
-        mdbsession = request.dbsession = MagicMock()
-        mdevice = MagicMock()
-        mock_query = mdbsession.query = MagicMock()
-        mock_filter = mock_query.return_value.filter = MagicMock()
-        mock_filter.return_value.first.return_value = mdevice
+        request = self._make_request(device_id=device_id)
+        mock_filter = request.dbsession.query.return_value.filter
         self._call(request)
         expression = Device.device_id == device_id
         self.assertTrue(expression.compare(mock_filter.call_args[0][0]))

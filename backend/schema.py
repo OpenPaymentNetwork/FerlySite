@@ -196,6 +196,11 @@ class DeviceSchema(Schema):
     device_id = device_id()
 
 
+class IsUserSchema(Schema):
+    device_id = device_id()
+    expected_env = SchemaNode(String(), missing='staging')
+
+
 class SendSchema(Schema):
     amount = amount()
     design_id = design_id()
