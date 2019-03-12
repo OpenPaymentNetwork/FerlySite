@@ -72,7 +72,8 @@ def is_user(request):
     """Return if the device_id is associated with a user."""
     param_map = get_params(request)
     params = schema.IsUserSchema().bind(request=request).deserialize(param_map)
-    if params['expected_env'] != request.ferlysettings.environment:
+    env = 'production' if params['expected_env'] == 'production' else 'staging'
+    if env != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
     device_id = params['device_id']
     dbsession = request.dbsession
