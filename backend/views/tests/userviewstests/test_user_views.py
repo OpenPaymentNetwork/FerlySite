@@ -6,7 +6,7 @@ from backend.views.userviews.userviews import history
 from backend.views.userviews.userviews import is_user
 from backend.views.userviews.userviews import signup
 from backend.views.userviews.userviews import transfer
-from backend.views.userviews.userviews import wallet
+from backend.views.userviews.userviews import profile
 from colander import Invalid
 from unittest import TestCase
 from unittest.mock import call
@@ -15,10 +15,10 @@ from unittest.mock import patch
 import pyramid.testing
 
 
-class TestWallet(TestCase):
+class TestProfile(TestCase):
 
     def _call(self, *args, **kw):
-        return wallet(*args, **kw)
+        return profile(*args, **kw)
 
     def test_no_params(self):
         request = pyramid.testing.DummyRequest()

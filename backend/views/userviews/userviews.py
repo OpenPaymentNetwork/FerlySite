@@ -84,8 +84,8 @@ def is_user(request):
     return response
 
 
-@view_config(name='wallet', renderer='json')
-def wallet(request):  # TODO rename as profile
+@view_config(name='profile', renderer='json')
+def profile(request):
     """Describe the profile currently associated with a device."""
     param_map = get_params(request)
     params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
