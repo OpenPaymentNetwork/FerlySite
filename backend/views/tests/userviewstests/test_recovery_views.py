@@ -143,10 +143,6 @@ class TestRecoverCode(TestCase):
         with self.assertRaisesRegex(Invalid, "'attempt_path': 'Required'"):
             self._call(pyramid.testing.DummyRequest(params={}))
 
-    def test_os_required(self):
-        with self.assertRaisesRegex(Invalid, "'os': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
     def test_existing_device(self):
         request = self._make_request()
         query = request.dbsession.query.return_value
