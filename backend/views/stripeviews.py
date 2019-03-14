@@ -35,6 +35,23 @@ def list_stripe_sources(request):
         {'id': s.id, 'last_four': s.last4, 'brand': s.brand} for s in sources]}
 
 
+@view_config(name='delete-stripe-source', renderer='json')
+def delete_stripe_source(request):
+    param_map = get_params(request)
+    params = schema.DeleteSourceSchema().bind(
+        request=request).deserialize(param_map)
+    device = get_device(request, params)
+    user = device.user
+
+    customer = get_customer(request, user.stripe_id)
+    if not customer:
+        return {'error': 'nonexistent_customer'}
+
+    stripe_response = customer.sources.retrieve(params['source_id']).delete()
+
+    return {'result': stripe_response.get('deleted', False)}
+
+
 @view_config(name='purchase', renderer='json')
 def purchase(request):
     param_map = get_params(request)
@@ -50,7 +67,7 @@ def purchase(request):
 
     amount = params['amount']
     amount_in_cents = int(amount * 100)
-    stripe_source = params['stripe_source']
+    source_id = params['source_id']
 
     customer = get_customer(request, user.stripe_id)
     if not customer:
@@ -59,17 +76,17 @@ def purchase(request):
         )
         user.stripe_id = customer.id
 
-    if stripe_source.startswith('tok_'):
+    if source_id.startswith('tok_'):
         try:
-            card = customer.sources.create(source=stripe_source)
+            card = customer.sources.create(source=source_id)
         except stripe.error.CardError:
             return {'result': False}
         else:
             card_id = card.id
-    elif stripe_source.startswith('card_'):
-        card_id = stripe_source
+    elif source_id.startswith('card_'):
+        card_id = source_id
     else:
-        raise Invalid(None, msg={'stripe_source': "Invalid payment method"})
+        raise Invalid(None, msg={'source_id': "Invalid payment method"})
 
     try:
         charge = stripe.Charge.create(
