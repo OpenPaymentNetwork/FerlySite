@@ -90,7 +90,8 @@ def amount(minimum=0.01):
     return SchemaNode(
         Decimal(quant='0.01', rounding=decimal.ROUND_HALF_UP),
         validator=Range(
-            min=minimum, min_err='${:.2f} is the minimum'.format(minimum)))
+            min=decimal.Decimal(str(minimum)),
+            min_err='${:.2f} is the minimum'.format(minimum)))
 
 
 def recaptcha_response(missing=None):
