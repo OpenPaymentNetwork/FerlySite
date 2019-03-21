@@ -1,3 +1,4 @@
+from backend import schema
 from backend.models.models import Design
 from backend.models.models import Device
 from backend.models.models import User
@@ -6,8 +7,6 @@ from backend.views.userviews.userviews import history
 from backend.views.userviews.userviews import is_user
 from backend.views.userviews.userviews import signup
 from backend.views.userviews.userviews import transfer
-from backend.views.userviews.userviews import profile
-from colander import Invalid
 from unittest import TestCase
 from unittest.mock import call
 from unittest.mock import MagicMock
@@ -15,26 +14,12 @@ from unittest.mock import patch
 import pyramid.testing
 
 
-class TestProfile(TestCase):
-
-    def _call(self, *args, **kw):
-        return profile(*args, **kw)
-
-    def test_no_params(self):
-        request = pyramid.testing.DummyRequest()
-        with self.assertRaises(Invalid) as cm:
-            self._call(request)
-        e = cm.exception
-        expected_response = {'device_id': 'Required'}
-        self.assertEqual(expected_response, e.asdict())
-
-
 class TestSignUp(TestCase):
 
     def _call(self, *args, **kw):
         return signup(*args, **kw)
 
-    def _make_request(self, **params):
+    def _make_request(self, **kw):
         request_params = {
             'device_id': 'defaultdeviceid',
             'first_name': 'defaultfirstname',
@@ -43,26 +28,19 @@ class TestSignUp(TestCase):
             'expo_token:': 'defaulttoken',
             'os': 'defaultos:android'
         }
-        request_params.update(**params)
+        request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.RegisterSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_first_name_required(self):
-        with self.assertRaisesRegex(Invalid, "'first_name': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_last_name_required(self):
-        with self.assertRaisesRegex(Invalid, "'last_name': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_username_required(self):
-        with self.assertRaisesRegex(Invalid, "'username': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    def test_correct_schema_used(self):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.RegisterSchema))
 
     def test_already_registered(self):
         request = self._make_request()
@@ -178,83 +156,42 @@ class TestEditProfile(TestCase):
     def _call(self, *args, **kw):
         return edit_profile(*args, **kw)
 
-    def test_username_required(self):
-        request = pyramid.testing.DummyRequest(params={})
-        with self.assertRaisesRegex(Invalid, "'username': 'Required'"):
-            self._call(request)
+    def _make_request(self, **kw):
+        request_params = {
+            'device_id': 'defaultdeviceid',
+            'first_name': 'defaultfirstname',
+            'last_name': 'defaultlastname',
+            'username': 'defaultusername'
+        }
+        request_params.update(**kw)
+        request = pyramid.testing.DummyRequest(params=request_params)
+        request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.EditProfileSchema().bind(
+            request=request).deserialize(request_params)
+        return request
 
-    def test_first_name_required(self):
-        request = pyramid.testing.DummyRequest(params={})
-        with self.assertRaisesRegex(Invalid, "'first_name': 'Required'"):
-            self._call(request)
-
-    def test_last_name_required(self):
-        request = pyramid.testing.DummyRequest(params={})
-        with self.assertRaisesRegex(Invalid, "'last_name': 'Required'"):
-            self._call(request)
-
-    def test_device_id_required(self):
-        request = pyramid.testing.DummyRequest(params={})
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(request)
-
-    def test_username_4_characters(self):
-        request = pyramid.testing.DummyRequest(params={
-            'username': 'abc'
-        })
-        with self.assertRaisesRegex(
-                Invalid,
-                "'username': 'Must contain at least 4 characters'"):
-            self._call(request)
-
-    def test_username_not_21_characters(self):
-        request = pyramid.testing.DummyRequest(params={
-            'username': 'abcdefghijklmnopqrstu'
-        })
-        with self.assertRaisesRegex(
-                Invalid,
-                "'username': 'Must not be longer than 20 characters'"):
-            self._call(request)
-
-    def test_username_starts_with_letter(self):
-        request = pyramid.testing.DummyRequest(params={
-            'username': '1234'
-        })
-        with self.assertRaisesRegex(
-                Invalid,
-                "'username': 'Must not start with a number'"):
-            self._call(request)
-
-    def test_invalid_username(self):
-        request = pyramid.testing.DummyRequest(params={
-            'username': 'abc!'
-        })
-        with self.assertRaisesRegex(
-                Invalid,
-                ("'username': "
-                 "'Can only contain letters, numbers, and periods'")):
-            self._call(request)
+    def test_correct_schema_used(self):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.EditProfileSchema))
 
     @patch('backend.views.userviews.userviews.wc_contact')
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.get_device')
-    @patch('backend.schema.EditProfileSchema')
-    def test_unchanged_username(
-            self, schema, get_device, get_token, wc_contact):
-        request = pyramid.testing.DummyRequest()
-        request.dbsession = mdbsession = MagicMock()
+    def test_unchanged_username(self, get_device, get_token, wc_contact):
+        request = self._make_request()
         mock_user = get_device.return_value.user
-        mock_filter = mdbsession.query.return_value.filter.return_value
+        mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = mock_user
         response = self._call(request)
         self.assertEqual(response, {})
 
     @patch('backend.views.userviews.userviews.get_device')
-    @patch('backend.schema.EditProfileSchema')
-    def test_existing_username(self, schema, get_device):
-        request = pyramid.testing.DummyRequest()
-        request.dbsession = mdbsession = MagicMock()
-        mock_filter = mdbsession.query.return_value.filter.return_value
+    def test_existing_username(self, get_device):
+        request = self._make_request()
+        mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = not None
         response = self._call(request)
         self.assertEqual(response, {'error': 'existing_username'})
@@ -268,14 +205,12 @@ class TestEditProfile(TestCase):
         mock_user.last_name = current_last_name = 'lastname'
         mock_user.username = 'current_username'
         newusername = 'newusername'
-        request = pyramid.testing.DummyRequest(params={
-            'first_name': current_first_name,
-            'last_name': current_last_name,
-            'username': newusername,
-            'device_id': 'deviceid'
-        })
-        request.dbsession = mdbsession = MagicMock()
-        mock_filter = mdbsession.query.return_value.filter.return_value
+        request = self._make_request(
+            first_name=current_first_name,
+            last_name=current_last_name,
+            username=newusername
+        )
+        mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = None
         self._call(request)
         self.assertFalse(get_wc_token.called)
@@ -293,14 +228,12 @@ class TestEditProfile(TestCase):
         mock_user.last_name = current_last_name = 'lastname'
         mock_user.username = current_username = 'username'
         new_first_name = 'new_first_name'
-        request = pyramid.testing.DummyRequest(params={
-            'first_name': new_first_name,
-            'last_name': current_last_name,
-            'username': current_username,
-            'device_id': 'deviceid'
-        })
-        request.dbsession = mdbsession = MagicMock()
-        mock_filter = mdbsession.query.return_value.filter.return_value
+        request = self._make_request(
+            first_name=new_first_name,
+            last_name=current_last_name,
+            username=current_username
+        )
+        mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = None
         self._call(request)
         get_wc_token.assert_called_with(request, mock_user)
@@ -326,14 +259,12 @@ class TestEditProfile(TestCase):
         mock_user.last_name = 'lastname'
         mock_user.username = current_username = 'username'
         new_last_name = 'new_first_name'
-        request = pyramid.testing.DummyRequest(params={
-            'first_name': current_first_name,
-            'last_name': new_last_name,
-            'username': current_username,
-            'device_id': 'deviceid'
-        })
-        request.dbsession = mdbsession = MagicMock()
-        mock_filter = mdbsession.query.return_value.filter.return_value
+        request = self._make_request(
+            first_name=current_first_name,
+            last_name=new_last_name,
+            username=current_username
+        )
+        mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = None
         self._call(request)
         get_wc_token.assert_called_with(request, mock_user)
@@ -355,14 +286,8 @@ class TestEditProfile(TestCase):
     @patch('backend.views.userviews.userviews.get_device')
     def test_update_tsvector(self, get_device, wc_contact, get_wc_token):
         mock_user = get_device.return_value.user
-        request = pyramid.testing.DummyRequest(params={
-            'first_name': 'defaultfirstname',
-            'last_name': 'defaultlastname',
-            'username': 'defaultusername',
-            'device_id': 'deviceid'
-        })
-        request.dbsession = mdbsession = MagicMock()
-        mock_filter = mdbsession.query.return_value.filter.return_value
+        request = self._make_request()
+        mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = None
         self._call(request)
         mock_user.update_tsvector.assert_called()
@@ -381,13 +306,18 @@ class TestIsUser(TestCase):
         settings = request.ferlysettings = MagicMock()
         settings.environment = args.get('environment', 'staging')
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.IsUserSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    def test_correct_schema_used(self):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.IsUserSchema))
 
-    def test_expected_env_default(self):
+    def test_expected_env_mismatch(self):
         response = self._call(self._make_request(environment='production'))
         self.assertEqual(response, {'error': 'unexpected_environment'})
 
@@ -416,13 +346,16 @@ class TestHistory(TestCase):
     def _call(self, *args, **kw):
         return history(*args, **kw)
 
-    def _make_request(self, **params):
+    def _make_request(self, **kw):
         request_params = {
             'device_id': 'defaultdeviceid'
         }
-        request_params.update(**params)
+        request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.HistorySchema().bind(
+            request=request).deserialize(request_params)
         return request
 
     def _make_transfer(self, **kw):
@@ -448,21 +381,13 @@ class TestHistory(TestCase):
         transfer.update(**kw)
         return transfer
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_limit_must_be_greater_than_one(self):
-        limit = 0
-        error = "'limit': '{0} is less than minimum value 1'".format(limit)
-        with self.assertRaisesRegex(Invalid, error):
-            self._call(self._make_request(limit=0))
-
-    def test_offset_must_not_be_negative(self):
-        offset = -1
-        error = "'offset': '{0} is less than minimum value 0'".format(offset)
-        with self.assertRaisesRegex(Invalid, error):
-            self._call(self._make_request(offset=offset))
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    def test_correct_schema_used(self, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.HistorySchema))
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
@@ -483,8 +408,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_has_more_is_returned(self, get_device, wc_contact, get_wc_token):
+    def test_has_more_is_returned(self, wc_contact, get_wc_token):
         more = True
         wc_contact.return_value.json.return_value = {'more': more}
         response = self._call(self._make_request())
@@ -492,8 +416,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_design_query(self, get_device, wc_contact, get_wc_token):
+    def test_design_query(self, wc_contact, get_wc_token):
         loop_id = 'myloop_id'
         results = [self._make_transfer(loop_id=loop_id)]
         wc_contact.return_value.json.return_value = {'results': results}
@@ -505,9 +428,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_design_title_is_returned(
-            self, get_device, wc_contact, get_wc_token):
+    def test_design_title_is_returned(self, wc_contact, get_wc_token):
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
@@ -520,9 +441,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_design_image_url_is_returned(
-            self, get_device, wc_contact, get_wc_token):
+    def test_design_image_url_is_returned(self, wc_contact, get_wc_token):
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
@@ -535,8 +454,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_amount_is_returned(self, get_device, wc_contact, get_wc_token):
+    def test_amount_is_returned(self, wc_contact, get_wc_token):
         amount = 10
         request = self._make_request()
         results = [self._make_transfer(amount=amount)]
@@ -547,8 +465,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_timestamp_is_returned(self, get_device, wc_contact, get_wc_token):
+    def test_timestamp_is_returned(self, wc_contact, get_wc_token):
         import datetime
         timestamp = datetime.datetime.utcnow()
         request = self._make_request()
@@ -560,8 +477,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_id_is_returned(self, get_device, wc_contact, get_wc_token):
+    def test_id_is_returned(self, wc_contact, get_wc_token):
         transfer_id = 'mytransfer_id'
         request = self._make_request()
         results = [self._make_transfer(id=transfer_id)]
@@ -572,8 +488,7 @@ class TestHistory(TestCase):
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')
-    @patch('backend.views.userviews.userviews.get_device')
-    def test_multiple_results(self, get_device, wc_contact, get_wc_token):
+    def test_multiple_results(self, wc_contact, get_wc_token):
         request = self._make_request()
         transfer = self._make_transfer()
         results = [transfer, transfer, transfer]
@@ -708,14 +623,17 @@ class TestTransfer(TestCase):
     def _call(self, *args, **kw):
         return transfer(*args, **kw)
 
-    def _make_request(self, **params):
+    def _make_request(self, **kw):
         request_params = {
             'device_id': 'defaultdeviceid',
             'transfer_id': 'defaulttransferid'
         }
-        request_params.update(**params)
+        request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.TransferSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
     def _make_transfer(self, **kw):
@@ -739,13 +657,13 @@ class TestTransfer(TestCase):
         transfer.update(**kw)
         return transfer
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_transfer_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'transfer_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    @patch('backend.views.userviews.userviews.get_wc_token')
+    @patch('backend.views.userviews.userviews.wc_contact')
+    def test_correct_schema_used(self, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.TransferSchema))
 
     @patch('backend.views.userviews.userviews.get_wc_token')
     @patch('backend.views.userviews.userviews.wc_contact')

@@ -2,7 +2,6 @@ from backend import schema
 from backend.models.models import Device
 from backend.models.models import User
 from backend.utils import get_device
-from backend.utils import get_params
 from backend.wccontact import get_wc_token
 from backend.wccontact import wc_contact
 from colander import Invalid
@@ -11,12 +10,9 @@ from pyramid.view import view_config
 
 @view_config(name='recover', renderer='json')
 def recover(request):
-    param_map = get_params(request)
-    params = schema.RecoverySchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.RecoverySchema())
 
     wc_params = {'login': params['login'], 'device_uuid': params['device_id']}
-
     response = wc_contact(request, 'POST', 'aa/signin-closed', auth=True,
                           params=wc_params, returnErrors=True)
     response_json = response.json()
@@ -51,11 +47,9 @@ def recover(request):
 
 @view_config(name='recover-code', renderer='json')
 def recover_code(request):
-    param_map = get_params(request)
-    params = schema.RecoveryCodeSchema().bind(
-        request=request).deserialize(param_map)
-
+    params = request.get_params(schema.RecoveryCodeSchema())
     dbsession = request.dbsession
+
     device_id = params['device_id']
     expo_token = params['expo_token']
     os = params['os']
@@ -103,9 +97,7 @@ def recover_code(request):
 @view_config(name='add-uid', renderer='json')
 def add_uid(request):
     """Associate an email or phone number with a user's profile"""
-    param_map = get_params(request)
-    params = schema.UIDSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.UIDSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -127,9 +119,7 @@ def add_uid(request):
 
 @view_config(name='confirm-uid', renderer='json')
 def confirm_uid(request):
-    param_map = get_params(request)
-    params = schema.AddUIDCodeSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.AddUIDCodeSchema())
     device = get_device(request, params)
     user = device.user
 

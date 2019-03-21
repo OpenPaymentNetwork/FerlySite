@@ -4,15 +4,12 @@ from backend.communications import send_sms
 from backend.models.models import Invitation
 from backend.serialize import serialize_invitation
 from backend.utils import get_device
-from backend.utils import get_params
 from pyramid.view import view_config
 
 
 @view_config(name='delete-invitation', renderer='json')
 def delete_invitation(request):
-    param_map = get_params(request)
-    params = schema.DeleteInvitationSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.DeleteInvitationSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -27,9 +24,7 @@ def delete_invitation(request):
 
 @view_config(name='existing-invitations', renderer='json')
 def existing_invitations(request):
-    param_map = get_params(request)
-    params = schema.ExistingInvitationsSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.ExistingInvitationsSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -43,8 +38,7 @@ def existing_invitations(request):
 
 @view_config(name='invite', renderer='json')
 def invite(request):
-    param_map = get_params(request)
-    params = schema.InviteSchema().bind(request=request).deserialize(param_map)
+    params = request.get_params(schema.InviteSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession

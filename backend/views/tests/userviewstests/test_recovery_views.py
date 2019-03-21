@@ -1,3 +1,4 @@
+from backend import schema
 from backend.views.userviews.recoveryviews import add_uid
 from backend.views.userviews.recoveryviews import confirm_uid
 from backend.views.userviews.recoveryviews import recover
@@ -22,15 +23,18 @@ class TestRecover(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.RecoverySchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_login_required(self):
-        with self.assertRaisesRegex(Invalid, "'login': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    @patch('backend.views.userviews.recoveryviews.get_wc_token')
+    @patch('backend.views.userviews.recoveryviews.wc_contact')
+    def test_correct_schema_used(self, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.RecoverySchema))
 
     @patch('backend.views.userviews.recoveryviews.wc_contact')
     def test_wc_params(self, wc_contact):
@@ -121,27 +125,18 @@ class TestRecoverCode(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.RecoveryCodeSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_code_required(self):
-        with self.assertRaisesRegex(Invalid, "'code': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_secret_required(self):
-        with self.assertRaisesRegex(Invalid, "'secret': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_factor_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'factor_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_attempt_path_required(self):
-        with self.assertRaisesRegex(Invalid, "'attempt_path': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    @patch('backend.views.userviews.recoveryviews.get_wc_token')
+    @patch('backend.views.userviews.recoveryviews.wc_contact')
+    def test_correct_schema_used(self, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.RecoveryCodeSchema))
 
     def test_existing_device(self):
         request = self._make_request()
@@ -235,27 +230,18 @@ class TestAddUid(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.UIDSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_login_required(self):
-        with self.assertRaisesRegex(Invalid, "'login': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_uid_type_required(self):
-        with self.assertRaisesRegex(Invalid, "'uid_type': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_invalid_uid_type(self):
-        bad_uid_type = 'username'
-        request = self._make_request(uid_type=bad_uid_type)
-        error = "'uid_type': '\"{0}\" is not one of phone, email'".format(
-            bad_uid_type)
-        with self.assertRaisesRegex(Invalid, error):
-            self._call(request)
+    @patch('backend.views.userviews.recoveryviews.get_wc_token')
+    @patch('backend.views.userviews.recoveryviews.wc_contact')
+    def test_correct_schema_used(self, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.UIDSchema))
 
     @patch('backend.views.userviews.recoveryviews.get_wc_token')
     @patch('backend.views.userviews.recoveryviews.wc_contact')
@@ -311,23 +297,18 @@ class TestConfirmUid(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.AddUIDCodeSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_code_required(self):
-        with self.assertRaisesRegex(Invalid, "'code': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_secret_required(self):
-        with self.assertRaisesRegex(Invalid, "'secret': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_attempt_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'attempt_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    @patch('backend.views.userviews.recoveryviews.get_wc_token')
+    @patch('backend.views.userviews.recoveryviews.wc_contact')
+    def test_correct_schema_used(self, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.AddUIDCodeSchema))
 
     @patch('backend.views.userviews.recoveryviews.get_wc_token')
     @patch('backend.views.userviews.recoveryviews.wc_contact')

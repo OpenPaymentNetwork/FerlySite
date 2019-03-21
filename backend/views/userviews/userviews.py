@@ -4,7 +4,6 @@ from backend.models.models import Device
 from backend.models.models import User
 from backend.serialize import serialize_user
 from backend.utils import get_device
-from backend.utils import get_params
 from backend.utils import notify_user
 from backend.wccontact import get_wc_token
 from backend.wccontact import wc_contact
@@ -20,9 +19,7 @@ import uuid
 @view_config(name='signup', renderer='json')
 def signup(request):
     """Associate a device with a new user and wallet."""
-    param_map = get_params(request)
-    params = schema.RegisterSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.RegisterSchema())
     device_id = params['device_id']
     expo_token = params['expo_token']
     os = params['os']
@@ -70,8 +67,7 @@ def signup(request):
 @view_config(name='is-user', renderer='json')
 def is_user(request):
     """Return if the device_id is associated with a user."""
-    param_map = get_params(request)
-    params = schema.IsUserSchema().bind(request=request).deserialize(param_map)
+    params = request.get_params(schema.IsUserSchema())
     env = 'production' if params['expected_env'] == 'production' else 'staging'
     if env != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
@@ -79,16 +75,14 @@ def is_user(request):
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
         Device.device_id == device_id).first()
-    response = {'is_user': device is not None}
     # Doing more than this requires updating device.last_used to models.now_utc
-    return response
+    return {'is_user': device is not None}
 
 
 @view_config(name='profile', renderer='json')
 def profile(request):
     """Describe the profile currently associated with a device."""
-    param_map = get_params(request)
-    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
+    params = request.get_params(schema.DeviceSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -129,8 +123,7 @@ def profile(request):
 @view_config(name='send', renderer='json')
 def send(request):
     """Send Closed Loop Cash to another Ferly user."""
-    param_map = get_params(request)
-    params = schema.SendSchema().bind(request=request).deserialize(param_map)
+    params = request.get_params(schema.SendSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -174,9 +167,7 @@ def send(request):
 @view_config(name='edit-profile', renderer='json')
 def edit_profile(request):
     """Update a user's profile information"""
-    param_map = get_params(request)
-    params = schema.EditProfileSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.EditProfileSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -208,9 +199,7 @@ def edit_profile(request):
 @view_config(name='history', renderer='json')
 def history(request):
     """Request and return the user's WingCash transfer history."""
-    param_map = get_params(request)
-    params = schema.HistorySchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.HistorySchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -284,9 +273,7 @@ def history(request):
 @view_config(name='transfer', renderer='json')
 def transfer(request):
     """Request and return WingCash transfer details of a transfer."""
-    param_map = get_params(request)
-    params = schema.TransferSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.TransferSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -324,9 +311,7 @@ def transfer(request):
 @view_config(name='search-users', renderer='json')
 def search_users(request):
     """Search the list of users"""
-    param_map = get_params(request)
-    params = schema.SearchUsersSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.SearchUsersSchema())
     dbsession = request.dbsession
     device = get_device(request, params)
     user = device.user
@@ -348,9 +333,7 @@ def search_users(request):
 @view_config(name='upload-profile-image', renderer='json')
 def upload_profile_image(request):
     """Allow a user to upload an image for their profile picture"""
-    param_map = get_params(request)
-    params = schema.UploadProfileImageSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.UploadProfileImageSchema())
     device = get_device(request, params)
     user = device.user
     image = params['image']

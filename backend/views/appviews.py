@@ -3,7 +3,6 @@ from backend.models.models import Contact
 from backend.models.models import Design
 from backend.models.models import User
 from backend.serialize import serialize_design
-from backend.utils import get_params
 from backend.utils import notify_user
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
@@ -15,10 +14,13 @@ from sqlalchemy import Unicode
 _last_transfer_notified = ''
 
 
-@view_config(name='redemption-notification', renderer='json')
+@view_config(
+    name='redemption-notification',
+    accept='application/json',
+    renderer='json')
 def redemption_notification(request):
     """Use WingCash webhooks to notify users when their card is used."""
-    param_map = get_params(request)
+    param_map = request.json_body
     source_url = param_map.get('source_url', '')
     ferly_id = request.ferlysettings.wingcash_profile_id
     if 'ferly.com/p/{0}/webhook'.format(ferly_id) not in source_url:
@@ -64,9 +66,7 @@ def create_contact(request):
     """Store an email address of someone who wants to
     receive company updates.
     """
-    param_map = get_params(request)
-    params = schema.ContactSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.ContactSchema())
     dbsession = request.dbsession
     email = params['email']
     contact = Contact(email=email)
@@ -89,9 +89,7 @@ def list_designs(request):
 @view_config(name='search-market', renderer='json')
 def search_market(request):
     """Search the list of designs"""
-    param_map = get_params(request)
-    params = schema.SearchMarketSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.SearchMarketSchema())
     dbsession = request.dbsession
 
     # Create an expression that converts the query

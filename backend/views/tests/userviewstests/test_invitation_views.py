@@ -1,8 +1,8 @@
+from backend import schema
 from backend.models.models import Invitation
 from backend.views.userviews.invitationviews import delete_invitation
 from backend.views.userviews.invitationviews import existing_invitations
 from backend.views.userviews.invitationviews import invite
-from colander import Invalid
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -22,15 +22,17 @@ class TestInvite(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.InviteSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_recipient_required(self):
-        with self.assertRaisesRegex(Invalid, "'recipient': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    @patch('backend.views.userviews.invitationviews.send_email')
+    def test_correct_schema_used(self, send_email):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.InviteSchema))
 
     @patch('backend.views.userviews.invitationviews.send_email')
     @patch('backend.views.userviews.invitationviews.get_device')
@@ -89,18 +91,17 @@ class TestExistingInvitations(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.ExistingInvitationsSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_invalid_status(self):
-        status = 'expired'
-        request = self._make_request(status=status)
-        error = '"{0}" is not one of pending, deleted, accepted'.format(status)
-        with self.assertRaisesRegex(Invalid, "'status': '{0}'".format(error)):
-            self._call(request)
+    def test_correct_schema_used(self):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schema.ExistingInvitationsSchema))
 
     @patch('backend.views.userviews.invitationviews.get_device')
     def test_invitations_by_this_user_only(self, get_device):
@@ -147,15 +148,16 @@ class TestDeleteInvitation(TestCase):
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schema.DeleteInvitationSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
-
-    def test_invite_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'invite_id': 'Required'"):
-            self._call(pyramid.testing.DummyRequest(params={}))
+    def test_correct_schema_used(self):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schema.DeleteInvitationSchema))
 
     @patch('backend.views.userviews.invitationviews.get_device')
     def test_invite_not_owned(self, get_device):

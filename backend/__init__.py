@@ -18,6 +18,7 @@ def main(global_config, **settings):
 
     config.add_request_method(Site, name='site', reify=True)
     config.add_request_method(FerlySettings, name='ferlysettings', reify=True)
+    config.add_request_method('backend.utils.get_params')
     config.add_tween(
         'backend.ise.internalservererror.InternalServerErrorTween')
     config.include('backend.models')

@@ -16,11 +16,12 @@ def get_device(request, params):
     return device
 
 
-def get_params(request):
+def get_params(request, schema):
     if getattr(request, 'content_type', None) == 'application/json':
-        return request.json_body
+        param_map = request.json_body
     else:
-        return request.params
+        param_map = request.params
+    return schema.bind(request=request).deserialize(param_map)
 
 
 def notify_user(request, user, title, body, channel_id=None):
