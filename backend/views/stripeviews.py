@@ -1,7 +1,6 @@
 from backend import schema
 from backend.models.models import Design
 from backend.utils import get_device
-from backend.utils import get_params
 from backend.wccontact import wc_contact
 from colander import Invalid
 from pyramid.view import view_config
@@ -24,8 +23,7 @@ def get_customer(request, stripe_id):
 
 @view_config(name='list-stripe-sources', renderer='json')
 def list_stripe_sources(request):
-    param_map = get_params(request)
-    params = schema.DeviceSchema().bind(request=request).deserialize(param_map)
+    params = request.get_params(schema.DeviceSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -37,9 +35,7 @@ def list_stripe_sources(request):
 
 @view_config(name='delete-stripe-source', renderer='json')
 def delete_stripe_source(request):
-    param_map = get_params(request)
-    params = schema.DeleteSourceSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.DeleteSourceSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -54,9 +50,7 @@ def delete_stripe_source(request):
 
 @view_config(name='purchase', renderer='json')
 def purchase(request):
-    param_map = get_params(request)
-    params = schema.PurchaseSchema().bind(
-        request=request).deserialize(param_map)
+    params = request.get_params(schema.PurchaseSchema())
     device = get_device(request, params)
     user = device.user
 
