@@ -1,11 +1,11 @@
-from backend import schema
-from backend.models.models import Design
-from backend.models.models import Device
-from backend.models.models import User
-from backend.serialize import serialize_user
-from backend.utils import get_device
-from backend.utils import notify_user
-from backend.wccontact import get_wc_token
+from backend.appapi.schemas import app_schemas
+from backend.database.models import Design
+from backend.database.models import Device
+from backend.database.models import User
+from backend.database.serialize import serialize_user
+from backend.appapi.utils import get_device
+from backend.appapi.utils import notify_user
+from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
 from sqlalchemy import cast
@@ -19,7 +19,7 @@ import uuid
 @view_config(name='signup', renderer='json')
 def signup(request):
     """Associate a device with a new user and wallet."""
-    params = request.get_params(schema.RegisterSchema())
+    params = request.get_params(app_schemas.RegisterSchema())
     device_id = params['device_id']
     expo_token = params['expo_token']
     os = params['os']
@@ -67,7 +67,7 @@ def signup(request):
 @view_config(name='is-user', renderer='json')
 def is_user(request):
     """Return if the device_id is associated with a user."""
-    params = request.get_params(schema.IsUserSchema())
+    params = request.get_params(app_schemas.IsUserSchema())
     env = 'production' if params['expected_env'] == 'production' else 'staging'
     if env != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
@@ -82,7 +82,7 @@ def is_user(request):
 @view_config(name='profile', renderer='json')
 def profile(request):
     """Describe the profile currently associated with a device."""
-    params = request.get_params(schema.DeviceSchema())
+    params = request.get_params(app_schemas.DeviceSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -123,7 +123,7 @@ def profile(request):
 @view_config(name='send', renderer='json')
 def send(request):
     """Send Closed Loop Cash to another Ferly user."""
-    params = request.get_params(schema.SendSchema())
+    params = request.get_params(app_schemas.SendSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -167,7 +167,7 @@ def send(request):
 @view_config(name='edit-profile', renderer='json')
 def edit_profile(request):
     """Update a user's profile information"""
-    params = request.get_params(schema.EditProfileSchema())
+    params = request.get_params(app_schemas.EditProfileSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -199,7 +199,7 @@ def edit_profile(request):
 @view_config(name='history', renderer='json')
 def history(request):
     """Request and return the user's WingCash transfer history."""
-    params = request.get_params(schema.HistorySchema())
+    params = request.get_params(app_schemas.HistorySchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -273,7 +273,7 @@ def history(request):
 @view_config(name='transfer', renderer='json')
 def transfer(request):
     """Request and return WingCash transfer details of a transfer."""
-    params = request.get_params(schema.TransferSchema())
+    params = request.get_params(app_schemas.TransferSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -311,7 +311,7 @@ def transfer(request):
 @view_config(name='search-users', renderer='json')
 def search_users(request):
     """Search the list of users"""
-    params = request.get_params(schema.SearchUsersSchema())
+    params = request.get_params(app_schemas.SearchUsersSchema())
     dbsession = request.dbsession
     device = get_device(request, params)
     user = device.user
@@ -333,7 +333,7 @@ def search_users(request):
 @view_config(name='upload-profile-image', renderer='json')
 def upload_profile_image(request):
     """Allow a user to upload an image for their profile picture"""
-    params = request.get_params(schema.UploadProfileImageSchema())
+    params = request.get_params(app_schemas.UploadProfileImageSchema())
     device = get_device(request, params)
     user = device.user
     image = params['image']

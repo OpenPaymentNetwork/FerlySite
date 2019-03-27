@@ -50,18 +50,3 @@ def wc_contact(request, method, urlTail, params={}, secret='',
                     raise HTTPServiceUnavailable
     else:
         return response
-
-
-def get_wc_token(request, user):
-    # check memcached
-
-    params = {
-        'uid': 'wingcash:' + user.wc_id,
-        'concurrent': True
-    }
-    response = wc_contact(request, 'GET', 'p/token', params, auth=True)
-    access_token = response.json().get('access_token')
-
-    # store in memcached
-
-    return access_token

@@ -1,15 +1,13 @@
-from backend import schema
-from backend.models.models import Contact
-from backend.models.models import Design
-from backend.models.models import User
-from backend.serialize import serialize_design
-from backend.utils import notify_user
+from backend.appapi.schemas import app_schemas
+from backend.database.models import Design
+from backend.database.models import User
+from backend.database.serialize import serialize_design
+from backend.appapi.utils import notify_user
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
 from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy import Unicode
-
 
 _last_transfer_notified = ''
 
@@ -61,19 +59,6 @@ def recaptcha_sitekey(request):
     return response.json()
 
 
-@view_config(name='create-contact', renderer='json')
-def create_contact(request):
-    """Store an email address of someone who wants to
-    receive company updates.
-    """
-    params = request.get_params(schema.ContactSchema())
-    dbsession = request.dbsession
-    email = params['email']
-    contact = Contact(email=email)
-    dbsession.add(contact)
-    return {}
-
-
 @view_config(name='list-designs', renderer='json')
 def list_designs(request):
     """List all the designs on Ferly.
@@ -89,7 +74,7 @@ def list_designs(request):
 @view_config(name='search-market', renderer='json')
 def search_market(request):
     """Search the list of designs"""
-    params = request.get_params(schema.SearchMarketSchema())
+    params = request.get_params(app_schemas.SearchMarketSchema())
     dbsession = request.dbsession
 
     # Create an expression that converts the query

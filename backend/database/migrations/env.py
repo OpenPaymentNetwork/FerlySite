@@ -2,7 +2,7 @@ from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
-from backend.models.models import Base
+from backend.database.models import Base
 import os
 
 # this is the Alembic Config object, which provides

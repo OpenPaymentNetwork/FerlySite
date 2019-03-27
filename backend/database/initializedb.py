@@ -9,20 +9,20 @@ from pyramid.paster import (
 
 from pyramid.scripts.common import parse_vars
 
-from ..models.meta import Base
-from ..models import (
+from backend.database import (
     get_engine,
     get_session_factory,
     get_tm_session,
     )
-from backend.models.models import SequenceKey
-from backend.models.meta import all_seq_names
+from backend.database.meta import all_seq_names
+from backend.database.meta import Base
+from backend.database.models import SequenceKey
 
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
     print('usage: %s <config_uri> [var=value]\n'
-          '(example: "%s development.ini")' % (cmd, cmd))
+          '(example: "%s staging.ini")' % (cmd, cmd))
     sys.exit(1)
 
 

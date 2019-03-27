@@ -1,8 +1,8 @@
-from backend import schema
-from backend.models.models import Invitation
-from backend.views.userviews.invitationviews import delete_invitation
-from backend.views.userviews.invitationviews import existing_invitations
-from backend.views.userviews.invitationviews import invite
+from backend.appapi.schemas import app_schemas
+from backend.database.models import Invitation
+from backend.appapi.views.invitation_views import delete_invitation
+from backend.appapi.views.invitation_views import existing_invitations
+from backend.appapi.views.invitation_views import invite
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -23,29 +23,29 @@ class TestInvite(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = schema.InviteSchema().bind(
+        params.return_value = app_schemas.InviteSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    @patch('backend.views.userviews.invitationviews.send_email')
+    @patch('backend.appapi.views.invitation_views.send_email')
     def test_correct_schema_used(self, send_email):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, schema.InviteSchema))
+        self.assertTrue(isinstance(schema_used, app_schemas.InviteSchema))
 
-    @patch('backend.views.userviews.invitationviews.send_email')
-    @patch('backend.views.userviews.invitationviews.get_device')
-    @patch('backend.views.userviews.invitationviews.Invitation')
+    @patch('backend.appapi.views.invitation_views.send_email')
+    @patch('backend.appapi.views.invitation_views.get_device')
+    @patch('backend.appapi.views.invitation_views.Invitation')
     def test_invitation_added(self, invitation, get_device, send_email):
         request = self._make_request()
         mock_invitation = invitation.return_value
         self._call(request)
         request.dbsession.add.assert_called_with(mock_invitation)
 
-    @patch('backend.views.userviews.invitationviews.send_email')
-    @patch('backend.views.userviews.invitationviews.get_device')
-    @patch('backend.views.userviews.invitationviews.Invitation')
+    @patch('backend.appapi.views.invitation_views.send_email')
+    @patch('backend.appapi.views.invitation_views.get_device')
+    @patch('backend.appapi.views.invitation_views.Invitation')
     def test_email_invitation(self, invitation, get_device, send_email):
         recipient = 'friendsemail@example.com'
         sendgrid_response = send_email.return_value = '202'
@@ -62,9 +62,9 @@ class TestInvite(TestCase):
         invitation.assert_called_with(
             user_id=user.id, recipient=recipient, response=expected_response)
 
-    @patch('backend.views.userviews.invitationviews.send_sms')
-    @patch('backend.views.userviews.invitationviews.get_device')
-    @patch('backend.views.userviews.invitationviews.Invitation')
+    @patch('backend.appapi.views.invitation_views.send_sms')
+    @patch('backend.appapi.views.invitation_views.get_device')
+    @patch('backend.appapi.views.invitation_views.Invitation')
     def test_sms_invitation(self, invitation, get_device, send_sms):
         recipient = '+12025551234'
         twilio_response = send_sms.return_value = 'queued'
@@ -92,7 +92,7 @@ class TestExistingInvitations(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = schema.ExistingInvitationsSchema().bind(
+        params.return_value = app_schemas.ExistingInvitationsSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -101,9 +101,9 @@ class TestExistingInvitations(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(
-            isinstance(schema_used, schema.ExistingInvitationsSchema))
+            isinstance(schema_used, app_schemas.ExistingInvitationsSchema))
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_invitations_by_this_user_only(self, get_device):
         request = self._make_request()
         user = get_device.return_value.user
@@ -112,14 +112,14 @@ class TestExistingInvitations(TestCase):
         expression = Invitation.user_id == user.id
         self.assertTrue(expression.compare(user_filter.call_args[0][0]))
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_no_status_returns_all(self, get_device):
         request = self._make_request()
         all_call = request.dbsession.query.return_value.filter.return_value.all
         self._call(request)
         self.assertTrue(all_call.called)
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_status_applies_filter(self, get_device):
         status = 'pending'
         request = self._make_request(status=status)
@@ -128,8 +128,8 @@ class TestExistingInvitations(TestCase):
         expression = Invitation.status == status
         self.assertTrue(expression.compare(status_filter.call_args[0][0]))
 
-    @patch('backend.views.userviews.invitationviews.serialize_invitation')
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.serialize_invitation')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_results(self, get_device, serialize_invitation):
         request = self._make_request()
         r = request.dbsession.query().filter().all.return_value = [MagicMock()]
@@ -149,7 +149,7 @@ class TestDeleteInvitation(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = schema.DeleteInvitationSchema().bind(
+        params.return_value = app_schemas.DeleteInvitationSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -157,21 +157,22 @@ class TestDeleteInvitation(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, schema.DeleteInvitationSchema))
+        self.assertTrue(
+            isinstance(schema_used, app_schemas.DeleteInvitationSchema))
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_invite_not_owned(self, get_device):
         response = self._call(self._make_request())
         self.assertEqual(response, {'error': 'cannot_be_deleted'})
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_non_existing_invite(self, get_device):
         request = self._make_request()
         request.dbsession.query().get().return_value = None
         response = self._call(request)
         self.assertEqual(response, {'error': 'cannot_be_deleted'})
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_status_updated(self, get_device):
         request = self._make_request()
         user_id = 'myuser_id'
@@ -181,7 +182,7 @@ class TestDeleteInvitation(TestCase):
         self._call(request)
         self.assertEqual(invitation.status, 'deleted')
 
-    @patch('backend.views.userviews.invitationviews.get_device')
+    @patch('backend.appapi.views.invitation_views.get_device')
     def test_response(self, get_device):
         request = self._make_request()
         user_id = 'myuser_id'

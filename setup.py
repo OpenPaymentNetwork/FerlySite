@@ -54,7 +54,7 @@ setup(
             'main = backend:main',
         ],
         'console_scripts': [
-            'initialize_backend_db = backend.scripts.initializedb:main',
+            'initialize_backend_db = backend.database.initializedb:main',
         ],
     },
 )

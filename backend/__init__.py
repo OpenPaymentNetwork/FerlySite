@@ -1,7 +1,14 @@
 from pyramid.config import Configurator
 from backend.settings import FerlySettings
-from backend.models.site import Site
-from backend.utils import get_params
+from backend.site import Site
+
+
+def get_params(request, schema):
+    if getattr(request, 'content_type', None) == 'application/json':
+        param_map = request.json_body
+    else:
+        param_map = request.params
+    return schema.bind(request=request).deserialize(param_map)
 
 
 def main(global_config, **settings):
@@ -22,6 +29,6 @@ def main(global_config, **settings):
     config.add_request_method(get_params)
     config.add_tween(
         'backend.ise.internalservererror.InternalServerErrorTween')
-    config.include('backend.models')
+    config.include('backend.database')
     config.scan()
     return config.make_wsgi_app()

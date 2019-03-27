@@ -1,66 +1,17 @@
-from colander import Email
-from colander import Decimal
 from colander import Integer
 from colander import Invalid
 from colander import Length
-from colander import null
 from colander import OneOf
 from colander import Range
 from colander import required
 from colander import Schema
 from colander import SchemaNode
-from colander import SchemaType
 from colander import String
-import cgi
-import decimal
-import phonenumbers
+from backend.api_schemas import amount
+from backend.api_schemas import FieldStorage
+from backend.api_schemas import RecipientSchema
+from backend.api_schemas import StrippedString
 import re
-
-
-phone_detect_re = re.compile(r'^[(+\s]*[0-9]')
-
-_email_validator = Email()
-
-
-class StrippedString(String):
-    """A regular string with whitespace stripped from the ends"""
-    def deserialize(self, node, cstruct):
-        value = String.deserialize(self, node, cstruct)
-        if not value:
-            return null
-        value = value.strip()
-        if not value:
-            return null
-        return value
-
-
-class RecipientSchema(StrippedString):
-
-    def deserialize(self, node, cstruct):
-        value = StrippedString.deserialize(self, node, cstruct)
-        if not value:
-            return null
-        if '@' in value:
-            try:
-                _email_validator(node, value)
-            except Invalid:
-                raise Invalid(node, 'Invalid email address')
-            else:
-                return value
-        elif phone_detect_re.match(value):
-            try:
-                pn = phonenumbers.parse(value, 'US')
-            except Exception:
-                raise Invalid(node, msg='Invalid phone number.')
-            else:
-                if phonenumbers.is_valid_number(pn):
-                    e164value = phonenumbers.format_number(
-                        pn, phonenumbers.PhoneNumberFormat.E164)
-                    return e164value
-                else:
-                    raise Invalid(node, msg='Invalid phone number')
-        else:
-            raise Invalid(node, msg='Must be a valid email or phone number')
 
 
 def validate_username(node, value):
@@ -84,14 +35,6 @@ def device_id():
 
 def design_id():
     return SchemaNode(String())
-
-
-def amount(minimum=0.01):
-    return SchemaNode(
-        Decimal(quant='0.01', rounding=decimal.ROUND_HALF_UP),
-        validator=Range(
-            min=decimal.Decimal(str(minimum)),
-            min_err='${:.2f} is the minimum'.format(minimum)))
 
 
 def recaptcha_response(missing=None):
@@ -189,10 +132,6 @@ class DesignSchema(Schema):
     design_id = design_id()
 
 
-class ContactSchema(Schema):
-    email = SchemaNode(StrippedString(), validator=Email())
-
-
 class DeviceSchema(Schema):
     device_id = device_id()
 
@@ -206,7 +145,7 @@ class SendSchema(Schema):
     amount = amount()
     design_id = design_id()
     device_id = device_id()
-    recipient_id = SchemaNode(String(), missing=required)
+    recipient_id = SchemaNode(String())
     message = SchemaNode(
         StrippedString(), missing='', validator=Length(max=500))
 
@@ -225,10 +164,8 @@ class DeleteSourceSchema(Schema):
 
 class HistorySchema(Schema):
     device_id = device_id()
-    limit = SchemaNode(
-        Integer(), title="limit", missing='10', validator=Range(min=1))
-    offset = SchemaNode(
-        Integer(), title="offset", missing='0', validator=Range(min=0))
+    limit = SchemaNode(Integer(), missing=100, validator=Range(min=1))
+    offset = SchemaNode(Integer(), missing=0, validator=Range(min=0))
 
 
 class TransferSchema(Schema):
@@ -243,16 +180,6 @@ class SearchMarketSchema(Schema):
 class SearchUsersSchema(Schema):
     device_id = device_id()
     query = SchemaNode(String())
-
-
-class FieldStorage(SchemaType):
-    def serialize(self, node, appstruct):
-        return appstruct
-
-    def deserialize(self, node, cstruct):
-        if not isinstance(cstruct, cgi.FieldStorage):
-            raise Invalid(node, '%r is not of type FieldStorage' % cstruct)
-        return cstruct
 
 
 class UploadProfileImageSchema(Schema):

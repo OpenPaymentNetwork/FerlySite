@@ -1,5 +1,5 @@
-from backend import schema
-from backend.views.appviews import create_contact
+from backend.merchantapi.schemas import site_schemas
+from backend.merchantapi.views.contact_views import create_contact
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -17,7 +17,7 @@ class TestCreateContact(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = schema.ContactSchema().bind(
+        params.return_value = site_schemas.ContactSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -25,9 +25,9 @@ class TestCreateContact(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, schema.ContactSchema))
+        self.assertTrue(isinstance(schema_used, site_schemas.ContactSchema))
 
-    @patch('backend.views.appviews.Contact')
+    @patch('backend.merchantapi.views.contact_views.Contact')
     def test_contact_created(self, mock_contact):
         email = 'example@example.com'
         request = self._make_request(email=email)

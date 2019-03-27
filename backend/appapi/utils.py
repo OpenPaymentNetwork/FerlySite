@@ -1,5 +1,6 @@
-from backend.models.models import Device
-from backend.models.models import now_utc
+from backend.database.models import Device
+from backend.database.models import now_utc
+from backend.wccontact import wc_contact
 from pyramid.httpexceptions import HTTPUnauthorized
 import requests
 import json
@@ -14,14 +15,6 @@ def get_device(request, params):
         raise HTTPUnauthorized
     device.last_used = now_utc
     return device
-
-
-def get_params(request, schema):
-    if getattr(request, 'content_type', None) == 'application/json':
-        param_map = request.json_body
-    else:
-        param_map = request.params
-    return schema.bind(request=request).deserialize(param_map)
 
 
 def notify_user(request, user, title, body, channel_id=None):
@@ -49,3 +42,12 @@ def notify_user(request, user, title, body, channel_id=None):
             'content-type': 'application/json',
         }
         requests.post(url, data=json.dumps(notifications), headers=headers)
+
+
+def get_wc_token(request, user):
+    params = {
+        'uid': 'wingcash:' + user.wc_id,
+        'concurrent': True
+    }
+    response = wc_contact(request, 'GET', 'p/token', params, auth=True)
+    return response.json().get('access_token')

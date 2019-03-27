@@ -20,14 +20,26 @@ Getting Started
 
     env/bin/pip install -e ".[testing]"
 
-- Configure the database.
-
-    env/bin/initialize_backend_db development.ini
-
 - Run your project's tests.
 
     env/bin/nosetests
 
 - Run your project.
 
-    env/bin/pserve development.ini
+    env/bin/pserve --reload staging.ini
+
+
+Configuring a Database
+-----------------------
+
+- Change directory into your project.
+
+    cd Ferly
+
+- Set the database url as an env var.
+
+    export SQLALCHEMY_URL=postgres://user:password@url:port/dbname
+
+- Configure the database.
+
+    env/bin/initialize_backend_db staging.ini

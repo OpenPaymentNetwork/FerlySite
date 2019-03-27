@@ -1,4 +1,4 @@
-from backend.models.meta import string_sequencer
+from backend.database.meta import string_sequencer
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import TSVECTOR
@@ -14,7 +14,6 @@ from sqlalchemy import (
 )
 
 from .meta import Base
-
 
 now_utc = func.timezone('UTC', func.current_timestamp())
 
