@@ -12,13 +12,13 @@ from sqlalchemy import Unicode
 _last_transfer_notified = ''
 
 
-@view_config(
-    name='redemption-notification',
-    accept='application/json',
-    renderer='json')
+@view_config(name='redemption-notification', renderer='json')
 def redemption_notification(request):
     """Use WingCash webhooks to notify users when their card is used."""
-    param_map = request.json_body
+    if getattr(request, 'content_type', None) == 'application/json':
+        param_map = request.json_body
+    else:
+        param_map = request.params
     source_url = param_map.get('source_url', '')
     ferly_id = request.ferlysettings.wingcash_profile_id
     if 'ferly.com/p/{0}/webhook'.format(ferly_id) not in source_url:
@@ -29,12 +29,11 @@ def redemption_notification(request):
             amount = transfer['amount']
             completed = transfer['completed']
             loop_id = transfer['movements'][0]['loops'][0]['loop_id']
-            recipient_id = transfer['recipient_id']
             sender_id = transfer['sender_id']
             transfer_id = transfer['id']
         except Exception:
             continue
-        if not completed or recipient_id != ferly_id:
+        if not completed:
             continue
         global _last_transfer_notified
         if _last_transfer_notified == transfer_id:
@@ -46,7 +45,6 @@ def redemption_notification(request):
             Design.wc_id == loop_id).first()
         if not user or not design:
             continue
-
         body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
             amount, design.title)
         notify_user(request, user, 'Redemption', body, channel_id='card-used')
