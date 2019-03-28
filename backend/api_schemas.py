@@ -70,6 +70,8 @@ class FieldStorage(SchemaType):
         return appstruct
 
     def deserialize(self, node, cstruct):
+        if not cstruct:
+            return null
         if not isinstance(cstruct, cgi.FieldStorage):
             raise Invalid(node, '%r is not of type FieldStorage' % cstruct)
         return cstruct
