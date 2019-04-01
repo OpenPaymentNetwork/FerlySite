@@ -1,4 +1,4 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import invitation_views_schemas as schemas
 from backend.database.models import Invitation
 from backend.appapi.views.invitation_views import delete_invitation
 from backend.appapi.views.invitation_views import existing_invitations
@@ -23,7 +23,7 @@ class TestInvite(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.InviteSchema().bind(
+        params.return_value = schemas.InviteSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -32,7 +32,7 @@ class TestInvite(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.InviteSchema))
+        self.assertTrue(isinstance(schema_used, schemas.InviteSchema))
 
     @patch('backend.appapi.views.invitation_views.send_email')
     @patch('backend.appapi.views.invitation_views.get_device')
@@ -92,7 +92,7 @@ class TestExistingInvitations(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.ExistingInvitationsSchema().bind(
+        params.return_value = schemas.ExistingInvitationsSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -101,7 +101,7 @@ class TestExistingInvitations(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(
-            isinstance(schema_used, app_schemas.ExistingInvitationsSchema))
+            isinstance(schema_used, schemas.ExistingInvitationsSchema))
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_invitations_by_this_user_only(self, get_device):
@@ -149,7 +149,7 @@ class TestDeleteInvitation(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.DeleteInvitationSchema().bind(
+        params.return_value = schemas.DeleteInvitationSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -158,7 +158,7 @@ class TestDeleteInvitation(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(
-            isinstance(schema_used, app_schemas.DeleteInvitationSchema))
+            isinstance(schema_used, schemas.DeleteInvitationSchema))
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_invite_not_owned(self, get_device):

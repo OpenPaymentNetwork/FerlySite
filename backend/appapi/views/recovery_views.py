@@ -1,4 +1,4 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import recovery_views_schemas as schemas
 from backend.database.models import Device
 from backend.database.models import User
 from backend.appapi.utils import get_device
@@ -10,7 +10,7 @@ from pyramid.view import view_config
 
 @view_config(name='recover', renderer='json')
 def recover(request):
-    params = request.get_params(app_schemas.RecoverySchema())
+    params = request.get_params(schemas.RecoverySchema())
 
     wc_params = {'login': params['login'], 'device_uuid': params['device_id']}
     response = wc_contact(request, 'POST', 'aa/signin-closed', auth=True,
@@ -47,7 +47,7 @@ def recover(request):
 
 @view_config(name='recover-code', renderer='json')
 def recover_code(request):
-    params = request.get_params(app_schemas.RecoveryCodeSchema())
+    params = request.get_params(schemas.RecoveryCodeSchema())
     dbsession = request.dbsession
 
     device_id = params['device_id']
@@ -97,7 +97,7 @@ def recover_code(request):
 @view_config(name='add-uid', renderer='json')
 def add_uid(request):
     """Associate an email or phone number with a user's profile"""
-    params = request.get_params(app_schemas.UIDSchema())
+    params = request.get_params(schemas.AddUIDSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -119,7 +119,7 @@ def add_uid(request):
 
 @view_config(name='confirm-uid', renderer='json')
 def confirm_uid(request):
-    params = request.get_params(app_schemas.AddUIDCodeSchema())
+    params = request.get_params(schemas.AddUIDCodeSchema())
     device = get_device(request, params)
     user = device.user
 

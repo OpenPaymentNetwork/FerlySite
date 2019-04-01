@@ -1,28 +1,13 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import customer_views_schemas as schemas
 from colander import Invalid
 from decimal import Decimal
 from unittest import TestCase
 
 
-class TestDeviceSchema(TestCase):
-
-    def _call(self, obj={}):
-        return app_schemas.DeviceSchema().deserialize(obj)
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
-    def test_valid(self):
-        obj = {'device_id': 'myid'}
-        response = self._call(obj)
-        self.assertEqual(response, obj)
-
-
 class TestRegisterSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.RegisterSchema().deserialize(obj)
+        return schemas.RegisterSchema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
@@ -98,7 +83,7 @@ class TestRegisterSchema(TestCase):
 class TestIsUserSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.IsUserSchema().deserialize(obj)
+        return schemas.IsUserSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
@@ -112,13 +97,13 @@ class TestIsUserSchema(TestCase):
 class TestSendSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.SendSchema().deserialize(obj)
+        return schemas.SendSchema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
             'device_id': 'default_device_id',
             'design_id': 'default_first_name',
-            'recipient_id': 'default_last_name',
+            'recipient_id': 'default_recipient_name',
             'amount': 0.01
         }
         obj.update(**kw)
@@ -180,7 +165,7 @@ class TestSendSchema(TestCase):
 class TestEditProfileSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.EditProfileSchema().deserialize(obj)
+        return schemas.EditProfileSchema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
@@ -245,10 +230,10 @@ class TestEditProfileSchema(TestCase):
                 self.assertEqual(response['username'], username)
 
 
-class HistorySchema(TestCase):
+class TestHistorySchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.HistorySchema().deserialize(obj)
+        return schemas.HistorySchema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {'device_id': 'default_device_id'}
@@ -289,7 +274,7 @@ class HistorySchema(TestCase):
 class TestTransferSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.TransferSchema().deserialize(obj)
+        return schemas.TransferSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
@@ -300,10 +285,10 @@ class TestTransferSchema(TestCase):
             self._call()
 
 
-class SearchUsersSchema(TestCase):
+class TestSearchUsersSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.SearchUsersSchema().deserialize(obj)
+        return schemas.SearchUsersSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
@@ -314,10 +299,10 @@ class SearchUsersSchema(TestCase):
             self._call()
 
 
-class UploadProfileImageSchema(TestCase):
+class TestUploadProfileImageSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.UploadProfileImageSchema().deserialize(obj)
+        return schemas.UploadProfileImageSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
@@ -326,3 +311,5 @@ class UploadProfileImageSchema(TestCase):
     def test_image_required(self):
         with self.assertRaisesRegex(Invalid, "'image': 'Required'"):
             self._call()
+
+    # TODO: assert image must be an instance of api_schemas.FieldStorage

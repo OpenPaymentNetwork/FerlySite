@@ -1,4 +1,4 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import recovery_views_schemas as schemas
 from backend.appapi.views.recovery_views import add_uid
 from backend.appapi.views.recovery_views import confirm_uid
 from backend.appapi.views.recovery_views import recover
@@ -24,7 +24,7 @@ class TestRecover(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.RecoverySchema().bind(
+        params.return_value = schemas.RecoverySchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -34,7 +34,7 @@ class TestRecover(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.RecoverySchema))
+        self.assertTrue(isinstance(schema_used, schemas.RecoverySchema))
 
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_wc_params(self, wc_contact):
@@ -126,7 +126,7 @@ class TestRecoverCode(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.RecoveryCodeSchema().bind(
+        params.return_value = schemas.RecoveryCodeSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -137,7 +137,7 @@ class TestRecoverCode(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(
-            isinstance(schema_used, app_schemas.RecoveryCodeSchema))
+            isinstance(schema_used, schemas.RecoveryCodeSchema))
 
     def test_existing_device(self):
         request = self._make_request()
@@ -232,7 +232,7 @@ class TestAddUid(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.UIDSchema().bind(
+        params.return_value = schemas.AddUIDSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -242,7 +242,7 @@ class TestAddUid(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.UIDSchema))
+        self.assertTrue(isinstance(schema_used, schemas.AddUIDSchema))
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
@@ -299,7 +299,7 @@ class TestConfirmUid(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.AddUIDCodeSchema().bind(
+        params.return_value = schemas.AddUIDCodeSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -309,7 +309,7 @@ class TestConfirmUid(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.AddUIDCodeSchema))
+        self.assertTrue(isinstance(schema_used, schemas.AddUIDCodeSchema))
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')

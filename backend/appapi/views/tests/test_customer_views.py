@@ -1,4 +1,4 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.database.models import Design
 from backend.database.models import Device
 from backend.database.models import User
@@ -32,7 +32,7 @@ class TestSignUp(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.RegisterSchema().bind(
+        params.return_value = schemas.RegisterSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -40,7 +40,7 @@ class TestSignUp(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.RegisterSchema))
+        self.assertTrue(isinstance(schema_used, schemas.RegisterSchema))
 
     def test_already_registered(self):
         request = self._make_request()
@@ -167,7 +167,7 @@ class TestEditProfile(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.EditProfileSchema().bind(
+        params.return_value = schemas.EditProfileSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -175,7 +175,7 @@ class TestEditProfile(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.EditProfileSchema))
+        self.assertTrue(isinstance(schema_used, schemas.EditProfileSchema))
 
     @patch('backend.appapi.views.customer_views.wc_contact')
     @patch('backend.appapi.views.customer_views.get_wc_token')
@@ -307,7 +307,7 @@ class TestIsUser(TestCase):
         settings.environment = args.get('environment', 'staging')
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.IsUserSchema().bind(
+        params.return_value = schemas.IsUserSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -315,7 +315,7 @@ class TestIsUser(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.IsUserSchema))
+        self.assertTrue(isinstance(schema_used, schemas.IsUserSchema))
 
     def test_expected_env_mismatch(self):
         response = self._call(self._make_request(environment='production'))
@@ -354,7 +354,7 @@ class TestHistory(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.HistorySchema().bind(
+        params.return_value = schemas.HistorySchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -387,7 +387,7 @@ class TestHistory(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.HistorySchema))
+        self.assertTrue(isinstance(schema_used, schemas.HistorySchema))
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
@@ -632,7 +632,7 @@ class TestTransfer(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
-        params.return_value = app_schemas.TransferSchema().bind(
+        params.return_value = schemas.TransferSchema().bind(
             request=request).deserialize(request_params)
         return request
 
@@ -663,7 +663,7 @@ class TestTransfer(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, app_schemas.TransferSchema))
+        self.assertTrue(isinstance(schema_used, schemas.TransferSchema))
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')

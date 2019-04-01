@@ -1,4 +1,4 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.database.models import Design
 from backend.database.models import Device
 from backend.database.models import User
@@ -19,7 +19,7 @@ import uuid
 @view_config(name='signup', renderer='json')
 def signup(request):
     """Associate a device with a new user and wallet."""
-    params = request.get_params(app_schemas.RegisterSchema())
+    params = request.get_params(schemas.RegisterSchema())
     device_id = params['device_id']
     expo_token = params['expo_token']
     os = params['os']
@@ -67,7 +67,7 @@ def signup(request):
 @view_config(name='is-user', renderer='json')
 def is_user(request):
     """Return if the device_id is associated with a user."""
-    params = request.get_params(app_schemas.IsUserSchema())
+    params = request.get_params(schemas.IsUserSchema())
     env = 'production' if params['expected_env'] == 'production' else 'staging'
     if env != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
@@ -82,7 +82,7 @@ def is_user(request):
 @view_config(name='profile', renderer='json')
 def profile(request):
     """Describe the profile currently associated with a device."""
-    params = request.get_params(app_schemas.DeviceSchema())
+    params = request.get_params(schemas.DeviceSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -123,7 +123,7 @@ def profile(request):
 @view_config(name='send', renderer='json')
 def send(request):
     """Send Closed Loop Cash to another Ferly user."""
-    params = request.get_params(app_schemas.SendSchema())
+    params = request.get_params(schemas.SendSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -167,7 +167,7 @@ def send(request):
 @view_config(name='edit-profile', renderer='json')
 def edit_profile(request):
     """Update a user's profile information"""
-    params = request.get_params(app_schemas.EditProfileSchema())
+    params = request.get_params(schemas.EditProfileSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -199,7 +199,7 @@ def edit_profile(request):
 @view_config(name='history', renderer='json')
 def history(request):
     """Request and return the user's WingCash transfer history."""
-    params = request.get_params(app_schemas.HistorySchema())
+    params = request.get_params(schemas.HistorySchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -273,7 +273,7 @@ def history(request):
 @view_config(name='transfer', renderer='json')
 def transfer(request):
     """Request and return WingCash transfer details of a transfer."""
-    params = request.get_params(app_schemas.TransferSchema())
+    params = request.get_params(schemas.TransferSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession
@@ -311,7 +311,7 @@ def transfer(request):
 @view_config(name='search-users', renderer='json')
 def search_users(request):
     """Search the list of users"""
-    params = request.get_params(app_schemas.SearchUsersSchema())
+    params = request.get_params(schemas.SearchUsersSchema())
     dbsession = request.dbsession
     device = get_device(request, params)
     user = device.user
@@ -333,7 +333,7 @@ def search_users(request):
 @view_config(name='upload-profile-image', renderer='json')
 def upload_profile_image(request):
     """Allow a user to upload an image for their profile picture"""
-    params = request.get_params(app_schemas.UploadProfileImageSchema())
+    params = request.get_params(schemas.UploadProfileImageSchema())
     device = get_device(request, params)
     user = device.user
     image = params['image']
