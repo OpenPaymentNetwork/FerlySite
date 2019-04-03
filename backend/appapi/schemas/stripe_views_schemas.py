@@ -1,17 +1,14 @@
-from colander import Schema
 from colander import SchemaNode
 from colander import String
 from backend.api_schemas import amount
-from backend.appapi.schemas import app_schemas as schemas
+from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
 
-class PurchaseSchema(Schema):
+class PurchaseSchema(CustomerDeviceSchema):
     amount = amount(minimum=0.50)
-    design_id = schemas.design_id()
-    device_id = schemas.device_id()
+    design_id = SchemaNode(String())
     source_id = SchemaNode(String())
 
 
-class DeleteSourceSchema(Schema):
-    device_id = schemas.device_id()
+class DeleteSourceSchema(CustomerDeviceSchema):
     source_id = SchemaNode(String())

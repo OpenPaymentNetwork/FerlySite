@@ -19,6 +19,7 @@ _email_validator = Email()
 def amount(minimum=0.01):
     return SchemaNode(
         Decimal(quant='0.01', rounding=decimal.ROUND_HALF_UP),
+        name='amount',
         validator=Range(
             min=decimal.Decimal(str(minimum)),
             min_err='${:.2f} is the minimum'.format(minimum)))
@@ -36,7 +37,7 @@ class StrippedString(String):
         return value
 
 
-class RecipientSchema(StrippedString):
+class Recipient(StrippedString):
 
     def deserialize(self, node, cstruct):
         value = StrippedString.deserialize(self, node, cstruct)
@@ -70,8 +71,6 @@ class FieldStorage(SchemaType):
         return appstruct
 
     def deserialize(self, node, cstruct):
-        if not cstruct:
-            return null
         if not isinstance(cstruct, cgi.FieldStorage):
             raise Invalid(node, '%r is not of type FieldStorage' % cstruct)
         return cstruct

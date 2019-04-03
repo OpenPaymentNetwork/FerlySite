@@ -1,3 +1,4 @@
+from backend.api_schemas import StrippedString
 from backend.appapi.schemas import recovery_views_schemas as schemas
 from colander import Invalid
 from unittest import TestCase
@@ -5,8 +6,11 @@ from unittest import TestCase
 
 class TestRecoverySchema(TestCase):
 
+    def _get_schema(self):
+        return schemas.RecoverySchema()
+
     def _call(self, obj={}):
-        return schemas.RecoverySchema().deserialize(obj)
+        return self._get_schema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {'device_id': 'default_device_id', 'login': 'default_login'}
@@ -22,16 +26,17 @@ class TestRecoverySchema(TestCase):
             self._call()
 
     def test_login_stripped(self):
-        login = 'text'
-        padded_login = ' {0} '.format(login)
-        response = self._call(self._make(login=padded_login))
-        self.assertEqual(response['login'], login)
+        login_type = self._get_schema().get(name='login').typ
+        self.assertTrue(isinstance(login_type, StrippedString))
 
 
 class TestRecoveryCodeSchema(TestCase):
 
+    def _get_schema(self):
+        return schemas.RecoveryCodeSchema()
+
     def _call(self, obj={}):
-        return schemas.RecoveryCodeSchema().deserialize(obj)
+        return self._get_schema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
@@ -77,16 +82,17 @@ class TestRecoveryCodeSchema(TestCase):
         self.assertEqual(response['expo_token'], '')
 
     def test_code_stripped(self):
-        code = 'text'
-        padded_code = ' {0} '.format(code)
-        response = self._call(self._make(code=padded_code))
-        self.assertEqual(response['code'], code)
+        code_type = self._get_schema().get(name='code').typ
+        self.assertTrue(isinstance(code_type, StrippedString))
 
 
 class TestAddUIDSchema(TestCase):
 
+    def _get_schema(self):
+        return schemas.AddUIDSchema()
+
     def _call(self, obj={}):
-        return schemas.AddUIDSchema().deserialize(obj)
+        return self._get_schema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
@@ -110,10 +116,8 @@ class TestAddUIDSchema(TestCase):
             self._call()
 
     def test_login_stripped(self):
-        login = 'text'
-        padded_login = ' {0} '.format(login)
-        response = self._call(self._make(login=padded_login))
-        self.assertEqual(response['login'], login)
+        login_type = self._get_schema().get(name='login').typ
+        self.assertTrue(isinstance(login_type, StrippedString))
 
     def test_valid_uid_type(self):
         with self.assertRaisesRegex(
@@ -123,8 +127,11 @@ class TestAddUIDSchema(TestCase):
 
 class TestAddUIDCodeSchema(TestCase):
 
+    def _get_schema(self):
+        return schemas.AddUIDCodeSchema()
+
     def _call(self, obj={}):
-        return schemas.AddUIDCodeSchema().deserialize(obj)
+        return self._get_schema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
@@ -161,7 +168,5 @@ class TestAddUIDCodeSchema(TestCase):
         self.assertIsNone(response['replace_uid'])
 
     def test_code_stripped(self):
-        code = 'text'
-        padded_code = ' {0} '.format(code)
-        response = self._call(self._make(code=padded_code))
-        self.assertEqual(response['code'], code)
+        code_type = self._get_schema().get(name='code').typ
+        self.assertTrue(isinstance(code_type, StrippedString))

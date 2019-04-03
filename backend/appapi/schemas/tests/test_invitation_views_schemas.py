@@ -40,7 +40,7 @@ class TestInviteSchema(TestCase):
         with self.assertRaisesRegex(Invalid, "'recipient': 'Required'"):
             self._call()
 
-    # TODO: assert recipient must be an instance of api_schemas.RecipientSchema
+    # TODO: assert recipient must be an instance of api_schemas.Recipient
 
 
 class TestDeleteInvitationSchema(TestCase):

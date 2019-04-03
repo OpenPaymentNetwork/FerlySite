@@ -1,6 +1,5 @@
 from backend.appapi.schemas import stripe_views_schemas as schemas
 from colander import Invalid
-from decimal import Decimal
 from unittest import TestCase
 
 
@@ -48,19 +47,3 @@ class TestPurchaseSchema(TestCase):
     def test_amount_minimum(self):
         with self.assertRaisesRegex(Invalid, "0.50 is the minimum"):
             self._call(self._make(amount=0.4))
-
-    def test_amount_rounds_up(self):
-        response = self._call(self._make(amount=1.455))
-        self.assertEqual(response['amount'], Decimal('1.46'))
-
-    def test_amount_rounds_down(self):
-        response = self._call(self._make(amount=1.454))
-        self.assertEqual(response['amount'], Decimal('1.45'))
-
-    def test_amount_as_string(self):
-        response = self._call(self._make(amount='1.02'))
-        self.assertEqual(response['amount'], Decimal('1.02'))
-
-    def test_amount_as_number(self):
-        response = self._call(self._make(amount=1.02))
-        self.assertEqual(response['amount'], Decimal('1.02'))

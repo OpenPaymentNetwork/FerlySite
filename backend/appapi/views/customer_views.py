@@ -82,7 +82,7 @@ def is_user(request):
 @view_config(name='profile', renderer='json')
 def profile(request):
     """Describe the profile currently associated with a device."""
-    params = request.get_params(schemas.DeviceSchema())
+    params = request.get_params(schemas.CustomerDeviceSchema())
     device = get_device(request, params)
     user = device.user
     dbsession = request.dbsession

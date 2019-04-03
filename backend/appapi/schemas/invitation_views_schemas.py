@@ -1,24 +1,20 @@
 from colander import OneOf
-from colander import Schema
 from colander import SchemaNode
 from colander import String
-from backend.appapi.schemas.app_schemas import device_id
-from backend.appapi.schemas.app_schemas import recipient
+from backend.api_schemas import Recipient
+from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
 
-class DeleteInvitationSchema(Schema):
-    device_id = device_id()
+class DeleteInvitationSchema(CustomerDeviceSchema):
     invite_id = SchemaNode(String())
 
 
-class ExistingInvitationsSchema(Schema):
-    device_id = device_id()
+class ExistingInvitationsSchema(CustomerDeviceSchema):
     status = SchemaNode(
         String(),
         missing=None,
         validator=OneOf(['pending', 'deleted', 'accepted']))
 
 
-class InviteSchema(Schema):
-    device_id = device_id()
-    recipient = recipient()
+class InviteSchema(CustomerDeviceSchema):
+    recipient = SchemaNode(Recipient())

@@ -3,10 +3,10 @@ from colander import Invalid
 from unittest import TestCase
 
 
-class TestDeviceSchema(TestCase):
+class TestCustomerDeviceSchema(TestCase):
 
     def _call(self, obj={}):
-        return app_schemas.DeviceSchema().deserialize(obj)
+        return app_schemas.CustomerDeviceSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):

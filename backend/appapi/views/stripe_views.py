@@ -1,10 +1,11 @@
-from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import stripe_views_schemas as schemas
 from backend.database.models import Design
 from backend.appapi.utils import get_device
 from backend.wccontact import wc_contact
 from colander import Invalid
 from pyramid.view import view_config
 import stripe
+from stripe.error import InvalidRequestError
 
 
 def get_customer(request, stripe_id):
@@ -15,7 +16,7 @@ def get_customer(request, stripe_id):
             stripe_id,
             api_key=request.ferlysettings.stripe_api_key
         )
-    except stripe.error.InvalidRequestError:
+    except InvalidRequestError:
         return None
     else:
         return customer
@@ -23,7 +24,7 @@ def get_customer(request, stripe_id):
 
 @view_config(name='list-stripe-sources', renderer='json')
 def list_stripe_sources(request):
-    params = request.get_params(app_schemas.DeviceSchema())
+    params = request.get_params(schemas.CustomerDeviceSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -35,7 +36,7 @@ def list_stripe_sources(request):
 
 @view_config(name='delete-stripe-source', renderer='json')
 def delete_stripe_source(request):
-    params = request.get_params(app_schemas.DeleteSourceSchema())
+    params = request.get_params(schemas.DeleteSourceSchema())
     device = get_device(request, params)
     user = device.user
 
@@ -50,7 +51,7 @@ def delete_stripe_source(request):
 
 @view_config(name='purchase', renderer='json')
 def purchase(request):
-    params = request.get_params(app_schemas.PurchaseSchema())
+    params = request.get_params(schemas.PurchaseSchema())
     device = get_device(request, params)
     user = device.user
 
