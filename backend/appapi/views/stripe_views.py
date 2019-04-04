@@ -6,6 +6,7 @@ from colander import Invalid
 from pyramid.view import view_config
 import stripe
 from stripe.error import InvalidRequestError
+from stripe.error import CardError
 
 
 def get_customer(request, stripe_id):
@@ -55,8 +56,7 @@ def purchase(request):
     device = get_device(request, params)
     user = device.user
 
-    dbsession = request.dbsession
-    design = dbsession.query(Design).get(params['design_id'])
+    design = request.dbsession.query(Design).get(params['design_id'])
     if design is None:
         return {'error': 'invalid_design'}
 
@@ -74,7 +74,7 @@ def purchase(request):
     if source_id.startswith('tok_'):
         try:
             card = customer.sources.create(source=source_id)
-        except stripe.error.CardError:
+        except CardError:
             return {'result': False}
         else:
             card_id = card.id
@@ -93,7 +93,7 @@ def purchase(request):
           api_key=request.ferlysettings.stripe_api_key,
           statement_descriptor='Ferly Card App'  # 22 character max
         )
-    except stripe.error.CardError:
+    except CardError:
         return {'result': False}
     if not charge.paid:
         return {'result': False}
@@ -103,7 +103,10 @@ def purchase(request):
         'recipient_uid': 'wingcash:' + user.wc_id,
         'amount': amount
     }
-    wc_contact(request, 'POST', 'design/{0}/send'.format(design.wc_id),
-               params=post_params)
+    wc_response = wc_contact(request, 'POST',
+                             'design/{0}/send'.format(design.wc_id),
+                             params=post_params)
+    if wc_response.status_code != 200:
+        return {'result': False}
     captured_charge = charge.capture()
     return {'result': captured_charge.paid}
