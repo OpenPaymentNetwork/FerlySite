@@ -21,7 +21,7 @@ def redemption_notification(request):
         param_map = request.params
     source_url = param_map.get('source_url', '')
     ferly_id = request.ferlysettings.wingcash_profile_id
-    if 'ferly.com/p/{0}/webhook'.format(ferly_id) not in source_url:
+    if '/p/{0}/webhook'.format(ferly_id) not in source_url:
         return {}
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
