@@ -13,7 +13,7 @@ def serialize_customer(request, customer):
         'first_name': customer.first_name,
         'last_name': customer.last_name,
         'username': customer.username,
-        'picture': customer.image_url
+        'profile_image_url': customer.profile_image_url
     }
 
 
@@ -21,8 +21,8 @@ def serialize_design(request, design):
     return {
         'id': design.id,
         'wingcash_id': design.wc_id,
-        'url': design.image_url,
+        'logo_image_url': design.logo_image_url,
         'title': design.title,
         'distribution_id': design.distribution_id,
-        'wallet_url': design.wallet_url
+        'wallet_image_url': design.wallet_image_url
     }

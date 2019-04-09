@@ -439,16 +439,16 @@ class TestHistory(TestCase):
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_design_image_url_is_returned(self, wc_contact, get_wc_token):
+    def test_design_logo_image_url_is_returned(self, wc_contact, get_wc_token):
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
         mock_filter = request.dbsession.query.return_value.filter
         mock_design = mock_filter.return_value.first.return_value
-        mock_design.image_url = 'fimage_url'
+        mock_design.logo_image_url = 'mylogourl'
         response = self._call(request)
         transfer = response['history'][0]
-        self.assertEqual(transfer['design_image_url'], 'fimage_url')
+        self.assertEqual(transfer['design_logo_image_url'], 'mylogourl')
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
@@ -599,7 +599,7 @@ class TestHistory(TestCase):
         response = self._call(request)
         transfer = response['history'][0]
         self.assertEqual(transfer['design_title'], 'Unrecognized')
-        self.assertEqual(transfer['design_image_url'], '')
+        self.assertEqual(transfer['design_logo_image_url'], '')
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
@@ -769,12 +769,13 @@ class TestTransfer(TestCase):
         mock_filter = request.dbsession.query.return_value.filter.return_value
         mock_filter.first.return_value = None
         response = self._call(request)
-        self.assertEqual(response['counter_party_image_url'], '')
+        self.assertEqual(response['counter_party_profile_image_url'], '')
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
     @patch('backend.appapi.views.customer_views.get_device')
-    def test_image_url_is_returned(self, get_device, wc_contact, get_wc_token):
+    def test_profile_image_url_is_returned(
+            self, get_device, wc_contact, get_wc_token):
         sender_id = 'mysenderid'
         customer = get_device.return_value.customer
         customer.wc_id = sender_id
@@ -783,6 +784,7 @@ class TestTransfer(TestCase):
         request = self._make_request()
         image_url = 'myimageurl'
         mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value.image_url = image_url
+        mock_filter.first.return_value.profile_image_url = image_url
         response = self._call(request)
-        self.assertEqual(response['counter_party_image_url'], image_url)
+        self.assertEqual(
+            response['counter_party_profile_image_url'], image_url)

@@ -64,7 +64,7 @@ class Customer(Base):
     last_name = Column(String, nullable=False)
     username = Column(String, unique=True, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
-    image_url = Column(String)
+    profile_image_url = Column(String)
     recents = Column(
         MutableList.as_mutable(ARRAY(String)), nullable=False, default=[])
     tsvector = Column(TSVECTOR)
@@ -105,8 +105,8 @@ class Design(Base):
     distribution_id = Column(String)
     wc_id = Column(String, nullable=False)
     title = Column(String)
-    image_url = Column(String)
-    wallet_url = Column(String)
+    logo_image_url = Column(String)
+    wallet_image_url = Column(String)
     tsvector = Column(TSVECTOR)
 
     def update_tsvector(self):

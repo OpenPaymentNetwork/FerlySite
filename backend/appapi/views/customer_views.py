@@ -104,8 +104,8 @@ def profile(request):
                 'id': design.id,
                 'title': loop['title'],
                 'amount': loop['amount'],
-                'wallet_url': design.wallet_url,
-                'logo_url': design.image_url})
+                'wallet_image_url': design.wallet_image_url,
+                'logo_image_url': design.logo_image_url})
 
     recents = [dbsession.query(
         Customer).get(recent) for recent in customer.recents]
@@ -114,7 +114,7 @@ def profile(request):
         'first_name': customer.first_name,
         'last_name': customer.last_name,
         'username': customer.username,
-        'profileImage': customer.image_url,
+        'profile_image_url': customer.profile_image_url,
         'amounts': amounts,
         'uids': uids,
         'recents': [serialize_customer(request, r) for r in recents]
@@ -221,7 +221,7 @@ def history(request):
         amount = transfer['amount']
         timestamp = transfer['timestamp']
         title = 'Unrecognized'
-        image_url = ''
+        logo_image_url = ''
         try:
             # TODO Make sure all loop_ids are the same
             first_movement_loop = transfer['movements'][0]['loops'][0]
@@ -239,7 +239,7 @@ def history(request):
                 designs[loop_id] = design
             if design:
                 title = design.title
-                image_url = design.image_url
+                logo_image_url = design.logo_image_url
 
         sender_info = transfer['sender_info']
         recipient_info = transfer['recipient_info']
@@ -264,7 +264,7 @@ def history(request):
             'transfer_type': transfer_type,
             'counter_party': counter_party,
             'design_title': title,
-            'design_image_url': image_url,
+            'design_logo_image_url': logo_image_url,
             'timestamp': timestamp,
             # 'loop_id': loop_id
         })
@@ -295,17 +295,17 @@ def transfer(request):
     else:
         return {'error': 'permission_denied'}
 
-    image_url = ''
+    profile_image_url = ''
     #  is_individual may not always be accurate, according to WingCash.
     if bool(counter_party['is_individual']):
         cp_customer = dbsession.query(Customer).filter(
             Customer.wc_id == counter_party['uid_value']).first()
         if cp_customer is not None:
-            image_url = cp_customer.image_url
+            profile_image_url = cp_customer.profile_image_url
 
     return {
         'message': transfer['message'],
-        'counter_party_image_url': image_url
+        'counter_party_profile_image_url': profile_image_url
     }
 
 
@@ -357,7 +357,7 @@ def upload_profile_image(request):
         bucket_name = 'ferly-prod-user-images'
     s3_resource = session.resource('s3')
 
-    current_image = customer.image_url
+    current_image = customer.profile_image_url
     if current_image:
         current_image_split = current_image.split('/')
         current_image_file = current_image_split[-1]
@@ -369,6 +369,7 @@ def upload_profile_image(request):
         Fileobj=image.file,
         Key=new_file_name,
         ExtraArgs={'ACL': 'public-read', 'ContentType': content_type})
-    customer.image_url = os.path.join(s3Url, bucket_name, new_file_name)
+    customer.profile_image_url = os.path.join(
+        s3Url, bucket_name, new_file_name)
 
     return {}

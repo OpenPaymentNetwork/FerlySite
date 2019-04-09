@@ -29,7 +29,8 @@ def upgrade():
     op.alter_column('invitation', 'user_id', new_column_name='customer_id')
     op.drop_constraint('fk_invitation_user_id_user', 'invitation', type_='foreignkey')
     op.create_foreign_key(op.f('fk_invitation_customer_id_customer'), 'invitation', 'customer', ['customer_id'], ['id'])
-
+    op.create_index(op.f('ix_invitation_customer_id'), 'invitation', ['customer_id'], unique=False)
+    op.drop_index('ix_invitation_user_id', table_name='invitation')
 
 def downgrade():
     op.rename_table('customer', 'user')
@@ -45,4 +46,5 @@ def downgrade():
     op.alter_column('invitation', 'customer_id', new_column_name='user_id')
     op.drop_constraint('fk_invitation_customer_id_customer', 'invitation', type_='foreignkey')
     op.create_foreign_key(op.f('fk_invitation_user_id_user'), 'invitation', 'user', ['user_id'], ['id'])
-
+    op.create_index(op.f('ix_invitation_user_id'), 'invitation', ['user_id'], unique=False)
+    op.drop_index('ix_invitation_customer_id', table_name='invitation')
