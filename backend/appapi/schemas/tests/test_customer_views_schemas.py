@@ -127,10 +127,10 @@ class TestRegisterSchema(TestCase):
         self.assertEqual(response['expo_token'], '')
 
 
-class TestIsUserSchema(TestCase):
+class TestIsCustomerSchema(TestCase):
 
     def _call(self, obj={}):
-        return schemas.IsUserSchema().deserialize(obj)
+        return schemas.IsCustomerSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
@@ -281,10 +281,10 @@ class TestTransferSchema(TestCase):
             self._call()
 
 
-class TestSearchUsersSchema(TestCase):
+class TestSearchCustomersSchema(TestCase):
 
     def _call(self, obj={}):
-        return schemas.SearchUsersSchema().deserialize(obj)
+        return schemas.SearchCustomersSchema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):

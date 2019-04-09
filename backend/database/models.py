@@ -52,11 +52,11 @@ class MutableList(Mutable, list):
             return value
 
 
-class User(Base):
-    __tablename__ = 'user'
+class Customer(Base):
+    __tablename__ = 'customer'
     id = Column(
         String, nullable=False, primary_key=True,
-        server_default=string_sequencer('user_seq'))
+        server_default=string_sequencer('customer_seq'))
     wc_id = Column(
         String, nullable=False, index=True, unique=True)
     title = Column(String)
@@ -88,13 +88,13 @@ class Device(Base):
         String, nullable=False, primary_key=True,
         server_default=string_sequencer('device_seq'))
     device_id = Column(String, unique=True, nullable=False, index=True)
-    user_id = Column(
-        String, ForeignKey('user.id'), nullable=False)
+    customer_id = Column(
+        String, ForeignKey('customer.id'), nullable=False)
     expo_token = Column(String)
     last_used = Column(DateTime, nullable=False, server_default=now_utc)
     os = Column(String)
 
-    user = relationship(User)
+    customer = relationship(Customer)
 
 
 class Design(Base):
@@ -126,14 +126,14 @@ class Invitation(Base):
     id = Column(
         String, nullable=False, primary_key=True,
         server_default=string_sequencer('invitation_seq'))
-    user_id = Column(
-        String, ForeignKey('user.id'), nullable=False, index=True)
+    customer_id = Column(
+        String, ForeignKey('customer.id'), nullable=False, index=True)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     recipient = Column(String, nullable=False)
     status = Column(String, nullable=False, server_default='pending')
     response = Column(String)
 
-    user = relationship(User)
+    customer = relationship(Customer)
 
 
 # all_metadata_defined must be at the end of the file. It signals that

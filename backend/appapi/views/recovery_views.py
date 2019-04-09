@@ -1,6 +1,6 @@
 from backend.appapi.schemas import recovery_views_schemas as schemas
 from backend.database.models import Device
-from backend.database.models import User
+from backend.database.models import Customer
 from backend.appapi.utils import get_device
 from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
@@ -85,9 +85,9 @@ def recover_code(request):
         return {'error': 'unexpected_auth_attempt'}
 
     wc_id = profile_id
-    user = dbsession.query(User).filter(User.wc_id == wc_id).one()
+    customer = dbsession.query(Customer).filter(Customer.wc_id == wc_id).one()
 
-    new_device = Device(device_id=device_id, user_id=user.id,
+    new_device = Device(device_id=device_id, customer_id=customer.id,
                         expo_token=expo_token, os=os)
     dbsession.add(new_device)
 
@@ -96,17 +96,17 @@ def recover_code(request):
 
 @view_config(name='add-uid', renderer='json')
 def add_uid(request):
-    """Associate an email or phone number with a user's profile"""
+    """Associate an email or phone number with a customer's profile"""
     params = request.get_params(schemas.AddUIDSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
 
     wc_params = {
         'login': params['login'],
         'uid_type': params['uid_type']
     }
 
-    access_token = get_wc_token(request, user)
+    access_token = get_wc_token(request, customer)
     response = wc_contact(request, 'POST', 'wallet/add-uid', params=wc_params,
                           access_token=access_token)
     response_json = response.json()
@@ -121,7 +121,7 @@ def add_uid(request):
 def confirm_uid(request):
     params = request.get_params(schemas.AddUIDCodeSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
 
     wc_params = {
         'secret': params['secret'],
@@ -132,7 +132,7 @@ def confirm_uid(request):
     if params.get('replace_uid'):
         wc_params['replace_uid'] = params['replace_uid']
 
-    access_token = get_wc_token(request, user)
+    access_token = get_wc_token(request, customer)
     response = wc_contact(
         request, 'POST', 'wallet/add-uid-confirm', params=wc_params,
         access_token=access_token, returnErrors=True)

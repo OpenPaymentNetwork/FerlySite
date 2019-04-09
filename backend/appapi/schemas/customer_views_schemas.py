@@ -38,7 +38,7 @@ class RegisterSchema(CustomerDeviceSchema):
     os = SchemaNode(String(), missing='')
 
 
-class IsUserSchema(CustomerDeviceSchema):
+class IsCustomerSchema(CustomerDeviceSchema):
     expected_env = SchemaNode(String(), missing='staging')
 
 
@@ -65,7 +65,7 @@ class TransferSchema(CustomerDeviceSchema):
     transfer_id = SchemaNode(String())
 
 
-class SearchUsersSchema(CustomerDeviceSchema):
+class SearchCustomersSchema(CustomerDeviceSchema):
     query = SchemaNode(String())
 
 

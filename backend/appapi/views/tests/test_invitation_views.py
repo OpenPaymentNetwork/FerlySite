@@ -51,7 +51,7 @@ class TestInvite(TestCase):
         sendgrid_response = send_email.return_value = '202'
         expected_response = 'sendgrid:{0}'.format(sendgrid_response)
         request = self._make_request(recipient=recipient)
-        user = get_device.return_value.user
+        customer = get_device.return_value.customer
         self._call(request)
         send_email.assert_called_with(
             request,
@@ -59,8 +59,9 @@ class TestInvite(TestCase):
             'Ferly Invitation',
             'You have been invited to join Ferly.'
         )
-        invitation.assert_called_with(
-            user_id=user.id, recipient=recipient, response=expected_response)
+        invitation.assert_called_with(customer_id=customer.id,
+                                      recipient=recipient,
+                                      response=expected_response)
 
     @patch('backend.appapi.views.invitation_views.send_sms')
     @patch('backend.appapi.views.invitation_views.get_device')
@@ -70,15 +71,16 @@ class TestInvite(TestCase):
         twilio_response = send_sms.return_value = 'queued'
         expected_response = 'twilio:{0}'.format(twilio_response)
         request = self._make_request(recipient=recipient)
-        user = get_device.return_value.user
+        customer = get_device.return_value.customer
         self._call(request)
         send_sms.assert_called_with(
             request,
             recipient,
             'You have been invited to join Ferly.'
         )
-        invitation.assert_called_with(
-            user_id=user.id, recipient=recipient, response=expected_response)
+        invitation.assert_called_with(customer_id=customer.id,
+                                      recipient=recipient,
+                                      response=expected_response)
 
 
 class TestExistingInvitations(TestCase):
@@ -104,13 +106,13 @@ class TestExistingInvitations(TestCase):
             isinstance(schema_used, schemas.ExistingInvitationsSchema))
 
     @patch('backend.appapi.views.invitation_views.get_device')
-    def test_invitations_by_this_user_only(self, get_device):
+    def test_invitations_by_this_customer_only(self, get_device):
         request = self._make_request()
-        user = get_device.return_value.user
-        user_filter = request.dbsession.query.return_value.filter
+        customer = get_device.return_value.customer
+        customer_filter = request.dbsession.query.return_value.filter
         self._call(request)
-        expression = Invitation.user_id == user.id
-        self.assertTrue(expression.compare(user_filter.call_args[0][0]))
+        expression = Invitation.customer_id == customer.id
+        self.assertTrue(expression.compare(customer_filter.call_args[0][0]))
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_no_status_returns_all(self, get_device):
@@ -175,19 +177,19 @@ class TestDeleteInvitation(TestCase):
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_status_updated(self, get_device):
         request = self._make_request()
-        user_id = 'myuser_id'
+        customer_id = 'myid'
         invitation = request.dbsession.query().get.return_value
-        invitation.user_id = user_id
-        get_device.return_value.user.id = user_id
+        invitation.customer_id = customer_id
+        get_device.return_value.customer.id = customer_id
         self._call(request)
         self.assertEqual(invitation.status, 'deleted')
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_response(self, get_device):
         request = self._make_request()
-        user_id = 'myuser_id'
+        customer_id = 'myid'
         invitation = request.dbsession.query().get.return_value
-        invitation.user_id = user_id
-        get_device.return_value.user.id = user_id
+        invitation.customer_id = customer_id
+        get_device.return_value.customer.id = customer_id
         response = self._call(request)
         self.assertEqual(response, {})

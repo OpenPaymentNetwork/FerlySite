@@ -11,11 +11,11 @@ from pyramid.view import view_config
 def delete_invitation(request):
     params = request.get_params(schemas.DeleteInvitationSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
     invite = dbsession.query(Invitation).get(params['invite_id'])
-    if invite is None or invite.user_id != user.id:
+    if invite is None or invite.customer_id != customer.id:
         return {'error': 'cannot_be_deleted'}
     else:
         invite.status = 'deleted'
@@ -26,11 +26,12 @@ def delete_invitation(request):
 def existing_invitations(request):
     params = request.get_params(schemas.ExistingInvitationsSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
     status = params.get('status')
-    query = dbsession.query(Invitation).filter(Invitation.user_id == user.id)
+    query = dbsession.query(Invitation).filter(
+        Invitation.customer_id == customer.id)
     if status:
         query = query.filter(Invitation.status == status)
     return {'results': [serialize_invitation(request, i) for i in query.all()]}
@@ -40,7 +41,7 @@ def existing_invitations(request):
 def invite(request):
     params = request.get_params(schemas.InviteSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
     recipient = params['recipient']
@@ -58,7 +59,7 @@ def invite(request):
         status = 'twilio:{0}'.format(response)
 
     invitation = Invitation(
-        user_id=user.id,
+        customer_id=customer.id,
         recipient=recipient,
         response=status
     )

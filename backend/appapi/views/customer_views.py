@@ -1,10 +1,10 @@
 from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.database.models import Design
 from backend.database.models import Device
-from backend.database.models import User
-from backend.database.serialize import serialize_user
+from backend.database.models import Customer
+from backend.database.serialize import serialize_customer
 from backend.appapi.utils import get_device
-from backend.appapi.utils import notify_user
+from backend.appapi.utils import notify_customer
 from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
@@ -18,7 +18,7 @@ import uuid
 
 @view_config(name='signup', renderer='json')
 def signup(request):
-    """Associate a device with a new user and wallet."""
+    """Associate a device with a new customer and wallet."""
     params = request.get_params(schemas.RegisterSchema())
     device_id = params['device_id']
     expo_token = params['expo_token']
@@ -30,10 +30,10 @@ def signup(request):
         return {'error': 'device_already_registered'}
     else:
         username = params['username']
-        existing_user = dbsession.query(User).filter(
-            User.username == username).first()
+        existing_customer = dbsession.query(Customer).filter(
+            Customer.username == username).first()
 
-        if existing_user is not None:
+        if existing_customer is not None:
             return {'error': 'existing_username'}
 
         postParams = {
@@ -52,22 +52,22 @@ def signup(request):
         wc_id = response.json().get('id')
         first_name = params['first_name']
         last_name = params['last_name']
-        user = User(wc_id=wc_id, first_name=first_name, last_name=last_name,
-                    username=username)
-        user.update_tsvector()
-        dbsession.add(user)
+        new_customer = Customer(wc_id=wc_id, first_name=first_name,
+                                last_name=last_name, username=username)
+        new_customer.update_tsvector()
+        dbsession.add(new_customer)
         dbsession.flush()
 
-        device = Device(device_id=device_id, user_id=user.id,
+        device = Device(device_id=device_id, customer_id=new_customer.id,
                         expo_token=expo_token, os=os)
         dbsession.add(device)
     return {}
 
 
-@view_config(name='is-user', renderer='json')
-def is_user(request):
-    """Return if the device_id is associated with a user."""
-    params = request.get_params(schemas.IsUserSchema())
+@view_config(name='is-customer', renderer='json')
+def is_customer(request):
+    """Return if the device_id is associated with a customer."""
+    params = request.get_params(schemas.IsCustomerSchema())
     env = 'production' if params['expected_env'] == 'production' else 'staging'
     if env != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
@@ -76,7 +76,7 @@ def is_user(request):
     device = dbsession.query(Device).filter(
         Device.device_id == device_id).first()
     # Doing more than this requires updating device.last_used to models.now_utc
-    return {'is_user': device is not None}
+    return {'is_customer': device is not None}
 
 
 @view_config(name='profile', renderer='json')
@@ -84,10 +84,10 @@ def profile(request):
     """Describe the profile currently associated with a device."""
     params = request.get_params(schemas.CustomerDeviceSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
-    access_token = get_wc_token(request, user)
+    access_token = get_wc_token(request, customer)
     response = wc_contact(request, 'GET', 'wallet/info',
                           access_token=access_token)
 
@@ -107,25 +107,26 @@ def profile(request):
                 'wallet_url': design.wallet_url,
                 'logo_url': design.image_url})
 
-    recents = [dbsession.query(User).get(recent) for recent in user.recents]
+    recents = [dbsession.query(
+        Customer).get(recent) for recent in customer.recents]
 
     return {
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'username': user.username,
-        'profileImage': user.image_url,
+        'first_name': customer.first_name,
+        'last_name': customer.last_name,
+        'username': customer.username,
+        'profileImage': customer.image_url,
         'amounts': amounts,
         'uids': uids,
-        'recents': [serialize_user(request, u) for u in recents]
+        'recents': [serialize_customer(request, r) for r in recents]
     }
 
 
 @view_config(name='send', renderer='json')
 def send(request):
-    """Send Closed Loop Cash to another Ferly user."""
+    """Send Closed Loop Cash to another Ferly customer."""
     params = request.get_params(schemas.SendSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
 
     recipient_id = params['recipient_id']
     design_id = params['design_id']
@@ -133,12 +134,12 @@ def send(request):
     message = params['message']
 
     dbsession = request.dbsession
-    recipient = dbsession.query(User).get(recipient_id)
+    recipient = dbsession.query(Customer).get(recipient_id)
     design = dbsession.query(Design).get(design_id)
     amount_row = "{0}-USD-{1}".format(design.wc_id, amount)
 
     params = {
-        'sender_id': user.wc_id,
+        'sender_id': customer.wc_id,
         'recipient_uid': 'wingcash:{0}'.format(recipient.wc_id),
         'amounts': amount_row,
         'require_recipient_email': False,
@@ -148,65 +149,65 @@ def send(request):
     if message:
         params['message'] = message
 
-    user.recents.add(recipient.id)
+    customer.recents.add(recipient.id)
 
-    access_token = get_wc_token(request, user)
+    access_token = get_wc_token(request, customer)
     wc_contact(request, 'POST', 'wallet/send', params=params,
                access_token=access_token)
 
     formatted_amount = '${:.2f}'.format(amount)
 
     title = 'Received {0} {1}'.format(formatted_amount, design.title)
-    sender = 'from {0}'.format(user.title)
+    sender = 'from {0}'.format(customer.title)
     body = '{0}\n{1}'.format(message, sender) if message else sender
-    notify_user(request, recipient, title, body, channel_id='gift-received')
+    notify_customer(
+        request, recipient, title, body, channel_id='gift-received')
 
     return {}
 
 
 @view_config(name='edit-profile', renderer='json')
 def edit_profile(request):
-    """Update a user's profile information"""
+    """Update a customer's profile information"""
     params = request.get_params(schemas.EditProfileSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
     first_name = params['first_name']
     last_name = params['last_name']
     username = params['username']
-    existing_user = dbsession.query(User).filter(
-        User.username == username).first()
+    existing_customer = dbsession.query(Customer).filter(
+        Customer.username == username).first()
 
-    if existing_user is not None and existing_user is not user:
+    if existing_customer is not None and existing_customer is not customer:
         return {'error': 'existing_username'}
-    else:
-        if first_name != user.first_name or last_name != user.last_name:
-            post_params = {
-                'first_name': first_name,
-                'last_name': last_name
-            }
-            access_token = get_wc_token(request, user)
-            wc_contact(request, 'POST', 'wallet/change-name',
-                       params=post_params, access_token=access_token)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.username = username
-        user.update_tsvector()
+    if first_name != customer.first_name or last_name != customer.last_name:
+        post_params = {
+            'first_name': first_name,
+            'last_name': last_name
+        }
+        access_token = get_wc_token(request, customer)
+        wc_contact(request, 'POST', 'wallet/change-name',
+                   params=post_params, access_token=access_token)
+    customer.first_name = first_name
+    customer.last_name = last_name
+    customer.username = username
+    customer.update_tsvector()
     return {}
 
 
 @view_config(name='history', renderer='json')
 def history(request):
-    """Request and return the user's WingCash transfer history."""
+    """Request and return the customer's WingCash transfer history."""
     params = request.get_params(schemas.HistorySchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
     post_params = {'limit': params['limit'], 'offset': params['offset']}
 
-    access_token = get_wc_token(request, user)
+    access_token = get_wc_token(request, customer)
     response = wc_contact(
         request, 'GET', 'wallet/history', params=post_params,
         access_token=access_token)
@@ -244,13 +245,13 @@ def history(request):
         recipient_info = transfer['recipient_info']
         transfer_type = 'unrecognized'
         counter_party = ''
-        if transfer['recipient_id'] == user.wc_id:
+        if transfer['recipient_id'] == customer.wc_id:
             counter_party = sender_info['title']
             if not bool(sender_info['is_individual']):
                 transfer_type = 'purchase'
             else:
                 transfer_type = 'receive'
-        elif transfer['sender_id'] == user.wc_id:
+        elif transfer['sender_id'] == customer.wc_id:
             counter_party = recipient_info['title']
             if bool(recipient_info['is_individual']):
                 transfer_type = 'send'
@@ -275,10 +276,10 @@ def transfer(request):
     """Request and return WingCash transfer details of a transfer."""
     params = request.get_params(schemas.TransferSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
-    access_token = get_wc_token(request, user)
+    access_token = get_wc_token(request, customer)
     transfer = wc_contact(
         request,
         'GET',
@@ -287,9 +288,9 @@ def transfer(request):
 
     sender_info = transfer['sender_info']
     recipient_info = transfer['recipient_info']
-    if transfer['recipient_id'] == user.wc_id:
+    if transfer['recipient_id'] == customer.wc_id:
         counter_party = sender_info
-    elif transfer['sender_id'] == user.wc_id:
+    elif transfer['sender_id'] == customer.wc_id:
         counter_party = recipient_info
     else:
         return {'error': 'permission_denied'}
@@ -297,10 +298,10 @@ def transfer(request):
     image_url = ''
     #  is_individual may not always be accurate, according to WingCash.
     if bool(counter_party['is_individual']):
-        cp_user = dbsession.query(User).filter(
-            User.wc_id == counter_party['uid_value']).first()
-        if cp_user is not None:
-            image_url = cp_user.image_url
+        cp_customer = dbsession.query(Customer).filter(
+            Customer.wc_id == counter_party['uid_value']).first()
+        if cp_customer is not None:
+            image_url = cp_customer.image_url
 
     return {
         'message': transfer['message'],
@@ -308,13 +309,13 @@ def transfer(request):
     }
 
 
-@view_config(name='search-users', renderer='json')
-def search_users(request):
-    """Search the list of users"""
-    params = request.get_params(schemas.SearchUsersSchema())
+@view_config(name='search-customers', renderer='json')
+def search_customers(request):
+    """Search the list of customers"""
+    params = request.get_params(schemas.SearchCustomersSchema())
     dbsession = request.dbsession
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     dbsession = request.dbsession
 
     # Create an expression that converts the query
@@ -323,19 +324,19 @@ def search_users(request):
         cast(func.plainto_tsquery(params['query']), Unicode),
         r"'( |$)", r"':*\1", 'g')
 
-    users = dbsession.query(User).filter(
-        User.tsvector.match(text_parsed),
-        User.id != user.id).order_by(User.username)
+    customers = dbsession.query(Customer).filter(
+        Customer.tsvector.match(text_parsed),
+        Customer.id != customer.id).order_by(Customer.username)
 
-    return {'results': [serialize_user(request, x) for x in users]}
+    return {'results': [serialize_customer(request, c) for c in customers]}
 
 
 @view_config(name='upload-profile-image', renderer='json')
 def upload_profile_image(request):
-    """Allow a user to upload an image for their profile picture"""
+    """Allow a customer to upload an image for their profile picture"""
     params = request.get_params(schemas.UploadProfileImageSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
     image = params['image']
     content_type = image.type
     file_type = content_type.split('/')[-1]
@@ -343,7 +344,7 @@ def upload_profile_image(request):
     access_key_id = request.ferlysettings.aws_access_key_id
     secret_key = request.ferlysettings.aws_secret_key
     new_file_name = '{0}|{1}.{2}'.format(
-        user.id, str(uuid.uuid4()), file_type)
+        customer.id, str(uuid.uuid4()), file_type)
     region = 'us-east-2'
     session = boto3.Session(
         aws_access_key_id=access_key_id,
@@ -356,7 +357,7 @@ def upload_profile_image(request):
         bucket_name = 'ferly-prod-user-images'
     s3_resource = session.resource('s3')
 
-    current_image = user.image_url
+    current_image = customer.image_url
     if current_image:
         current_image_split = current_image.split('/')
         current_image_file = current_image_split[-1]
@@ -368,6 +369,6 @@ def upload_profile_image(request):
         Fileobj=image.file,
         Key=new_file_name,
         ExtraArgs={'ACL': 'public-read', 'ContentType': content_type})
-    user.image_url = os.path.join(s3Url, bucket_name, new_file_name)
+    customer.image_url = os.path.join(s3Url, bucket_name, new_file_name)
 
     return {}

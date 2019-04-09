@@ -1,8 +1,8 @@
 from backend.appapi.schemas import app_schemas
 from backend.database.models import Design
-from backend.database.models import User
+from backend.database.models import Customer
 from backend.database.serialize import serialize_design
-from backend.appapi.utils import notify_user
+from backend.appapi.utils import notify_customer
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
 from sqlalchemy import cast
@@ -14,7 +14,7 @@ _last_transfer_notified = ''
 
 @view_config(name='redemption-notification', renderer='json')
 def redemption_notification(request):
-    """Use WingCash webhooks to notify users when their card is used."""
+    """WingCash webhook endpoint for when a customer's card is used."""
     if getattr(request, 'content_type', None) == 'application/json':
         param_map = request.json_body
     else:
@@ -40,14 +40,16 @@ def redemption_notification(request):
             continue
         _last_transfer_notified = transfer_id
         dbsession = request.dbsession
-        user = dbsession.query(User).filter(User.wc_id == sender_id).first()
+        customer = dbsession.query(
+            Customer).filter(Customer.wc_id == sender_id).first()
         design = dbsession.query(Design).filter(
             Design.wc_id == loop_id).first()
-        if not user or not design:
+        if not customer or not design:
             continue
         body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
             amount, design.title)
-        notify_user(request, user, 'Redemption', body, channel_id='card-used')
+        notify_customer(request, customer, 'Redemption', body,
+                        channel_id='card-used')
     return {}
 
 

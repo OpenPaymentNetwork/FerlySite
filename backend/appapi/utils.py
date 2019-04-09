@@ -11,16 +11,16 @@ def get_device(request, params):
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
         Device.device_id == device_id).first()
-    if device is None or device.user is None:
+    if device is None or device.customer is None:
         raise HTTPUnauthorized
     device.last_used = now_utc
     return device
 
 
-def notify_user(request, user, title, body, channel_id=None):
+def notify_customer(request, customer, title, body, channel_id=None):
     url = 'https://exp.host/--/api/v2/push/send'
     devices = request.dbsession.query(Device).filter(
-        Device.user_id == user.id).all()
+        Device.customer_id == customer.id).all()
 
     notifications = []
     for device in devices:
@@ -44,9 +44,9 @@ def notify_user(request, user, title, body, channel_id=None):
         requests.post(url, data=json.dumps(notifications), headers=headers)
 
 
-def get_wc_token(request, user):
+def get_wc_token(request, customer):
     params = {
-        'uid': 'wingcash:' + user.wc_id,
+        'uid': 'wingcash:' + customer.wc_id,
         'concurrent': True
     }
     response = wc_contact(request, 'GET', 'p/token', params, auth=True)

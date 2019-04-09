@@ -7,13 +7,13 @@ def serialize_invitation(request, invitation):
     }
 
 
-def serialize_user(request, user):
+def serialize_customer(request, customer):
     return {
-        'id': user.id,
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'username': user.username,
-        'picture': user.image_url
+        'id': customer.id,
+        'first_name': customer.first_name,
+        'last_name': customer.last_name,
+        'username': customer.username,
+        'picture': customer.image_url
     }
 
 

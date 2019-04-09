@@ -9,7 +9,7 @@ from stripe.error import InvalidRequestError
 from stripe.error import CardError
 
 
-def get_customer(request, stripe_id):
+def get_stripe_customer(request, stripe_id):
     if not stripe_id:
         return None
     try:
@@ -27,10 +27,10 @@ def get_customer(request, stripe_id):
 def list_stripe_sources(request):
     params = request.get_params(schemas.CustomerDeviceSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
 
-    customer = get_customer(request, user.stripe_id)
-    sources = [] if not customer else customer.sources.data
+    stripe_customer = get_stripe_customer(request, customer.stripe_id)
+    sources = [] if not stripe_customer else stripe_customer.sources.data
     return {'sources': [
         {'id': s.id, 'last_four': s.last4, 'brand': s.brand} for s in sources]}
 
@@ -39,13 +39,14 @@ def list_stripe_sources(request):
 def delete_stripe_source(request):
     params = request.get_params(schemas.DeleteSourceSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
 
-    customer = get_customer(request, user.stripe_id)
-    if not customer:
+    stripe_customer = get_stripe_customer(request, customer.stripe_id)
+    if not stripe_customer:
         return {'error': 'nonexistent_customer'}
 
-    stripe_response = customer.sources.retrieve(params['source_id']).delete()
+    stripe_response = stripe_customer.sources.retrieve(
+        params['source_id']).delete()
 
     return {'result': stripe_response.get('deleted', False)}
 
@@ -54,7 +55,7 @@ def delete_stripe_source(request):
 def purchase(request):
     params = request.get_params(schemas.PurchaseSchema())
     device = get_device(request, params)
-    user = device.user
+    customer = device.customer
 
     design = request.dbsession.query(Design).get(params['design_id'])
     if design is None:
@@ -64,16 +65,16 @@ def purchase(request):
     amount_in_cents = int(amount * 100)
     source_id = params['source_id']
 
-    customer = get_customer(request, user.stripe_id)
-    if not customer:
-        customer = stripe.Customer.create(
+    stripe_customer = get_stripe_customer(request, customer.stripe_id)
+    if not stripe_customer:
+        stripe_customer = stripe.Customer.create(
           api_key=request.ferlysettings.stripe_api_key
         )
-        user.stripe_id = customer.id
+        customer.stripe_id = stripe_customer.id
 
     if source_id.startswith('tok_'):
         try:
-            card = customer.sources.create(source=source_id)
+            card = stripe_customer.sources.create(source=source_id)
         except CardError:
             return {'result': False}
         else:
@@ -88,7 +89,7 @@ def purchase(request):
           amount=amount_in_cents,  # must be in cents as int, ie $1.0 -> 100
           currency='USD',
           capture=False,
-          customer=customer.id,
+          customer=stripe_customer.id,
           source=card_id,
           api_key=request.ferlysettings.stripe_api_key,
           statement_descriptor='Ferly Card App'  # 22 character max
@@ -100,7 +101,7 @@ def purchase(request):
 
     post_params = {
         'distribution_plan_id': design.distribution_id,
-        'recipient_uid': 'wingcash:' + user.wc_id,
+        'recipient_uid': 'wingcash:' + customer.wc_id,
         'amount': amount
     }
     wc_response = wc_contact(request, 'POST',

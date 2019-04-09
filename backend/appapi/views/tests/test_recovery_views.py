@@ -208,12 +208,13 @@ class TestRecoverCode(TestCase):
             'completed_mfa': True,
             'profile_id': profile_id
         }
-        query.filter.return_value.one.return_value = user = MagicMock()
-        user.id = 'myuserid'
+        query.filter.return_value.one.return_value = customer = MagicMock()
+        customer.id = 'mycustomerid'
         wc_contact().status_code = 200
         self._call(request)
-        mock_device.assert_called_with(
-            device_id=device_id, user_id=user.id, expo_token=expo_token, os=os)
+        mock_device.assert_called_with(device_id=device_id,
+                                       customer_id=customer.id,
+                                       expo_token=expo_token, os=os)
         request.dbsession.add.assert_called_with(mock_device.return_value)
 
 

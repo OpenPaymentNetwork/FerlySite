@@ -16,10 +16,10 @@ class TestGetWCToken(TestCase):
     @patch('backend.appapi.utils.wc_contact')
     def test_params(self, mock_wc_contact):
         request = pyramid.testing.DummyRequest()
-        mock_user = MagicMock()
-        mock_user.wc_id = 'wc_id'
-        self._call(request, mock_user)
-        params = {'uid': 'wingcash:' + mock_user.wc_id, 'concurrent': True}
+        customer = MagicMock()
+        customer.wc_id = 'wc_id'
+        self._call(request, customer)
+        params = {'uid': 'wingcash:' + customer.wc_id, 'concurrent': True}
         args = (request, 'GET', 'p/token', params)
         kw = {'auth': True}
         mock_wc_contact.assert_called_once_with(*args, **kw)
@@ -28,9 +28,9 @@ class TestGetWCToken(TestCase):
     def test_no_token(self, mock_wc_contact):
         request = pyramid.testing.DummyRequest()
         mock_wc_contact.return_value.json.return_value = {}
-        mock_user = MagicMock()
-        mock_user.wc_id = 'wc_id'
-        response = self._call(request, mock_user)
+        customer = MagicMock()
+        customer.wc_id = 'wc_id'
+        response = self._call(request, customer)
         self.assertIsNone(response)
 
     @patch('backend.appapi.utils.wc_contact')
@@ -40,9 +40,9 @@ class TestGetWCToken(TestCase):
         mock_wc_contact.return_value.json.return_value = {
             'access_token': token
         }
-        mock_user = MagicMock()
-        mock_user.wc_id = 'wc_id'
-        response = self._call(request, mock_user)
+        customer = MagicMock()
+        customer.wc_id = 'wc_id'
+        response = self._call(request, customer)
         self.assertEqual(response, token)
 
 
@@ -59,11 +59,11 @@ class TestGetDevice(TestCase):
         with self.assertRaises(HTTPUnauthorized):
             self._call(request, params={})
 
-    def test_device_has_no_user(self):
+    def test_device_has_no_customer(self):
         request = pyramid.testing.DummyRequest()
         mdbsession = request.dbsession = MagicMock()
         mdevice = MagicMock()
-        mdevice.user = None
+        mdevice.customer = None
         mock_query = mdbsession.query.return_value
         mock_query.filter.return_value.first.return_value = mdevice
         with self.assertRaises(HTTPUnauthorized):
