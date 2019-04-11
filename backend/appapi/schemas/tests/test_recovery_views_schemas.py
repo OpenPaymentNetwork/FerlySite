@@ -170,3 +170,24 @@ class TestAddUIDCodeSchema(TestCase):
     def test_code_stripped(self):
         code_type = self._get_schema().get(name='code').typ
         self.assertTrue(isinstance(code_type, StrippedString))
+
+
+class TestAuthUIDCodeSchema(TestCase):
+
+    def _get_schema(self):
+        return schemas.AuthUIDCodeSchema()
+
+    def _call(self, obj={}):
+        return self._get_schema().deserialize(obj)
+
+    def test_code_required(self):
+        with self.assertRaisesRegex(Invalid, "'code': 'Required'"):
+            self._call()
+
+    def test_factor_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'factor_id': 'Required'"):
+            self._call()
+
+    def test_code_stripped(self):
+        code_type = self._get_schema().get(name='code').typ
+        self.assertTrue(isinstance(code_type, StrippedString))

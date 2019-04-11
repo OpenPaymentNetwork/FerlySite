@@ -62,3 +62,5 @@ class TestStrippedString(TestCase):
 
 
 # TODO: TestRecipient
+
+# TODO: TestFieldStorage

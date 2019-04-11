@@ -1,3 +1,4 @@
+from backend.api_schemas import Recipient
 from backend.appapi.schemas import invitation_views_schemas as schemas
 from colander import Invalid
 from unittest import TestCase
@@ -29,8 +30,11 @@ class TestExistingInvitationSchema(TestCase):
 
 class TestInviteSchema(TestCase):
 
+    def _get_schema(self):
+        return schemas.InviteSchema()
+
     def _call(self, obj={}):
-        return schemas.InviteSchema().deserialize(obj)
+        return self._get_schema().deserialize(obj)
 
     def test_device_id_required(self):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
@@ -40,7 +44,9 @@ class TestInviteSchema(TestCase):
         with self.assertRaisesRegex(Invalid, "'recipient': 'Required'"):
             self._call()
 
-    # TODO: assert recipient must be an instance of api_schemas.Recipient
+    def test_is_recipient(self):
+        recipient_type = self._get_schema().get(name='recipient').typ
+        self.assertTrue(isinstance(recipient_type, Recipient))
 
 
 class TestDeleteInvitationSchema(TestCase):

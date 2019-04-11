@@ -61,11 +61,7 @@ def recaptcha_sitekey(request):
 
 @view_config(name='list-designs', renderer='json')
 def list_designs(request):
-    """List all the designs on Ferly.
-
-    Replace this with a request to WingCash, to get all designs associataed
-    with the Ferly profile.
-    """
+    """List all the designs on Ferly."""
     dbsession = request.dbsession
     designs = dbsession.query(Design).order_by(Design.title).all()
     return [serialize_design(request, design) for design in designs]
