@@ -13,7 +13,7 @@ def wc_contact(request, method, urlTail, params={}, secret='',
         args.update({'data': params})
     elif method == 'GET':
         requests_func = requests.get
-        args.update({'params': params})
+        args.update({'json': params})
     else:
         raise Exception("Only 'GET' and 'POST' are accepted methods")
 

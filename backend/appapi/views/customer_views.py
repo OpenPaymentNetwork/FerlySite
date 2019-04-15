@@ -86,9 +86,12 @@ def profile(request):
     customer = device.customer
     dbsession = request.dbsession
 
-    access_token = get_wc_token(request, customer)
+    access_token = get_wc_token(request, customer,
+                                permissions=['view_paycard', 'view_wallet'])
     response = wc_contact(request, 'GET', 'wallet/info',
                           access_token=access_token)
+    card_response = wc_contact(request, 'GET', 'wallet/paycard/list',
+                               access_token=access_token)
 
     profile = response.json()['profile']
     uids = [uid_info['uid'] for uid_info in profile['confirmed_uids']]
@@ -116,7 +119,8 @@ def profile(request):
         'profile_image_url': customer.profile_image_url,
         'amounts': amounts,
         'uids': uids,
-        'recents': [serialize_customer(request, r) for r in recents]
+        'recents': [serialize_customer(request, r) for r in recents],
+        'cards': card_response.json()['cards']
     }
 
 

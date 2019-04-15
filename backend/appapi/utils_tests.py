@@ -117,23 +117,31 @@ class TestNotifyCustomer(TestCase):
         self.assertEqual(expected_headers, post.call_args[1]['headers'])
 
 
+@patch('backend.appapi.utils.wc_contact')
 class TestGetWCToken(TestCase):
 
     def _call(self, *args, **kw):
         return get_wc_token(*args, **kw)
 
-    @patch('backend.appapi.utils.wc_contact')
     def test_params(self, mock_wc_contact):
         request = pyramid.testing.DummyRequest()
         customer = MagicMock()
         customer.wc_id = 'wc_id'
         self._call(request, customer)
-        params = {'uid': 'wingcash:' + customer.wc_id, 'concurrent': True}
+        params = {
+            'uid': 'wingcash:' + customer.wc_id,
+            'concurrent': True,
+            'permissions': []}
         args = (request, 'GET', 'p/token', params)
         kw = {'auth': True}
         mock_wc_contact.assert_called_once_with(*args, **kw)
 
-    @patch('backend.appapi.utils.wc_contact')
+    def test_permissions(self, wc_contact):
+        request = pyramid.testing.DummyRequest()
+        perms = ['my_permission']
+        self._call(request, MagicMock(), permissions=perms)
+        self.assertEqual(perms, wc_contact.call_args[0][3]['permissions'])
+
     def test_no_token(self, mock_wc_contact):
         request = pyramid.testing.DummyRequest()
         mock_wc_contact.return_value.json.return_value = {}
@@ -142,7 +150,6 @@ class TestGetWCToken(TestCase):
         response = self._call(request, customer)
         self.assertIsNone(response)
 
-    @patch('backend.appapi.utils.wc_contact')
     def test_response(self, mock_wc_contact):
         request = pyramid.testing.DummyRequest()
         token = '123'

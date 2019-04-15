@@ -44,10 +44,11 @@ def notify_customer(request, customer, title, body, channel_id=None):
         requests.post(url, data=json.dumps(notifications), headers=headers)
 
 
-def get_wc_token(request, customer):
+def get_wc_token(request, customer, permissions=[]):
     params = {
         'uid': 'wingcash:' + customer.wc_id,
-        'concurrent': True
+        'concurrent': True,
+        'permissions': permissions
     }
     response = wc_contact(request, 'GET', 'p/token', params, auth=True)
     return response.json().get('access_token')

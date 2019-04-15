@@ -53,7 +53,7 @@ class TestWCContact(TestCase):
         request.ferlysettings.wingcash_client_secret = 'client_secret'
         self._call(request, 'GET', 'urlTail', access_token='token', auth=True)
         auth = ('client_id', 'client_secret')
-        kw = {'auth': auth, 'params': {}}
+        kw = {'auth': auth, 'json': {}}
         mock_get.assert_called_once_with('url/urlTail', **kw)
 
     @patch('requests.get')
@@ -63,7 +63,7 @@ class TestWCContact(TestCase):
         access_token = 'token'
         self._call(request, 'GET', 'urlTail', access_token=access_token)
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_get.assert_called_once_with('url/urlTail', **header, params={})
+        mock_get.assert_called_once_with('url/urlTail', **header, json={})
 
     @patch('requests.get')
     def test_settings_token(self, mock_get):
@@ -73,7 +73,7 @@ class TestWCContact(TestCase):
         request.ferlysettings.wingcash_api_token = access_token
         self._call(request, 'GET', 'urlTail')
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_get.assert_called_once_with('url/urlTail', **header, params={})
+        mock_get.assert_called_once_with('url/urlTail', **header, json={})
 
     @patch('requests.get')
     def test_token_priority(self, mock_get):
@@ -83,7 +83,7 @@ class TestWCContact(TestCase):
         request.ferlysettings.wingcash_api_token = 'wrong_token'
         self._call(request, 'GET', 'urlTail', access_token=access_token)
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_get.assert_called_once_with('url/urlTail', **header, params={})
+        mock_get.assert_called_once_with('url/urlTail', **header, json={})
 
     @patch('requests.get')
     def test_params(self, mock_get):
@@ -95,7 +95,7 @@ class TestWCContact(TestCase):
                    params=params)
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
         mock_get.assert_called_once_with('url/urlTail', **header,
-                                         params=params)
+                                         json=params)
 
     @patch('requests.get')
     def test_url_tail(self, mock_get):
