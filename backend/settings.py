@@ -66,5 +66,4 @@ class FerlySettings(object):
 
     @reify
     def environment(self):
-        file_name = self._settings.get('env_file').split('.')[0]
-        return 'staging' if file_name == 'development' else file_name
+        return self._settings.get('env_file').split('.')[0]

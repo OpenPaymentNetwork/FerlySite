@@ -297,9 +297,10 @@ class TestIsCustomer(TestCase):
         return is_customer(*args, **kw)
 
     def _make_request(self, **args):
-        request_params = {'device_id': args.get('device_id', 'defaultdevice')}
-        if args.get('expected_env'):
-            request_params.update({'expected_env', args['expected_env']})
+        request_params = {
+            'device_id': args.get('device_id', 'defaultdevice'),
+            'expected_env': args.get('expected_env', 'staging')
+        }
         request = pyramid.testing.DummyRequest(params=request_params)
         settings = request.ferlysettings = MagicMock()
         settings.environment = args.get('environment', 'staging')

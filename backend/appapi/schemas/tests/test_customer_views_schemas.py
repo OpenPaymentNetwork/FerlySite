@@ -136,9 +136,9 @@ class TestIsCustomerSchema(TestCase):
         with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
             self._call()
 
-    def test_default_expected_env(self):
-        response = self._call({'device_id': 'default_device_id'})
-        self.assertEqual(response['expected_env'], 'staging')
+    def test_expected_env_required(self):
+        with self.assertRaisesRegex(Invalid, "'expected_env': 'Required'"):
+            self._call()
 
 
 class TestSendSchema(TestCase):

@@ -39,7 +39,7 @@ class RegisterSchema(CustomerDeviceSchema):
 
 
 class IsCustomerSchema(CustomerDeviceSchema):
-    expected_env = SchemaNode(String(), missing='staging')
+    expected_env = SchemaNode(String())
 
 
 class SendSchema(CustomerDeviceSchema):

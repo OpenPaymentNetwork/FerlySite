@@ -68,8 +68,7 @@ def signup(request):
 def is_customer(request):
     """Return if the device_id is associated with a customer."""
     params = request.get_params(schemas.IsCustomerSchema())
-    env = 'production' if params['expected_env'] == 'production' else 'staging'
-    if env != request.ferlysettings.environment:
+    if params['expected_env'] != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
     device_id = params['device_id']
     dbsession = request.dbsession
