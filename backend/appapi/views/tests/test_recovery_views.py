@@ -43,7 +43,7 @@ class TestRecover(TestCase):
         request = self._make_request(login=login, device_id=device_id)
         self._call(request)
         wc_contact.assert_called_with(
-            request, 'POST', 'aa/signin-closed', auth=True, returnErrors=True,
+            request, 'POST', 'aa/signin-closed', auth=True, return_errors=True,
             params={'login': login, 'device_uuid': device_id})
 
     @patch('backend.appapi.views.recovery_views.wc_contact')
@@ -167,7 +167,7 @@ class TestRecoverCode(TestCase):
         }
         wc_contact.assert_called_with(
             request, 'POST', expected_url_tail, secret=secret,
-            params=expected_wc_params, returnErrors=True)
+            params=expected_wc_params, return_errors=True)
 
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_no_mfa(self, wc_contact):
@@ -336,7 +336,7 @@ class TestConfirmUid(TestCase):
         self._call(request)
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/add-uid-confirm', params=wc_params,
-            access_token=access_token, returnErrors=True)
+            access_token=access_token, return_errors=True)
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')

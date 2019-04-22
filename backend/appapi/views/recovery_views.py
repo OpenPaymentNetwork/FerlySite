@@ -14,7 +14,7 @@ def recover(request):
 
     wc_params = {'login': params['login'], 'device_uuid': params['device_id']}
     response = wc_contact(request, 'POST', 'aa/signin-closed', auth=True,
-                          params=wc_params, returnErrors=True)
+                          params=wc_params, return_errors=True)
     response_json = response.json()
 
     invalid_response = Invalid(
@@ -66,7 +66,7 @@ def recover_code(request):
 
     urlTail = params['attempt_path'] + '/auth-uid'
     response = wc_contact(request, 'POST', urlTail, secret=params['secret'],
-                          params=wc_params, returnErrors=True)
+                          params=wc_params, return_errors=True)
     response_json = response.json()
 
     if response.status_code != 200:
@@ -135,7 +135,7 @@ def confirm_uid(request):
     access_token = get_wc_token(request, customer)
     response = wc_contact(
         request, 'POST', 'wallet/add-uid-confirm', params=wc_params,
-        access_token=access_token, returnErrors=True)
+        access_token=access_token, return_errors=True)
 
     if response.status_code != 200:
         if 'invalid' in response.json():

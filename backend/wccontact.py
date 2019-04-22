@@ -5,7 +5,7 @@ import requests
 
 
 def wc_contact(request, method, urlTail, params={}, secret='',
-               access_token=None, auth=False, returnErrors=False):
+               access_token=None, auth=False, return_errors=False):
     args = {}
 
     if method == 'POST':
@@ -41,7 +41,7 @@ def wc_contact(request, method, urlTail, params={}, secret='',
         except Exception:
             raise HTTPServiceUnavailable
         else:
-            if returnErrors:
+            if return_errors:
                 return response
             else:
                 if 'invalid' in error_json:

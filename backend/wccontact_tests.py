@@ -161,7 +161,7 @@ class TestWCContact(TestCase):
         get.return_value.raise_for_status.side_effect = Exception()
         invalid_response = {'invalid': {'key': 'value'}}
         get.return_value.json.return_value = invalid_response
-        response = self._call(request, 'GET', 'urlTail', returnErrors=True)
+        response = self._call(request, 'GET', 'urlTail', return_errors=True)
         self.assertEqual(response, get.return_value)
 
     @patch('requests.get')
