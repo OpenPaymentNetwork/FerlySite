@@ -1,5 +1,6 @@
 from colander import Invalid
 from colander import SchemaNode
+from colander import String
 from backend.api_schemas import StrippedString
 from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
@@ -30,6 +31,19 @@ def validate_pin(node, value):
         raise Invalid(node, "Must be exactly 4 digits")
 
 
+def pin():
+    return SchemaNode(StrippedString(), name='pin', validator=validate_pin)
+
+
 class AddCardSchema(CustomerDeviceSchema):
     pan = SchemaNode(StrippedString(), validator=validate_pan)
-    pin = SchemaNode(StrippedString(), validator=validate_pin)
+    pin = pin()
+
+
+class ChangePinSchema(CustomerDeviceSchema):
+    card_id = SchemaNode(String())
+    pin = pin()
+
+
+class CardSchema(CustomerDeviceSchema):
+    card_id = SchemaNode(String())

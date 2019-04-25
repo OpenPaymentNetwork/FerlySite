@@ -4,7 +4,39 @@ from colander import Invalid
 from unittest import TestCase
 
 
-class TestSendSchema(TestCase):
+class TestPin(TestCase):
+
+    def _get_schema(self):
+        return schemas.pin()
+
+    def _make(self, pin=''):
+        return self._get_schema().deserialize(pin)
+
+    def test_pin_required(self):
+        with self.assertRaisesRegex(Invalid, "'pin': 'Required'"):
+            self._make()
+
+    def test_short_pin(self):
+        with self.assertRaisesRegex(
+                Invalid, "'pin': 'Must be exactly 4 digits'"):
+            self._make(self._make('123'))
+
+    def test_long_pin(self):
+        with self.assertRaisesRegex(
+                Invalid, "'pin': 'Must be exactly 4 digits'"):
+            self._make(self._make('12345'))
+
+    def test_pin_is_strippedstring(self):
+        pin_type = self._get_schema().typ
+        self.assertTrue(isinstance(pin_type, StrippedString))
+
+    def test_alpha_in_pin(self):
+        with self.assertRaisesRegex(
+                Invalid, "'pin': 'Must contain only numbers'"):
+            self._make('abcd')
+
+
+class TestAddCardSchema(TestCase):
 
     def _get_schema(self):
         return schemas.AddCardSchema()
@@ -33,16 +65,6 @@ class TestSendSchema(TestCase):
         with self.assertRaisesRegex(Invalid, "'pin': 'Required'"):
             self._call()
 
-    def test_short_pin(self):
-        with self.assertRaisesRegex(
-                Invalid, "'pin': 'Must be exactly 4 digits'"):
-            self._call(self._make(pin='123'))
-
-    def test_long_pin(self):
-        with self.assertRaisesRegex(
-                Invalid, "'pin': 'Must be exactly 4 digits'"):
-            self._call(self._make(pin='12345'))
-
     def test_short_pan(self):
         with self.assertRaisesRegex(
                 Invalid, "'pan': 'Must be exactly 16 digits'"):
@@ -58,18 +80,9 @@ class TestSendSchema(TestCase):
                 Invalid, "'pan': 'Must contain only numbers'"):
             self._call(self._make(pan='abcdabcdabcdabcd'))
 
-    def test_alpha_in_pin(self):
-        with self.assertRaisesRegex(
-                Invalid, "'pin': 'Must contain only numbers'"):
-            self._call(self._make(pin='abcd'))
-
     def test_pan_is_strippedstring(self):
         pan_type = self._get_schema().get(name='pan').typ
         self.assertTrue(isinstance(pan_type, StrippedString))
-
-    def test_pin_is_strippedstring(self):
-        pin_type = self._get_schema().get(name='pin').typ
-        self.assertTrue(isinstance(pin_type, StrippedString))
 
     def test_invalid_pan_checksum(self):
         invalids = ('4532015112930366', '6012514433546201', '6771549495586602')
@@ -89,3 +102,35 @@ class TestSendSchema(TestCase):
                 except Invalid:
                     self.fail(valid)
                 self.assertEqual(response['pan'], valid)
+
+
+class TestChangePinSchema(TestCase):
+
+    def _call(self, obj={}):
+        return schemas.ChangePinSchema().deserialize(obj)
+
+    def test_device_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
+            self._call()
+
+    def test_card_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'card_id': 'Required'"):
+            self._call()
+
+    def test_pin_required(self):
+        with self.assertRaisesRegex(Invalid, "'pin': 'Required'"):
+            self._call()
+
+
+class TestCardSchema(TestCase):
+
+    def _call(self, obj={}):
+        return schemas.CardSchema().deserialize(obj)
+
+    def test_device_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
+            self._call()
+
+    def test_card_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'card_id': 'Required'"):
+            self._call()
