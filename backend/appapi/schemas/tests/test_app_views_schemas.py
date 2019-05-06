@@ -11,3 +11,13 @@ class TestSearchMarketSchema(TestCase):
     def test_query_required(self):
         with self.assertRaisesRegex(Invalid, "'query': 'Required'"):
             self._call()
+
+
+class TestLocationsSchema(TestCase):
+
+    def _call(self, obj={}):
+        return app_views_schemas.LocationsSchema().deserialize(obj)
+
+    def test_design_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'design_id': 'Required'"):
+            self._call()

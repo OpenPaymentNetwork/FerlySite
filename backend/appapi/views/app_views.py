@@ -1,4 +1,5 @@
 from backend.appapi.schemas import app_schemas
+from backend.appapi.schemas import app_views_schemas
 from backend.database.models import Design
 from backend.database.models import Customer
 from backend.database.serialize import serialize_design
@@ -67,9 +68,26 @@ def list_designs(request):
     return [serialize_design(request, design) for design in designs]
 
 
+@view_config(name='locations', renderer='json')
+def locations(request):
+    """List location information for redeemers of the cash design."""
+    params = request.get_params(app_views_schemas.LocationsSchema())
+    design_id = params['design_id']
+    response = wc_contact(request, 'GET',
+                          '/design/{0}/redeemers'.format(design_id))
+
+    locations = []
+    for location in response.json():
+        locations.append({
+            'title': location['title'],
+            'address': location['address']
+        })
+    return {'locations': locations}
+
+
 @view_config(name='search-market', renderer='json')
 def search_market(request):
-    """Search the list of designs"""
+    """Search the list of designs."""
     params = request.get_params(app_schemas.SearchMarketSchema())
     dbsession = request.dbsession
 
