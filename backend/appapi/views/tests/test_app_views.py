@@ -23,6 +23,16 @@ class TestLocationsCard(TestCase):
             request=request).deserialize(request_params)
         return request
 
+    def _make_location(self, **kw):
+        location = {
+            'title': 'default_title',
+            'address': 'default_address',
+            'latitude': 'default_latitude',
+            'longitude': 'default_longitude'
+        }
+        location.update(**kw)
+        return location
+
     def test_correct_schema_used(self, wc_contact):
         request = self._make_request()
         self._call(request)
@@ -51,13 +61,13 @@ class TestLocationsCard(TestCase):
             request, 'GET', '/design/{0}/redeemers'.format(design.wc_id))
 
     def test_response(self, wc_contact):
-        location = {'title': 'title1', 'address': 'address1'}
+        location = self._make_location()
         wc_contact.return_value.json.return_value = [location]
         response = self._call(self._make_request())
         self.assertEqual([location], response['locations'])
 
     def test_unwanted_attributes_ignored(self, wc_contact):
-        location = {'title': 'title1', 'address': 'address1'}
+        location = self._make_location()
         bad_location = location.copy()
         bad_location['bad_key'] = 'bad_value'
         wc_contact.return_value.json.return_value = [bad_location]
@@ -66,8 +76,8 @@ class TestLocationsCard(TestCase):
 
     def test_multiple_locations(self, wc_contact):
         locations = wc_contact.return_value.json.return_value = [
-            {'title': '', 'address': 'address1'},
-            {'title': 'title2', 'address': ''}
+            self._make_location(title='title1', address='address1'),
+            self._make_location(title='title2', address='address2')
         ]
         response = self._call(self._make_request())
         self.assertEqual(locations, response['locations'])

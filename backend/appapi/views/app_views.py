@@ -82,7 +82,9 @@ def locations(request):
     for location in response.json():
         locations.append({
             'title': location['title'],
-            'address': location['address']
+            'address': location['address'],
+            'latitude': location['latitude'],
+            'longitude': location['longitude']
         })
     return {'locations': locations}
 
