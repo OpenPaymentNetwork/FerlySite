@@ -1,5 +1,6 @@
 from backend.appapi.schemas import app_views_schemas as schemas
 from backend.appapi.views.app_views import locations
+from backend.database.models import Design
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -28,11 +29,26 @@ class TestLocationsCard(TestCase):
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.LocationsSchema))
 
+    def test_design_query(self, wc_contact):
+        design_id = 'my_device_id'
+        request = self._make_request(design_id=design_id)
+        query = request.dbsession.query
+        self._call(request)
+        query.assert_called_once_with(Design)
+        query.return_value.get.assert_called_once_with(design_id)
+
+    def test_invalid_design(self, wc_contact):
+        request = self._make_request()
+        request.dbsession.query.return_value.get.return_value = None
+        response = self._call(request)
+        self.assertEqual({'error': 'invalid_design'}, response)
+
     def test_wc_contact_args(self, wc_contact):
         request = self._make_request(design_id='my_design_id')
+        design = request.dbsession.query.return_value.get.return_value
         self._call(request)
         wc_contact.assert_called_with(
-            request, 'GET', '/design/my_design_id/redeemers')
+            request, 'GET', '/design/{0}/redeemers'.format(design.wc_id))
 
     def test_response(self, wc_contact):
         location = {'title': 'title1', 'address': 'address1'}

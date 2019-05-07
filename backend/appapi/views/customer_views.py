@@ -139,6 +139,8 @@ def send(request):
     dbsession = request.dbsession
     recipient = dbsession.query(Customer).get(recipient_id)
     design = dbsession.query(Design).get(design_id)
+    if design is None:
+        return {'error': 'invalid_design'}
     amount_row = "{0}-USD-{1}".format(design.wc_id, amount)
 
     params = {

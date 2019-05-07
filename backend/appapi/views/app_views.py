@@ -72,9 +72,11 @@ def list_designs(request):
 def locations(request):
     """List location information for redeemers of the cash design."""
     params = request.get_params(app_views_schemas.LocationsSchema())
-    design_id = params['design_id']
+    design = request.dbsession.query(Design).get(params['design_id'])
+    if design is None:
+        return {'error': 'invalid_design'}
     response = wc_contact(request, 'GET',
-                          '/design/{0}/redeemers'.format(design_id))
+                          '/design/{0}/redeemers'.format(design.wc_id))
 
     locations = []
     for location in response.json():
