@@ -106,6 +106,7 @@ def profile(request):
                 'id': design.id,
                 'title': loop['title'],
                 'amount': loop['amount'],
+                'expiring': loop['expiring'],
                 'wallet_image_url': design.wallet_image_url,
                 'logo_image_url': design.logo_image_url})
 
