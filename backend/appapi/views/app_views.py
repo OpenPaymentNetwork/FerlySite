@@ -92,7 +92,7 @@ def locations(request):
 @view_config(name='search-market', renderer='json')
 def search_market(request):
     """Search the list of designs."""
-    params = request.get_params(app_schemas.SearchMarketSchema())
+    params = request.get_params(app_views_schemas.SearchMarketSchema())
     dbsession = request.dbsession
 
     # Create an expression that converts the query
