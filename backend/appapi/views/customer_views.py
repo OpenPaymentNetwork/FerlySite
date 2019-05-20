@@ -3,6 +3,7 @@ from backend.database.models import Design
 from backend.database.models import Device
 from backend.database.models import Customer
 from backend.database.serialize import serialize_customer
+from backend.database.serialize import serialize_design
 from backend.appapi.utils import get_device
 from backend.appapi.utils import notify_customer
 from backend.appapi.utils import get_wc_token
@@ -102,13 +103,12 @@ def profile(request):
         design = dbsession.query(Design).filter(
             Design.wc_id == loop['loop_id']).first()
         if design:
-            amounts.append({
-                'id': design.id,
-                'title': loop['title'],
+            design_object = serialize_design(request, design)
+            design_object.update({
                 'amount': loop['amount'],
                 'expiring': loop['expiring'],
-                'wallet_image_url': design.wallet_image_url,
-                'logo_image_url': design.logo_image_url})
+            })
+            amounts.append(design_object)
 
     recents = [dbsession.query(
         Customer).get(recent) for recent in customer.recents]
