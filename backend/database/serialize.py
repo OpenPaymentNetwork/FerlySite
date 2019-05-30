@@ -23,6 +23,7 @@ def serialize_design(request, design):
         'wingcash_id': design.wc_id,
         'logo_image_url': design.logo_image_url,
         'title': design.title,
+        'fee': str(design.fee),
         'distribution_id': design.distribution_id,
         'wallet_image_url': design.wallet_image_url
     }

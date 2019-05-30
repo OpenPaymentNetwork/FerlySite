@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     ForeignKey,
     DateTime,
+    Numeric,
     func
 )
 
@@ -107,6 +108,7 @@ class Design(Base):
     title = Column(String)
     logo_image_url = Column(String)
     wallet_image_url = Column(String)
+    fee = Column(Numeric, nullable=False)
     tsvector = Column(TSVECTOR)
 
     def update_tsvector(self):

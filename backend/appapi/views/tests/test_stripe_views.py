@@ -190,11 +190,13 @@ class TestPurchase(TestCase):
             'device_id': 'default_device_id',
             'source_id': 'card_source',
             'design_id': 'default_design_id',
-            'amount': 1.00
+            'amount': 1.00,
+            'fee': 2.00
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = dbsession = MagicMock()
+        dbsession.query.return_value.get.return_value.fee = kw.get('fee', 2.00)
         request.get_params = params = MagicMock()
         request.ferlysettings = MagicMock()
         params.return_value = schemas.PurchaseSchema().bind(
@@ -284,7 +286,7 @@ class TestPurchase(TestCase):
 
     def test_amount_conversion(self, get_stripe_customer, stripe, wc_contact):
         # a float would convert $18.90 to 1889
-        self._call(self._make_request(amount=18.90))
+        self._call(self._make_request(amount=18.90, fee=0))
         self.assertEqual(stripe.Charge.create.call_args[1]['amount'], 1890)
 
     def test_amount_type(self, get_stripe_customer, stripe, wc_contact):
@@ -364,3 +366,11 @@ class TestPurchase(TestCase):
         capture.return_value.paid = True
         response = self._call(self._make_request())
         self.assertTrue(response['result'])
+
+    def test_fee_mismatch(self, get_stripe_customer, stripe, wc_contact):
+        response = self._call(self._make_request(amount=18.90, fee=2.21))
+        self.assertEqual(response, {'error': 'fee_mismatch'})
+
+    def test_charge_amount(self, get_stripe_customer, stripe, wc_contact):
+        self._call(self._make_request(amount=18.90, fee=3.00))
+        self.assertEqual(stripe.Charge.create.call_args[1]['amount'], 2190)

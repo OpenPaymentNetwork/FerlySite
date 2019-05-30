@@ -27,7 +27,8 @@ class TestPurchaseSchema(TestCase):
             'device_id': 'default_device_id',
             'design_id': 'default_design_id',
             'source_id': 'default_source_id',
-            'amount': 0.01
+            'amount': 0.51,
+            'fee': 0.01
         }
         obj.update(**kw)
         return obj
@@ -42,6 +43,10 @@ class TestPurchaseSchema(TestCase):
 
     def test_design_id_required(self):
         with self.assertRaisesRegex(Invalid, "'source_id': 'Required'"):
+            self._call()
+
+    def test_fee_required(self):
+        with self.assertRaisesRegex(Invalid, "'fee': 'Required'"):
             self._call()
 
     def test_amount_minimum(self):

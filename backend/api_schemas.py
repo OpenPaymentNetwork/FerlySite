@@ -16,10 +16,10 @@ phone_detect_re = re.compile(r'^[(+\s]*[0-9]')
 _email_validator = Email()
 
 
-def amount(minimum=0.01):
+def amount(minimum=0.01, name='amount'):
     return SchemaNode(
         Decimal(quant='0.01', rounding=decimal.ROUND_HALF_UP),
-        name='amount',
+        name=name,
         validator=Range(
             min=decimal.Decimal(str(minimum)),
             min_err='${:.2f} is the minimum'.format(minimum)))

@@ -63,7 +63,12 @@ def purchase(request):
 
     amount = params['amount']
     amount_in_cents = int(amount * 100)
+    fee = params['fee']
+    fee_amount_in_cents = int(fee * 100)
     source_id = params['source_id']
+
+    if fee != design.fee:
+        return {'error': 'fee_mismatch'}
 
     stripe_customer = get_stripe_customer(request, customer.stripe_id)
     if not stripe_customer:
@@ -84,9 +89,10 @@ def purchase(request):
     else:
         raise Invalid(None, msg={'source_id': "Invalid payment method"})
 
+    charge_amount_in_cents = amount_in_cents + fee_amount_in_cents
     try:
         charge = stripe.Charge.create(
-          amount=amount_in_cents,  # must be in cents as int, ie $1.0 -> 100
+          amount=charge_amount_in_cents,  # must be in cents, ie $1.0 -> 100
           currency='USD',
           capture=False,
           customer=stripe_customer.id,

@@ -1,4 +1,3 @@
-from backend.appapi.schemas import app_schemas
 from backend.appapi.schemas import app_views_schemas
 from backend.database.models import Design
 from backend.database.models import Customer
