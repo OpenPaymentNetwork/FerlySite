@@ -331,14 +331,21 @@ class TestPurchase(TestCase):
     def test_wc_contact_args(
             self, get_device, get_stripe_customer, stripe, wc_contact):
         amount = Decimal('10.85')
-        request = self._make_request(amount=amount)
+        fee = Decimal('1.44')
+        request = self._make_request(amount=amount, fee=fee)
         customer = get_device.return_value.customer
         design = request.dbsession.query.return_value.get.return_value
+        charge = stripe.Charge.create.return_value
         self._call(request)
         expected_args = {
             'distribution_plan_id': design.distribution_id,
             'recipient_uid': 'wingcash:' + customer.wc_id,
-            'amount': amount
+            'amount': amount,
+            'appdata.ferly.convenience_fee': fee,
+            'appdata.ferly.stripe_brand':
+                charge.payment_method_details.card.brand,
+            'appdata.ferly.stripe_last4':
+                charge.payment_method_details.card.last4
         }
         args = wc_contact.call_args
         self.assertEqual(

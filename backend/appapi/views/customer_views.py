@@ -310,6 +310,9 @@ def transfer(request):
             profile_image_url = cp_customer.profile_image_url
 
     return {
+        'convenience_fee': transfer.get('appdata.ferly.convenience_fee', ''),
+        'cc_brand': transfer.get('appdata.ferly.stripe_brand', ''),
+        'cc_last4': transfer.get('appdata.ferly.stripe_last4', ''),
         'message': transfer['message'],
         'counter_party_profile_image_url': profile_image_url
     }

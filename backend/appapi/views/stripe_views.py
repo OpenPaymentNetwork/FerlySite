@@ -108,7 +108,10 @@ def purchase(request):
     post_params = {
         'distribution_plan_id': design.distribution_id,
         'recipient_uid': 'wingcash:' + customer.wc_id,
-        'amount': amount
+        'amount': amount,
+        'appdata.ferly.convenience_fee': fee,
+        'appdata.ferly.stripe_brand': charge.payment_method_details.card.brand,
+        'appdata.ferly.stripe_last4': charge.payment_method_details.card.last4
     }
     wc_response = wc_contact(request, 'POST',
                              'design/{0}/send'.format(design.wc_id),
