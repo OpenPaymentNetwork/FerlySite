@@ -11,7 +11,8 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     Numeric,
-    func
+    func,
+    Unicode
 )
 
 from .meta import Base
@@ -137,6 +138,27 @@ class Invitation(Base):
 
     customer = relationship(Customer)
 
+
+class CardRequest(Base):
+    __tablename__ = 'card_request'
+    id = Column(
+        String, nullable=False, primary_key=True,
+        server_default=string_sequencer('card_request_seq'))
+    customer_id = Column(
+        String, ForeignKey('customer.id'), nullable=False, index=True)
+    name = Column(Unicode, nullable=False)
+    original_line1 = Column(Unicode, nullable=False)
+    original_line2 = Column(Unicode, nullable=True)
+    original_city = Column(Unicode, nullable=False)
+    original_state = Column(Unicode, nullable=False)
+    original_zip_code = Column(Unicode, nullable=False)
+    line1 = Column(Unicode, nullable=False)
+    line2 = Column(Unicode, nullable=True)
+    city = Column(Unicode, nullable=False)
+    state = Column(Unicode, nullable=False)
+    zip_code = Column(Unicode, nullable=False)
+    created = Column(DateTime, nullable=False, server_default=now_utc)
+    downloaded = Column(DateTime, nullable=True)
 
 # all_metadata_defined must be at the end of the file. It signals that
 # all model classes have been defined successfully.

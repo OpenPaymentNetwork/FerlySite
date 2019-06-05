@@ -1,17 +1,161 @@
 from backend.appapi.schemas import customer_views_schemas as schemas
-from backend.database.models import Design
-from backend.database.models import Device
-from backend.database.models import Customer
 from backend.appapi.views.customer_views import edit_profile
 from backend.appapi.views.customer_views import history
 from backend.appapi.views.customer_views import is_customer
+from backend.appapi.views.customer_views import request_card
 from backend.appapi.views.customer_views import signup
 from backend.appapi.views.customer_views import transfer
+from backend.database.models import Customer
+from backend.database.models import Design
+from backend.database.models import Device
+from pyramid.httpexceptions import HTTPServiceUnavailable
 from unittest import TestCase
 from unittest.mock import call
 from unittest.mock import MagicMock
 from unittest.mock import patch
 import pyramid.testing
+
+requests_config = {
+    'post.return_value.content':
+        "<AddressValidateResponse><Address/></AddressValidateResponse>"
+}
+
+
+@patch('backend.appapi.views.customer_views.get_device')
+@patch('backend.appapi.views.customer_views.requests', **requests_config)
+class TestRequestCard(TestCase):
+
+    def _call(self, *args, **kw):
+        return request_card(*args, **kw)
+
+    def _make_request(self, **kw):
+        request_params = {
+            'device_id': 'default_device_id',
+            'name': 'default_name',
+            'line1': 'default_line1',
+            'city': 'default_city',
+            'state': 'UT',
+            'zip_code': '84062'
+        }
+        request_params.update(**kw)
+        request = pyramid.testing.DummyRequest(params=request_params)
+        request.dbsession = MagicMock()
+        request.get_params = params = MagicMock()
+        request.ferlysettings = MagicMock()
+        request.ferlysettings.usps_username = kw.get(
+            'usps_username', 'default_usps_username')
+        params.return_value = schemas.AddressSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def test_correct_schema_used(self, requests, get_device):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.AddressSchema))
+
+    def test_no_usps_username_exception(self, requests, get_device):
+        request = self._make_request()
+        request.ferlysettings.usps_username = None
+        with self.assertRaises(Exception) as cm:
+            self._call(request)
+        self.assertEqual("No USPS username is set", str(cm.exception))
+
+    def test_usps_args(self, requests, get_device):
+        usps_request_values = {
+            'usps_username': 'my_usps_username',
+            'line1': 'my_line1',
+            'line2': 'my_line2',
+            'city': 'my_city',
+            'state': 'AZ',
+            'zip_code': '84043'
+        }
+        usps_request = (
+            "API=Verify&XML="
+            '<AddressValidateRequest USERID="{usps_username}"><Address ID="0">'
+            "<Address1>{line2}</Address1><Address2>{line1}</Address2>"
+            "<City>{city}</City><State>{state}</State><Zip5>{zip_code}</Zip5>"
+            "<Zip4></Zip4></Address></AddressValidateRequest>").format(
+            **usps_request_values)
+        self._call(self._make_request(**usps_request_values))
+        requests.post.assert_called_once_with(
+            'http://production.shippingapis.com/ShippingAPITest.dll',
+            data=usps_request, headers={'Content-Type': 'application/xml'})
+
+    def test_usps_connection_fails(self, requests, get_device):
+        requests.post.return_value.raise_for_status.side_effect = Exception
+        with self.assertRaises(HTTPServiceUnavailable):
+            self._call(self._make_request())
+
+    def test_usps_request_error(self, requests, get_device):
+        requests.post.return_value.content = "<Error/>"
+        with self.assertRaises(HTTPServiceUnavailable):
+            self._call(self._make_request())
+
+    def test_address_error(self, requests, get_device):
+        requests.post.return_value.content = (
+            "<AddressValidateResponse><Address><Error>"
+            "<Description>There was an address error.</Description>"
+            "</Error></Address></AddressValidateResponse>")
+        response = self._call(self._make_request())
+        expected_response = {
+            'error': 'invalid_address',
+            'description': 'There was an address error.'
+        }
+        self.assertEqual(response, expected_response)
+
+    @patch('backend.appapi.views.customer_views.CardRequest')
+    def test_card_request_added(self, CardRequest, requests, get_device):
+        address_values = {
+            'line1': 'my_line1',
+            'line2': 'my_line2',
+            'city': 'my_city',
+            'state': 'TX',
+        }
+        requests.post.return_value.content = (
+            "<AddressValidateResponse><Address>"
+            "<Address1>{line2}</Address1><Address2>{line1}</Address2>"
+            "<City>{city}</City><State>{state}</State>"
+            "<Zip5>84606</Zip5><Zip4>3709</Zip4>"
+            "</Address></AddressValidateResponse>").format(**address_values)
+        request = self._make_request(
+            line1='original_line1',
+            line2='original_line2',
+            state='CA',
+            city='original_city',
+            zip_code='84047',
+            name='my_name'
+        )
+        self._call(request)
+        CardRequest.assert_called_once_with(
+            customer_id=get_device.return_value.customer.id,
+            original_line1='original_line1',
+            original_line2='original_line2',
+            original_city='original_city',
+            original_state='CA',
+            original_zip_code='84047',
+            name='my_name',
+            zip_code='84606-3709',
+            **address_values
+        )
+        request.dbsession.add.assert_called_once_with(CardRequest.return_value)
+
+    def test_return_values(self, requests, get_device):
+        address_values = {
+            'line1': 'my_line1',
+            'line2': 'my_line2',
+            'city': 'my_city',
+            'state': 'AZ'
+        }
+        requests.post.return_value.content = (
+            "<AddressValidateResponse><Address>"
+            "<Address1>{line2}</Address1><Address2>{line1}</Address2>"
+            "<City>{city}</City><State>{state}</State>"
+            "<Zip5>84606</Zip5><Zip4>3709</Zip4>"
+            "</Address></AddressValidateResponse>").format(**address_values)
+        response = self._call(self._make_request(name='my_name'))
+        address_values.update({'name': 'my_name', 'zip_code': '84606-3709'})
+        self.assertEqual(response, address_values)
 
 
 class TestSignUp(TestCase):

@@ -80,4 +80,4 @@ def unauthorized(context, request):
 
 @view_config(context=HTTPServiceUnavailable, renderer='json')
 def serviceunavailable(context, request):
-    return {'error': 'wingcash_unavailable'}
+    return {'error': 'service_unavailable'}

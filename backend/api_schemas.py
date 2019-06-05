@@ -54,7 +54,7 @@ class Recipient(StrippedString):
             try:
                 pn = phonenumbers.parse(value, 'US')
             except Exception:
-                raise Invalid(node, msg='Invalid phone number.')
+                raise Invalid(node, msg='Invalid phone number')
             else:
                 if phonenumbers.is_valid_number(pn):
                     e164value = phonenumbers.format_number(

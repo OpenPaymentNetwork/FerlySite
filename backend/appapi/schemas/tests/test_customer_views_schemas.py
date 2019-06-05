@@ -87,6 +87,69 @@ class TestName(TestCase):
         self.assertTrue(isinstance(self._make().typ, StrippedString))
 
 
+class TestAddressSchema(TestCase):
+
+    def _call(self, obj={}):
+        return schemas.AddressSchema().deserialize(obj)
+
+    def _make(self, *args, **kw):
+        obj = {
+            'device_id': 'default_device_id',
+            'name': 'default_name',
+            'line1': 'default_line1',
+            'city': 'default_city',
+            'state': 'UT',
+            'zip_code': '84062'
+        }
+        obj.update(**kw)
+        return obj
+
+    def test_device_id_required(self):
+        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
+            self._call()
+
+    def test_name_required(self):
+        with self.assertRaisesRegex(Invalid, "'name': 'Required'"):
+            self._call()
+
+    def test_line1_required(self):
+        with self.assertRaisesRegex(Invalid, "'line1': 'Required'"):
+            self._call()
+
+    def test_city_required(self):
+        with self.assertRaisesRegex(Invalid, "'city': 'Required'"):
+            self._call()
+
+    def test_state_required(self):
+        with self.assertRaisesRegex(Invalid, "'state': 'Required'"):
+            self._call()
+
+    def test_zip_code_required(self):
+        with self.assertRaisesRegex(Invalid, "'zip_code': 'Required'"):
+            self._call()
+
+    def test_city_max_length(self):
+        with self.assertRaisesRegex(
+                Invalid, "'city': 'Longer than maximum length 15'"):
+            self._call(self._make(city='1234567809123456'))
+
+    def test_state_invalids(self):
+        invalids = ('U1', 'Ute', 'U')
+        error = "'state': 'Must be two letters'"
+        for invalid in invalids:
+            with self.subTest():
+                with self.assertRaisesRegex(Invalid, error, msg=invalid):
+                    self._call(self._make(state=invalid))
+
+    def test_zip_code_invalids(self):
+        invalids = ('8460a', '846023', '8460')
+        error = "'zip_code': 'Must be five digits'"
+        for invalid in invalids:
+            with self.subTest():
+                with self.assertRaisesRegex(Invalid, error, msg=invalid):
+                    self._call(self._make(zip_code=invalid))
+
+
 class TestRegisterSchema(TestCase):
 
     def _call(self, obj={}):

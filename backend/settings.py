@@ -67,3 +67,7 @@ class FerlySettings(object):
     @reify
     def environment(self):
         return self._settings.get('env_file').split('.')[0]
+
+    @reify
+    def usps_username(self):
+        return os.environ.get('USPS_USERNAME')

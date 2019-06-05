@@ -1,20 +1,88 @@
 from backend.appapi.schemas import customer_views_schemas as schemas
+from backend.appapi.utils import get_device
+from backend.appapi.utils import get_wc_token
+from backend.appapi.utils import notify_customer
+from backend.database.models import CardRequest
+from backend.database.models import Customer
 from backend.database.models import Design
 from backend.database.models import Device
-from backend.database.models import Customer
 from backend.database.serialize import serialize_customer
 from backend.database.serialize import serialize_design
-from backend.appapi.utils import get_device
-from backend.appapi.utils import notify_customer
-from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
+from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.view import view_config
 from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy import Unicode
+from xml.etree import ElementTree
 import boto3
 import os
+import requests
 import uuid
+
+
+@view_config(name='request-card', renderer='json')
+def request_card(request):
+    """Save the address a customer requested a new Ferly Card be mailed to."""
+    params = request.get_params(schemas.AddressSchema())
+    device = get_device(request, params)
+    customer = device.customer
+
+    usps_username = request.ferlysettings.usps_username
+    if not usps_username:
+        raise Exception("No USPS username is set")
+    # USPS uses Address1 as the more detailed part of the address, our line2.
+    usps_request = (
+        "API=Verify&XML="
+        '<AddressValidateRequest USERID="{usps_username}"><Address ID="0">'
+        "<Address1>{line2}</Address1><Address2>{line1}</Address2>"
+        "<City>{city}</City><State>{state}</State><Zip5>{zip_code}</Zip5>"
+        "<Zip4></Zip4></Address></AddressValidateRequest>").format(
+        usps_username=usps_username, **params)
+    try:
+        response = requests.post(
+            'http://production.shippingapis.com/ShippingAPITest.dll',
+            data=usps_request,
+            headers={'Content-Type': 'application/xml'})
+        response.raise_for_status()
+    except Exception:
+        raise HTTPServiceUnavailable
+
+    root = ElementTree.fromstring(response.content)
+    if root.tag == 'AddressValidateResponse':
+        address = root.find('Address')
+        error = address.find('Error')
+        if error:
+            error_description = error.find('Description').text
+            return {
+                'error': 'invalid_address', 'description': error_description}
+        else:
+            line1 = getattr(address.find('Address2'), 'text', '')
+            line2 = getattr(address.find('Address1'), 'text', '')
+            city = getattr(address.find('City'), 'text', '')
+            state = getattr(address.find('State'), 'text', '')
+            zip5 = getattr(address.find('Zip5'), 'text', '')
+            zip4 = getattr(address.find('Zip4'), 'text', '')
+            zip_code = f'{zip5}-{zip4}'
+
+            new_card_request = CardRequest(
+                customer_id=customer.id, name=params['name'],
+                original_line1=params['line1'], original_line2=params['line2'],
+                original_city=params['city'], original_state=params['state'],
+                original_zip_code=params['zip_code'], line1=line1, line2=line2,
+                city=city, state=state, zip_code=zip_code
+            )
+            request.dbsession.add(new_card_request)
+            return {
+                'name': params['name'],
+                'line1': line1,
+                'line2': line2,
+                'city': city,
+                'state': state,
+                'zip_code': zip_code
+            }
+    else:
+        raise HTTPServiceUnavailable
 
 
 @view_config(name='signup', renderer='json')

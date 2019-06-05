@@ -2,6 +2,7 @@ from colander import Integer
 from colander import Invalid
 from colander import Length
 from colander import Range
+from colander import Regex
 from colander import SchemaNode
 from colander import String
 from backend.api_schemas import amount
@@ -28,6 +29,17 @@ def username():
 
 def name(name='name'):
     return SchemaNode(StrippedString(), name=name, validator=Length(1, 50))
+
+
+class AddressSchema(CustomerDeviceSchema):
+    name = SchemaNode(String())
+    line1 = SchemaNode(String())
+    line2 = SchemaNode(String(), missing='')
+    city = SchemaNode(String(), validator=Length(max=15))
+    state = SchemaNode(
+        String(), validator=Regex('^[A-Za-z]{2}$', msg='Must be two letters'))
+    zip_code = SchemaNode(
+        String(), validator=Regex('^[0-9]{5}$', msg='Must be five digits'))
 
 
 class RegisterSchema(CustomerDeviceSchema):
