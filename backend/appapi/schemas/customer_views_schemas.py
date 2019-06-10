@@ -32,9 +32,9 @@ def name(name='name'):
 
 
 class AddressSchema(CustomerDeviceSchema):
-    name = SchemaNode(String())
-    line1 = SchemaNode(String())
-    line2 = SchemaNode(String(), missing='')
+    name = SchemaNode(StrippedString(), validator=Length(max=50))
+    line1 = SchemaNode(StrippedString(), validator=Length(max=50))
+    line2 = SchemaNode(StrippedString(), missing='', validator=Length(max=50))
     city = SchemaNode(String(), validator=Length(max=15))
     state = SchemaNode(
         String(), validator=Regex('^[A-Za-z]{2}$', msg='Must be two letters'))

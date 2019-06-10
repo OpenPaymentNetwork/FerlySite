@@ -89,8 +89,11 @@ class TestName(TestCase):
 
 class TestAddressSchema(TestCase):
 
+    def _get_schema(self):
+        return schemas.AddressSchema()
+
     def _call(self, obj={}):
-        return schemas.AddressSchema().deserialize(obj)
+        return self._get_schema().deserialize(obj)
 
     def _make(self, *args, **kw):
         obj = {
@@ -128,10 +131,40 @@ class TestAddressSchema(TestCase):
         with self.assertRaisesRegex(Invalid, "'zip_code': 'Required'"):
             self._call()
 
+    def test_name_max_length(self):
+        name = 'n' * 51
+        with self.assertRaisesRegex(
+                Invalid, "'name': 'Longer than maximum length 50'"):
+            self._call(self._make(name=name))
+
+    def test_line1_max_length(self):
+        line = 'l' * 51
+        with self.assertRaisesRegex(
+                Invalid, "'line1': 'Longer than maximum length 50'"):
+            self._call(self._make(line1=line))
+
+    def test_line2_max_length(self):
+        line = 'l' * 51
+        with self.assertRaisesRegex(
+                Invalid, "'line2': 'Longer than maximum length 50'"):
+            self._call(self._make(line2=line))
+
     def test_city_max_length(self):
         with self.assertRaisesRegex(
                 Invalid, "'city': 'Longer than maximum length 15'"):
             self._call(self._make(city='1234567809123456'))
+
+    def test_name_is_strippedstring(self):
+        typ = self._get_schema().get(name='name').typ
+        self.assertTrue(isinstance(typ, StrippedString))
+
+    def test_line1_is_strippedstring(self):
+        typ = self._get_schema().get(name='line1').typ
+        self.assertTrue(isinstance(typ, StrippedString))
+
+    def test_line2_is_strippedstring(self):
+        typ = self._get_schema().get(name='line2').typ
+        self.assertTrue(isinstance(typ, StrippedString))
 
     def test_state_invalids(self):
         invalids = ('U1', 'Ute', 'U')
