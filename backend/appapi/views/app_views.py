@@ -61,9 +61,10 @@ def recaptcha_sitekey(request):
 
 @view_config(name='list-designs', renderer='json')
 def list_designs(request):
-    """List all the designs on Ferly."""
+    """List all the listable designs on Ferly."""
     dbsession = request.dbsession
-    designs = dbsession.query(Design).order_by(Design.title).all()
+    designs = dbsession.query(Design).filter(Design.listable).order_by(
+        Design.title).all()
     return [serialize_design(request, design) for design in designs]
 
 
@@ -90,7 +91,7 @@ def locations(request):
 
 @view_config(name='search-market', renderer='json')
 def search_market(request):
-    """Search the list of designs."""
+    """Search all listable designs."""
     params = request.get_params(app_views_schemas.SearchMarketSchema())
     dbsession = request.dbsession
 
@@ -101,6 +102,8 @@ def search_market(request):
         r"'( |$)", r"':*\1", 'g')
 
     designs = dbsession.query(Design).filter(
-        Design.tsvector.match(text_parsed)).order_by(Design.title)
+        Design.listable,
+        Design.tsvector.match(text_parsed)
+    ).order_by(Design.title)
 
     return {'results': [serialize_design(request, x) for x in designs]}

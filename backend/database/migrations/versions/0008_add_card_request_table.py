@@ -51,6 +51,7 @@ def upgrade():
     sa.Column('downloaded', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_card_request'))
     )
+    op.create_foreign_key(op.f('fk_card_request_customer_id_customer'), 'card_request', 'customer', ['customer_id'], ['id'])
     op.create_index(op.f('ix_card_request_customer_id'), 'card_request', ['customer_id'], unique=False)
 
 

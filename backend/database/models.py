@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import relationship
 from sqlalchemy import (
+    Boolean,
     Column,
     Integer,
     String,
@@ -107,6 +108,7 @@ class Design(Base):
     distribution_id = Column(String)
     wc_id = Column(String, nullable=False)
     title = Column(String)
+    listable = Column(Boolean, nullable=False, server_default='True')
     logo_image_url = Column(String)
     wallet_image_url = Column(String)
     fee = Column(Numeric, nullable=False)
