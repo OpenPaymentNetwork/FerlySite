@@ -42,12 +42,7 @@ def notfound(request):
             'error_description': 'The resource could not be found.',
         }
 
-    webpack_dist_dir = request.ferlysettings.webpack_dist_dir
-    fn = os.path.join(webpack_dist_dir, 'index.html')
-    return FileResponse(
-        fn,
-        request=request,
-        cache_max_age=600)
+    return index_html(request)
 
 
 @view_config(context=Invalid, renderer='json')

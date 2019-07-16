@@ -9,8 +9,7 @@ npm run deploy
 cd ..
 
 mkdir -p dist
-rev=$(git rev-parse --short HEAD)
-fn="dist/ferlyapi-${rev}.zip"
+fn="dist/ferlyapi.zip"
 rm -f ${fn}
 zip -r ${fn} \
     backend frontend *.txt *.in *.ini *.py .ebextensions \
