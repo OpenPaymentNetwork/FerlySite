@@ -1,6 +1,9 @@
 from pyramid.config import Configurator
 from backend.settings import FerlySettings
 from backend.site import Site
+import os.path
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 
 def get_params(request, schema):
@@ -25,6 +28,8 @@ def main(global_config, **settings):
     )
 
     config.add_static_view(name='files', path=settings['webpack_dist_dir'])
+    config.add_static_view(
+        name='stripeform', path=os.path.join(here, 'stripeform'))
     config.add_request_method(Site, name='site', reify=True)
     config.add_request_method(FerlySettings, name='ferlysettings', reify=True)
     config.add_request_method(get_params)

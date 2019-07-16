@@ -1,0 +1,55 @@
+<html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+  .StripeElement {
+    padding: 8px;
+  }
+  </style>
+</head>
+<body>
+<script src="https://js.stripe.com/v3/"></script>
+<div class="form-row">
+  <div id="card-number">
+    <!-- A Stripe Element will be inserted here. -->
+  </div>
+  <!-- Used to display form errors. -->
+  <div id="card-errors" role="alert"></div>
+</div>
+<button style="visibility: hidden" id="submit-button">Submit</button>
+
+<script>
+  try {
+    const stripe = Stripe('pk_live_8U9wUmhgzP48MMlF8QS82TLb');
+    const elements = stripe.elements();
+    const card = elements.create('card', {
+      'style': {
+        'base': {'fontSize': '16px'}
+      }
+    });
+    card.mount('#card-number');
+    card.addEventListener('change', ({error}) => {
+      const displayError = document.getElementById('card-errors');
+      displayError.textContent = error ? error.message : '';
+    });
+    const form = document.getElementById('submit-button');
+    form.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const {token, error} = await stripe.createToken(card);
+      if (error) {
+        const errorElement = document.getElementById('card-errors');
+        errorElement.textContent = error.message;
+        window.ReactNativeWebView.postMessage('error')
+      } else {
+        window.ReactNativeWebView.postMessage(
+          'paymenttoken:' + token.id
+        );
+      }
+    });
+  } catch (exc) {
+    window.alert("Error in form initialization: " + String(exc));
+  }
+</script>
+
+</body>
+</html>
