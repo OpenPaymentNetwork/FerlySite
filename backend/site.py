@@ -13,22 +13,11 @@ class Site(object):
     def __getitem__(self, name):
         if name == 'api':
             return self.api
-        elif name == 'files':
-            return Static(self, name)
         raise KeyError(name)
 
     @reify
     def api(self):
         return API(self)
-
-
-class Static(object):
-    def __init__(self, site, name):
-        self.__parent__ = site
-        self.__name__ = name
-
-    def __getitem__(self, name):
-        return self
 
 
 class API(object):

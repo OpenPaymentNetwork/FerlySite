@@ -1,6 +1,5 @@
 from backend.site import API
 from backend.site import Site
-from backend.site import Static
 from colander import Invalid
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPUnauthorized
@@ -9,7 +8,6 @@ from pyramid.response import FileResponse
 from pyramid.view import notfound_view_config
 from pyramid.view import view_config
 import os
-import pyramid.httpexceptions as exc
 
 
 @view_config(name='version', context=API, renderer='json')
@@ -29,18 +27,6 @@ def index_html(request):
         request=request,
         cache_max_age=600,
         content_type='text/html;charset=utf-8')
-
-
-@view_config(context=Static)
-def static_file(request):
-    webpack_dist_dir = request.ferlysettings.webpack_dist_dir
-    fn = os.path.join(webpack_dist_dir, *request.traversed[1:])
-    if not os.path.isfile(fn):
-        raise exc.HTTPNotFound()
-    return FileResponse(
-        fn,
-        request=request,
-        cache_max_age=600)
 
 
 @notfound_view_config(renderer='json')

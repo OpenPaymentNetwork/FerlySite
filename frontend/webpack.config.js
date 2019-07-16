@@ -5,7 +5,7 @@ module.exports = {
   entry: './src/index.js',
   output: {
     filename: 'bundle.js',
-    publicPath: 'files/',
+    publicPath: '/files/',
     path: path.resolve(__dirname, 'dist')
   },
   plugins: [

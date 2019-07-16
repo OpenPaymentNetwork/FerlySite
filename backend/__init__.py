@@ -24,6 +24,7 @@ def main(global_config, **settings):
         settings=settings,
     )
 
+    config.add_static_view(name='files', path=settings['webpack_dist_dir'])
     config.add_request_method(Site, name='site', reify=True)
     config.add_request_method(FerlySettings, name='ferlysettings', reify=True)
     config.add_request_method(get_params)
