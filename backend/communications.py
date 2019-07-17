@@ -1,21 +1,20 @@
-from sendgrid.helpers.mail import Content
-from sendgrid.helpers.mail import Email
 from sendgrid.helpers.mail import Mail
 from twilio.rest import Client
 import sendgrid
 
 
 def send_email(request, to_email, subject, text,
-               from_email='noreply@ferly.com'):
+               from_email='no-reply@ferly.com'):
     sendgrid_api_key = request.ferlysettings.sendgrid_api_key
     if sendgrid_api_key is None:
         return 'no-credentials'
-    sg = sendgrid.SendGridAPIClient(apikey=sendgrid_api_key)
-    from_email = Email(from_email)
-    to_email = Email(to_email)
-    content = Content("text/plain", text)
-    mail = Mail(from_email, subject, to_email, content)
-    response = sg.client.mail.send.post(request_body=mail.get())
+    sg = sendgrid.SendGridAPIClient(sendgrid_api_key)
+    mail = Mail(
+        from_email=from_email,
+        to_emails=to_email,
+        subject=subject,
+        plain_text_content=text)
+    response = sg.send(mail)
     return response.status_code
 
 

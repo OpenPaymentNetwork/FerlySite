@@ -9,8 +9,6 @@ from backend.database.models import now_utc
 from pyramid.paster import bootstrap
 from pyramid.paster import get_appsettings
 from sendgrid.helpers.mail import Attachment
-from sendgrid.helpers.mail import Content
-from sendgrid.helpers.mail import Email
 from sendgrid.helpers.mail import Mail
 import base64
 import csv
@@ -54,14 +52,15 @@ if __name__ == '__main__':
 
             with open(file_title, 'rb') as fd:
                 data = base64.b64encode(fd.read())
-            sg = sendgrid.SendGridAPIClient(apikey=sendgrid_api_key)
+            sg = sendgrid.SendGridAPIClient(sendgrid_api_key)
             attachment = Attachment()
             attachment.content = str(data, 'utf-8')
             attachment.filename = file_title
-            content = Content("text/plain", f"{len(addresses)} more requests.")
-            from_email = Email('no-reply@ferly.com')
-            to_email = Email('brad@ferly.com')
-            mail = Mail(from_email, 'Card Fulfillment', to_email, content)
+            mail = Mail(
+                from_email='no-reply@ferly.com',
+                to_emails='brad@ferly.com',
+                subject='Card Fulfillment',
+                plain_text_content=f"{len(addresses)} more requests.")
             mail.add_attachment(attachment)
             response = sg.client.mail.send.post(request_body=mail.get())
 
