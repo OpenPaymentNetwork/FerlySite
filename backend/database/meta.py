@@ -122,7 +122,10 @@ BEGIN
     ORDER BY key_index DESC
     LIMIT 1;
   IF NOT FOUND THEN
-    -- Generate and store the needed sequence_key now.
+    -- Generate and store the needed skip32_key now.
+    -- This may conflict with concurrent transactions; if that's a problem,
+    -- the app should proactively add the initial sequence_keys based
+    -- on 10 bytes of /dev/urandom.
     cr_key = random_bytea(10);
     INSERT INTO sequence_key (seq_name, key_index, skip32_key)
     VALUES (sn, 0, cr_key);

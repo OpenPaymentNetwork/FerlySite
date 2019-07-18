@@ -38,6 +38,8 @@ class Customer(Base):
         server_default=string_sequencer('customer_seq'))
     wc_id = Column(
         String, nullable=False, index=True, unique=True)
+    # XXX the title column attribute is not usable because it's shadowed by
+    # the title property below.
     title = Column(String)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
