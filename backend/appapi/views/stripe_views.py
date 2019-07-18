@@ -99,7 +99,8 @@ def purchase(request):
         except CardError:
             log.exception(
                 "purchase() returning result = false due to CardError "
-                "on sources.create()")
+                "on sources.create(). stripe_customer.id = %s, source_id = %s",
+                stripe_customer.id, source_id)
             return {'result': False}
         else:
             card_id = card.id
@@ -122,12 +123,14 @@ def purchase(request):
     except CardError:
         log.exception(
             "purchase() returning result = false due to CardError "
-            "on Charge.create()")
+            "on Charge.create(). stripe_customer.id = %s, card_id = %s",
+            stripe_customer.id, card_id)
         return {'result': False}
     if not charge.paid:
         log.warning(
             "purchase() returning result = false because charge.paid "
-            "is not true")
+            "is not true. stripe_customer.id = %s, card_id = %s",
+            stripe_customer.id, card_id)
         return {'result': False}
 
     post_params = {
@@ -144,7 +147,16 @@ def purchase(request):
     if wc_response.status_code != 200:
         log.warning(
             "purchase() returning result = false because "
-            "wc_response.status_code == %s", wc_response.status_code)
+            "wc_response.status_code = %s. "
+            "stripe_customer.id = %s, card_id = %s, post_params = %s",
+            wc_response.status_code, stripe_customer.id, card_id, post_params)
         return {'result': False}
+
     captured_charge = charge.capture()
+    if not captured_charge.paid:
+        log.warning(
+            "purchase() returning result = false because "
+            "captured_charge.paid is false. "
+            "stripe_customer.id = %s, card_id = %s",
+            stripe_customer.id, card_id)
     return {'result': captured_charge.paid}
