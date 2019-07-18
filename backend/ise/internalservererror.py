@@ -17,7 +17,7 @@ class InternalServerErrorTween(object):
     def __call__(self, request):
         try:
             response = self.handler(request)
-        except Exception as e:
+        except Exception:
             now = datetime.datetime.now()
             error_id = '{ts}|{uid}'.format(
                 ts=now.strftime('%Y%m%d-%H%M%S'),
@@ -39,8 +39,13 @@ class InternalServerErrorTween(object):
                 subject = '[Ferly ISE] {0}]'.format(error_id)
                 send_email(request, recipient, subject, ise_text,
                            from_email='ise@ferly.com')
-            response = Response(json="error:" + str(e))
-            response.content_type = "text/plain"
+            response = Response(json={
+                'error': 'internal_server_error:%s' % error_id,
+                'error_description': (
+                    "Sorry, an internal server error occurred. "
+                    "Error ID: %s. Ferly staff will be notified." % error_id),
+                })
+            response.content_type = "application/json"
             response.status_code = 500
             response.headers['Access-Control-Allow-Origin'] = '*'
         return response

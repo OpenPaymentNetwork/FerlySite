@@ -4,9 +4,12 @@ from backend.appapi.utils import get_device
 from backend.wccontact import wc_contact
 from colander import Invalid
 from pyramid.view import view_config
+import logging
 import stripe
 from stripe.error import InvalidRequestError
 from stripe.error import CardError
+
+log = logging.getLogger(__name__)
 
 
 def get_stripe_customer(request, stripe_id):
@@ -18,6 +21,9 @@ def get_stripe_customer(request, stripe_id):
             api_key=request.ferlysettings.stripe_api_key
         )
     except InvalidRequestError:
+        log.warning(
+            "InvalidRequestError while retrieving Stripe customer "
+            "with stripe_id = %s", stripe_id)
         return None
     else:
         return customer
@@ -43,6 +49,9 @@ def delete_stripe_source(request):
 
     stripe_customer = get_stripe_customer(request, customer.stripe_id)
     if not stripe_customer:
+        log.warning(
+            "delete_stripe_source() returning 'nonexistent_customer' "
+            "with stripe_id=%s", customer.stripe_id)
         return {'error': 'nonexistent_customer'}
 
     stripe_response = stripe_customer.sources.retrieve(
@@ -59,6 +68,9 @@ def purchase(request):
 
     design = request.dbsession.query(Design).get(params['design_id'])
     if design is None:
+        log.warning(
+            "purchase() returning 'invalid_design' with design_id=%s",
+            params['design_id'])
         return {'error': 'invalid_design'}
 
     amount = params['amount']
@@ -68,6 +80,10 @@ def purchase(request):
     source_id = params['source_id']
 
     if fee != design.fee:
+        log.warning(
+            "purchase() returning 'fee_mismatch' with "
+            "design.fee = %s, specified fee = %s",
+            design.fee, fee)
         return {'error': 'fee_mismatch'}
 
     stripe_customer = get_stripe_customer(request, customer.stripe_id)
@@ -81,6 +97,9 @@ def purchase(request):
         try:
             card = stripe_customer.sources.create(source=source_id)
         except CardError:
+            log.exception(
+                "purchase() returning result = false due to CardError "
+                "on sources.create()")
             return {'result': False}
         else:
             card_id = card.id
@@ -101,8 +120,14 @@ def purchase(request):
           statement_descriptor='Ferly Card App'  # 22 character max
         )
     except CardError:
+        log.exception(
+            "purchase() returning result = false due to CardError "
+            "on Charge.create()")
         return {'result': False}
     if not charge.paid:
+        log.warning(
+            "purchase() returning result = false because charge.paid "
+            "is not true")
         return {'result': False}
 
     post_params = {
@@ -117,6 +142,9 @@ def purchase(request):
                              'design/{0}/send'.format(design.wc_id),
                              params=post_params)
     if wc_response.status_code != 200:
+        log.warning(
+            "purchase() returning result = false because "
+            "wc_response.status_code == %s", wc_response.status_code)
         return {'result': False}
     captured_charge = charge.capture()
     return {'result': captured_charge.paid}

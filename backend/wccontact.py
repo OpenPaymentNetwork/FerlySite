@@ -1,11 +1,15 @@
 from colander import Invalid
 from pyramid.httpexceptions import HTTPServiceUnavailable
+import logging
 import os
 import requests
 
+log = logging.getLogger(__name__)
 
-def wc_contact(request, method, urlTail, params={}, secret='',
-               access_token=None, auth=False, return_errors=False):
+
+def wc_contact(
+        request, method, urlTail, params={}, secret='',
+        access_token=None, auth=False, return_errors=False):
     args = {}
 
     if method == 'POST':
@@ -32,14 +36,17 @@ def wc_contact(request, method, urlTail, params={}, secret='',
 
     wingcash_api_url = request.ferlysettings.wingcash_api_url
     url = os.path.join(wingcash_api_url, urlTail.strip('/'))
+    response = requests_func(url, **args)
     try:
-        response = requests_func(url, **args)
         response.raise_for_status()
     except Exception:
+        log.error(
+            "OPN responded to %s with %s: %s",
+            url, response.status_code, response.text)
         try:
             error_json = response.json()
         except Exception:
-            raise HTTPServiceUnavailable
+            raise HTTPServiceUnavailable()
         else:
             if return_errors:
                 return response
@@ -47,6 +54,6 @@ def wc_contact(request, method, urlTail, params={}, secret='',
                 if 'invalid' in error_json:
                     raise Invalid(None, msg=error_json['invalid'])
                 else:
-                    raise HTTPServiceUnavailable
+                    raise HTTPServiceUnavailable()
     else:
         return response

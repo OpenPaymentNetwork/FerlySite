@@ -8,8 +8,10 @@ from pyramid.view import view_config
 from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy import Unicode
+import logging
 
 _last_transfer_notified = ''
+log = logging.getLogger(__name__)
 
 
 @view_config(name='redemption-notification', renderer='json')
@@ -32,6 +34,7 @@ def redemption_notification(request):
             sender_id = transfer['sender_id']
             transfer_id = transfer['id']
         except Exception:
+            log.exception("Error in redemption_notification()")
             continue
         if not completed:
             continue
