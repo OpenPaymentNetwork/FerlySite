@@ -36,7 +36,7 @@ class InternalServerErrorTween(object):
                 lines.append(traceback_file.getvalue().strip())
                 ise_text = '\n'.join(lines)
                 request._ise_text = ise_text
-                subject = '[Ferly ISE] {0}]'.format(error_id)
+                subject = '[Ferly Backend ISE] {0}]'.format(error_id)
                 send_email(request, recipient, subject, ise_text,
                            from_email='ise@ferly.com')
             response = Response(json={

@@ -20,11 +20,16 @@ Getting Started
 
     env/bin/pip install -e ".[testing]"
 
-- Run your project's tests.
+- Create a local ferlyapitest Postgres database owned by your user account.
+  The tests require it.
+
+    sudo -u postgres createdb -O ${USER} ferlyapitest
+
+- Run the tests.
 
     env/bin/nosetests
 
-- Run your project.
+- Run the project.
 
     env/bin/pserve --reload staging.ini
 

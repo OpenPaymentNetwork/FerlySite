@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# This script wraps env/bin/nosetests to improve the experience of running
+# tests in Sublime Text and other editors. It is designed for use with
+# Shane's fork of SublimePythonCoverage:
+#
+# https://github.com/hathawsh/SublimePythonCoverage
+#
+# It first runs the test the user is pointing at, then the module, then
+# the whole suite with coverage testing.
+
+cd $(dirname $0)/../backend
+env="$(cd ../env; pwd)"
+
+if [[ -n "$TESTFILE" ]] && [[ "$TESTFILE" =~ .*tests/test_[^/]+\.py$ ]] ; then
+    if [[ -n "$TESTATTR" ]] ; then
+        echo "Local Pretest: $TESTFILE:$TESTATTR" >&2
+        if "${env}/bin/nosetests" "$TESTFILE:$TESTATTR"
+        then
+            echo "Passed local pretest." >&2
+            echo >&2
+        else
+            echo "Failed local pretest." >&2
+            echo -n "To debug: cd ${env} && " >&2
+            echo "bin/nosetests -s $TESTFILE:$TESTATTR" >&2
+            exit
+        fi
+    fi
+    echo "Pretest: $TESTFILE" >&2
+    "${env}/bin/nosetests" "$TESTFILE" || exit
+elif [[ -n "$TESTFILE" ]] && [[ "$TESTFILE" =~ \.py$ ]]; then
+    script="$(dirname $TESTFILE)/tests/test_$(basename $TESTFILE)"
+    if [ -f "$script" ] ; then
+        echo "Pretest: $script" >&2
+        "${env}/bin/nosetests" "$script" || exit
+    fi
+fi
+
+if [ "$1" = '--with-coverage' ] || [ "$1" = '--with-cov' ]; then
+    shift
+    rm -f .coverage
+    "${env}/bin/nosetests" --with-cov --cov-report=html "$@"
+    "${env}/bin/coverage" report
+    echo "Coverage report: file://$(pwd)/htmlcov/index.html"
+else
+    "${env}/bin/nosetests" "$@"
+fi

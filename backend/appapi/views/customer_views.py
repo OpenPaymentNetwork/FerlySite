@@ -63,7 +63,7 @@ def request_card(request):
             state = getattr(address.find('State'), 'text', '')
             zip5 = getattr(address.find('Zip5'), 'text', '')
             zip4 = getattr(address.find('Zip4'), 'text', '')
-            zip_code = f'{zip5}-{zip4}'
+            zip_code = '{}-{}'.format(zip5, zip4)
 
             new_card_request = CardRequest(
                 customer_id=customer.id, name=params['name'],
@@ -223,7 +223,11 @@ def send(request):
     if message:
         params['message'] = message
 
-    customer.recents.add(recipient.id)
+    # Add recipient_id to customer.recents.
+    new_recents = [recipient_id]
+    new_recents.extend(
+        filter(lambda x: x != recipient_id, customer.recents or ()))
+    customer.recents = new_recents[:9]
 
     access_token = get_wc_token(request, customer)
     wc_contact(request, 'POST', 'wallet/send', params=params,

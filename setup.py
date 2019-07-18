@@ -27,6 +27,7 @@ requires = [
     'MarkupSafe==1.1.1',
     'more-itertools==7.1.0',
     'nose==1.3.7',
+    'nose-cov==1.6',
     'Paste==3.0.8',
     'PasteDeploy==2.0.1',
     'phonenumbers==8.10.15',

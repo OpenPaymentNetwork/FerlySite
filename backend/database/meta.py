@@ -29,10 +29,11 @@ Base = declarative_base(metadata=metadata)
 # https://wiki.postgresql.org/wiki/Pseudo_encrypt
 # https://wiki.postgresql.org/wiki/Skip32
 # http://stackoverflow.com/questions/33760630
+# https://dba.stackexchange.com/questions/22512/
 
 func_defs = """
 CREATE OR REPLACE FUNCTION skip32(val int4, cr_key bytea, encrypt bool)
-returns int4
+RETURNS int4
 AS $$
 DECLARE
   kstep int;
@@ -89,6 +90,21 @@ END
 $$ immutable strict language plpgsql;
 
 
+CREATE OR REPLACE FUNCTION random_bytea(p_length in integer)
+RETURNS bytea
+AS $$
+DECLARE
+  o bytea := '';
+BEGIN
+  FOR i IN 1..p_length LOOP
+    o := o || decode(
+      lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), 'hex');
+  END LOOP;
+  RETURN o;
+END
+$$ language plpgsql;
+
+
 CREATE OR REPLACE FUNCTION skip32_hex_seq(val int8, sn character varying)
     returns character varying
 AS $$
@@ -106,7 +122,10 @@ BEGIN
     ORDER BY key_index DESC
     LIMIT 1;
   IF NOT FOUND THEN
-    RAISE 'skip32_hex_seq() needs a key for seq_name "%", key_index %', sn, ki;
+    -- Generate and store the needed sequence_key now.
+    cr_key = random_bytea(10);
+    INSERT INTO sequence_key (seq_name, key_index, skip32_key)
+    VALUES (sn, 0, cr_key);
   END IF;
   IF (ki = 0) THEN
     prefix = '';
@@ -116,7 +135,7 @@ BEGIN
   encrypted = skip32((val & 2147483647)::int4, cr_key, true);
   RETURN prefix || lpad(to_hex(encrypted), 8, '0');
 END
-$$ stable language plpgsql;
+$$ language plpgsql;
 """
 
 

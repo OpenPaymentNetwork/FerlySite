@@ -1,19 +1,25 @@
+
 from backend.appapi.schemas import customer_views_schemas as schemas
-from backend.appapi.views.customer_views import edit_profile
-from backend.appapi.views.customer_views import history
-from backend.appapi.views.customer_views import is_customer
-from backend.appapi.views.customer_views import request_card
-from backend.appapi.views.customer_views import signup
-from backend.appapi.views.customer_views import transfer
 from backend.database.models import Customer
 from backend.database.models import Design
 from backend.database.models import Device
+from backend.testing import DBFixture
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from unittest import TestCase
 from unittest.mock import call
 from unittest.mock import MagicMock
 from unittest.mock import patch
 import pyramid.testing
+
+
+def setup_module():
+    global dbfixture
+    dbfixture = DBFixture()
+
+
+def teardown_module():
+    dbfixture.close_fixture()
+
 
 requests_config = {
     'post.return_value.content':
@@ -26,6 +32,7 @@ requests_config = {
 class TestRequestCard(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import request_card
         return request_card(*args, **kw)
 
     def _make_request(self, **kw):
@@ -161,6 +168,7 @@ class TestRequestCard(TestCase):
 class TestSignUp(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import signup
         return signup(*args, **kw)
 
     def _make_request(self, **kw):
@@ -296,6 +304,7 @@ class TestSignUp(TestCase):
 class TestEditProfile(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import edit_profile
         return edit_profile(*args, **kw)
 
     def _make_request(self, **kw):
@@ -437,7 +446,14 @@ class TestEditProfile(TestCase):
 
 class TestIsCustomer(TestCase):
 
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
     def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import is_customer
         return is_customer(*args, **kw)
 
     def _make_request(self, **args):
@@ -448,11 +464,32 @@ class TestIsCustomer(TestCase):
         request = pyramid.testing.DummyRequest(params=request_params)
         settings = request.ferlysettings = MagicMock()
         settings.environment = args.get('environment', 'staging')
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.IsCustomerSchema().bind(
             request=request).deserialize(request_params)
         return request
+
+    def _add_device(self):
+        from backend.database.models import Customer, Device
+        dbsession = self.dbsession
+        customer = Customer(
+            wc_id='11',
+            first_name='Testy',
+            last_name='Customer',
+            username='testycust',
+        )
+        dbsession.add(customer)
+        dbsession.flush()  # Assign customer.id
+
+        device = Device(
+            device_id='defaultdevice',
+            customer_id=customer.id,
+        )
+        dbsession.add(device)
+        dbsession.flush()  # Assign device.id
+
+        return device
 
     def test_correct_schema_used(self):
         request = self._make_request()
@@ -466,27 +503,199 @@ class TestIsCustomer(TestCase):
 
     def test_invalid_device_id(self):
         request = self._make_request()
-        mock_query = request.dbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
         response = self._call(request)
         self.assertFalse(response.get('is_customer'))
 
     def test_valid_device_id(self):
+        self._add_device()
         response = self._call(self._make_request())
         self.assertTrue(response.get('is_customer'))
 
-    def test_query(self):
-        device_id = '123'
-        request = self._make_request(device_id=device_id)
-        mock_filter = request.dbsession.query.return_value.filter
+    def test_dont_find_wrong_device(self):
+        self._add_device()
+        request = self._make_request(device_id='123')
+        response = self._call(request)
+        self.assertFalse(response.get('is_customer'))
+
+
+class TestSend(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import send
+        return send(*args, **kw)
+
+    def _make_request(self, **args):
+        request_params = {
+            'expected_env': args.get('expected_env', 'staging'),
+            'device_id': args.get('device_id', 'defaultdevice'),
+            'recipient_id': args.get('recipient_id', '01'),
+            'amount': '2.53',
+            'design_id': args.get('design_id', '00'),
+        }
+        message = args.get('message')
+        if message:
+            request_params['message'] = message
+        request = pyramid.testing.DummyRequest()
+        settings = request.ferlysettings = MagicMock()
+        settings.environment = args.get('environment', 'staging')
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.SendSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def _add_device(self, recipient_id='recip'):
+        from backend.database.models import Customer, Device
+        dbsession = self.dbsession
+        self.customer = customer = Customer(
+            wc_id='11',
+            first_name='Testy',
+            last_name='Customer',
+            username='testycust',
+        )
+        dbsession.add(customer)
+        dbsession.flush()  # Assign customer.id
+
+        device = Device(
+            device_id='defaultdevice',
+            customer_id=customer.id,
+        )
+        dbsession.add(device)
+        dbsession.flush()  # Assign device.id
+
+        return device
+
+    def _add_design(self):
+        from backend.database.models import Design
+        dbsession = self.dbsession
+        design = Design(
+            wc_id='41',
+            title='Test Design',
+            fee='1.20',
+        )
+        dbsession.add(design)
+        dbsession.flush()  # Assign design.id
+        return design
+
+    def _add_recipient(self):
+        from backend.database.models import Customer
+        dbsession = self.dbsession
+        recipient = Customer(
+            wc_id='12',
+            first_name='Friend',
+            last_name='User',
+            username='friend',
+        )
+        dbsession.add(recipient)
+        dbsession.flush()  # Assign recipient.id
+        return recipient
+
+    def test_correct_schema_used(self):
+        self._add_device()
+        request = self._make_request()
         self._call(request)
-        expression = Device.device_id == device_id
-        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.SendSchema))
+
+    def test_invalid_design(self):
+        self._add_device()
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual({'error': 'invalid_design'}, response)
+
+    @patch('backend.appapi.views.customer_views.notify_customer')
+    @patch('backend.appapi.views.customer_views.get_wc_token')
+    @patch('backend.appapi.views.customer_views.wc_contact')
+    def test_success_without_message(
+            self, wc_contact, get_wc_token, notify_customer):
+        self._add_device()
+        design = self._add_design()
+        recipient = self._add_recipient()
+        self.customer.recents = [
+            'cust1', 'cust2', 'cust3', 'cust4', recipient.id,
+            'cust5', 'cust6', 'cust7', 'cust8', 'cust9']
+
+        request = self._make_request(
+            design_id=design.id, recipient_id=recipient.id)
+        response = self._call(request)
+        self.assertEqual({}, response)
+
+        access_token = get_wc_token.return_value
+        get_wc_token.assert_called_with(request, self.customer)
+        expect_params = {
+            'sender_id': '11',
+            'recipient_uid': 'wingcash:12',
+            'amounts': '41-USD-2.53',
+            'require_recipient_email': False,
+            'accepted_policy': True,
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', 'wallet/send', params=expect_params,
+            access_token=access_token)
+
+        notify_customer.assert_called_with(
+            request,
+            recipient,
+            'Received $2.53 Test Design',
+            'from Testy Customer',
+            channel_id='gift-received')
+
+        self.assertEqual([
+            recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
+            'cust5', 'cust6', 'cust7', 'cust8'], self.customer.recents)
+
+    @patch('backend.appapi.views.customer_views.notify_customer')
+    @patch('backend.appapi.views.customer_views.get_wc_token')
+    @patch('backend.appapi.views.customer_views.wc_contact')
+    def test_with_message(self, wc_contact, get_wc_token, notify_customer):
+        self._add_device()
+        design = self._add_design()
+        recipient = self._add_recipient()
+        self.customer.recents = [
+            'cust1', 'cust2', 'cust3', 'cust4',
+            'cust5', 'cust6', 'cust7', 'cust8']
+
+        request = self._make_request(
+            design_id=design.id, recipient_id=recipient.id, message='hi sir')
+        response = self._call(request)
+        self.assertEqual({}, response)
+
+        access_token = get_wc_token.return_value
+        get_wc_token.assert_called_with(request, self.customer)
+        expect_params = {
+            'sender_id': '11',
+            'recipient_uid': 'wingcash:12',
+            'amounts': '41-USD-2.53',
+            'require_recipient_email': False,
+            'accepted_policy': True,
+            'message': 'hi sir',
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', 'wallet/send', params=expect_params,
+            access_token=access_token)
+
+        notify_customer.assert_called_with(
+            request,
+            recipient,
+            'Received $2.53 Test Design',
+            'hi sir\nfrom Testy Customer',
+            channel_id='gift-received')
+
+        self.assertEqual([
+            recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
+            'cust5', 'cust6', 'cust7', 'cust8'], self.customer.recents)
 
 
 class TestHistory(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import history
         return history(*args, **kw)
 
     def _make_request(self, **kw):
@@ -764,6 +973,7 @@ class TestHistory(TestCase):
 class TestTransfer(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import transfer
         return transfer(*args, **kw)
 
     def _make_request(self, **kw):
