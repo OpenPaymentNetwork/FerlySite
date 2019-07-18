@@ -90,15 +90,14 @@ END
 $$ immutable strict language plpgsql;
 
 
-CREATE OR REPLACE FUNCTION random_bytea(p_length in integer)
+CREATE OR REPLACE FUNCTION random_bytea_10()
 RETURNS bytea
 AS $$
 DECLARE
-  o bytea := '';
+  o bytea := '0000000000';
 BEGIN
-  FOR i IN 1..p_length LOOP
-    o := o || decode(
-      lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), 'hex');
+  FOR i IN 0..9 LOOP
+    PERFORM set_byte(o, i, width_bucket(random(), 0, 1, 256) - 1);
   END LOOP;
   RETURN o;
 END
@@ -124,9 +123,9 @@ BEGIN
   IF NOT FOUND THEN
     -- Generate and store the needed skip32_key now.
     -- This may conflict with concurrent transactions; if that's a problem,
-    -- the app should proactively add the initial sequence_keys based
+    -- the app should preemptively add the initial sequence_keys based
     -- on 10 bytes of /dev/urandom.
-    cr_key = random_bytea(10);
+    cr_key = random_bytea_10();
     INSERT INTO sequence_key (seq_name, key_index, skip32_key)
     VALUES (sn, 0, cr_key);
   END IF;
@@ -147,9 +146,14 @@ listen(metadata, 'before_create', DDL(func_defs.replace('%', '%%')))
 all_seq_names = set()
 
 
-def string_sequencer(seq_name):
+def string_sequencer(seq_name, increment=1047311):
+    """Prepare the default value for a randomized sequence column.
+
+    This uses a large default increment to ensure fewer than
+    one in a million guessed IDs are valid.
+    Note that the increment can be changed in the database
+    (using ALTER SEQUENCE) without changing this code.
+    """
     all_seq_names.add(seq_name)
-    # Use a large increment to ensure fewer than
-    # one in a million guessed IDs are valid.
-    seq = Sequence(seq_name, metadata=metadata, increment=1047311)
+    seq = Sequence(seq_name, metadata=metadata, increment=increment)
     return func.skip32_hex_seq(seq.next_value(), seq_name)

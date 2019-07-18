@@ -1,8 +1,8 @@
+
 from backend.database.meta import string_sequencer
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import relationship
 from sqlalchemy import (
     Boolean,
@@ -138,6 +138,7 @@ class CardRequest(Base):
     zip_code = Column(Unicode, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     downloaded = Column(DateTime, nullable=True)
+
 
 # all_metadata_defined must be at the end of the file. It signals that
 # all model classes have been defined successfully.
