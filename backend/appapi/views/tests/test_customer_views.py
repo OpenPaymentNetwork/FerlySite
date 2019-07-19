@@ -49,6 +49,8 @@ class TestRequestCard(TestCase):
         request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         request.ferlysettings = MagicMock()
+        request.ferlysettings.usps_address_info_url = (
+            'http://production.shippingapis.com/ShippingAPITest.dll')
         request.ferlysettings.usps_username = kw.get(
             'usps_username', 'default_usps_username')
         params.return_value = schemas.AddressSchema().bind(
@@ -84,6 +86,35 @@ class TestRequestCard(TestCase):
             "<City>{city}</City><State>{state}</State><Zip5>{zip_code}</Zip5>"
             "<Zip4></Zip4></Address></AddressValidateRequest>").format(
             **usps_request_values)
+        self._call(self._make_request(**usps_request_values))
+        requests.post.assert_called_once_with(
+            'http://production.shippingapis.com/ShippingAPITest.dll',
+            data=usps_request, headers={'Content-Type': 'application/xml'})
+
+    def test_malicious_input(self, requests, get_device):
+        usps_request_values = {
+            'usps_username': 'my_usps_username',
+            'line1': '<script>',
+            'line2': '&',
+            'city': '"\'',
+            'state': 'CA',
+            'zip_code': '90210'
+        }
+        escaped_values = {
+            'usps_username': 'my_usps_username',
+            'line1': '&lt;script&gt;',
+            'line2': '&amp;',
+            'city': '&#34;&#39;',
+            'state': 'CA',
+            'zip_code': '90210'
+        }
+        usps_request = (
+            "API=Verify&XML="
+            '<AddressValidateRequest USERID="{usps_username}"><Address ID="0">'
+            "<Address1>{line2}</Address1><Address2>{line1}</Address2>"
+            "<City>{city}</City><State>{state}</State><Zip5>{zip_code}</Zip5>"
+            "<Zip4></Zip4></Address></AddressValidateRequest>").format(
+            **escaped_values)
         self._call(self._make_request(**usps_request_values))
         requests.post.assert_called_once_with(
             'http://production.shippingapis.com/ShippingAPITest.dll',

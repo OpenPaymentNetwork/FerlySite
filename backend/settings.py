@@ -71,3 +71,7 @@ class FerlySettings(object):
     @reify
     def usps_username(self):
         return os.environ.get('USPS_USERNAME')
+
+    @reify
+    def usps_address_info_url(self):
+        return self._settings['usps_address_info_url']

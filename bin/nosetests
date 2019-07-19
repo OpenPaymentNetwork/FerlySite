@@ -39,7 +39,7 @@ fi
 if [ "$1" = '--with-coverage' ] || [ "$1" = '--with-cov' ]; then
     shift
     rm -f .coverage
-    "${env}/bin/nosetests" --with-cov --cov-report=html "$@"
+    "${env}/bin/nosetests" --with-cov --cov-report=html
     "${env}/bin/coverage" report
     echo "Coverage report: file://$(pwd)/htmlcov/index.html"
 else

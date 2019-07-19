@@ -9,6 +9,7 @@ from backend.database.models import Device
 from backend.database.serialize import serialize_customer
 from backend.database.serialize import serialize_design
 from backend.wccontact import wc_contact
+from markupsafe import escape
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.view import view_config
 from sqlalchemy import cast
@@ -28,20 +29,29 @@ def request_card(request):
     device = get_device(request, params)
     customer = device.customer
 
+    usps_address_info_url = request.ferlysettings.usps_address_info_url
     usps_username = request.ferlysettings.usps_username
     if not usps_username:
         raise Exception("No USPS username is set")
+
+    # Prepare the input fields for safe inclusion in XML. (Without escaping,
+    # users may be able to trigger some vulnerability at USPS.)
+    escaped = {}
+    for k, v in params.items():
+        escaped[k] = escape(v)
+
     # USPS uses Address1 as the more detailed part of the address, our line2.
+
     usps_request = (
         "API=Verify&XML="
         '<AddressValidateRequest USERID="{usps_username}"><Address ID="0">'
         "<Address1>{line2}</Address1><Address2>{line1}</Address2>"
         "<City>{city}</City><State>{state}</State><Zip5>{zip_code}</Zip5>"
         "<Zip4></Zip4></Address></AddressValidateRequest>").format(
-        usps_username=usps_username, **params)
+        usps_username=usps_username, **escaped)
     try:
         response = requests.post(
-            'http://production.shippingapis.com/ShippingAPITest.dll',
+            usps_address_info_url,
             data=usps_request,
             headers={'Content-Type': 'application/xml'})
         response.raise_for_status()
