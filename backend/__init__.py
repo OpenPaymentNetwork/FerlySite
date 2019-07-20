@@ -36,5 +36,6 @@ def main(global_config, **settings):
     config.add_tween(
         'backend.ise.internalservererror.InternalServerErrorTween')
     config.include('backend.database')
+    config.include('pyramid_chameleon')
     config.scan()
     return config.make_wsgi_app()

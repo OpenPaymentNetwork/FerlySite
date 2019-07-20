@@ -1,4 +1,6 @@
+
 from pyramid.decorator import reify
+from pyramid.settings import asbool
 import os
 
 
@@ -75,3 +77,37 @@ class FerlySettings(object):
     @reify
     def usps_address_info_url(self):
         return self._settings['usps_address_info_url']
+
+    @reify
+    def cognito_client_id(self):
+        """Client ID for Amazon Cognito login"""
+        return (
+            os.environ.get('COGNITO_CLIENT_ID') or
+            self._settings['cognito_client_id'])
+
+    @reify
+    def cognito_client_secret(self):
+        """Client secret for Amazon Cognito login"""
+        return (
+            os.environ.get('COGNITO_CLIENT_SECRET') or
+            self._settings['cognito_client_secret'])
+
+    @reify
+    def cognito_domain(self):
+        """Domain of the Amazon Cognito service"""
+        return self._settings['cognito_domain']
+
+    @reify
+    def secure_cookie(self):
+        """True if cookies should only be passed through HTTPS"""
+        return asbool(self._settings.get('secure_cookie', True))
+
+    @reify
+    def token_trust_duration(self):
+        """How long before checking and updating tokens, in seconds"""
+        return int(self._settings.get('token_trust_duration', 60))
+
+    @reify
+    def token_duration(self):
+        """How long until inactive tokens expire, in seconds"""
+        return int(self._settings.get('token_duration', 15 * 60))

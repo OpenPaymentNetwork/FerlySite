@@ -1,22 +1,20 @@
 
-from backend.database.meta import string_sequencer
+from .meta import Base
+from .meta import string_sequencer
+from sqlalchemy import BigInteger
+from sqlalchemy import Boolean
+from sqlalchemy import Column
+from sqlalchemy import DateTime
+from sqlalchemy import ForeignKey
+from sqlalchemy import func
+from sqlalchemy import Integer
+from sqlalchemy import Numeric
+from sqlalchemy import String
+from sqlalchemy import Unicode
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import relationship
-from sqlalchemy import (
-    Boolean,
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    DateTime,
-    Numeric,
-    func,
-    Unicode
-)
-
-from .meta import Base
 
 now_utc = func.timezone('UTC', func.current_timestamp())
 
@@ -39,7 +37,8 @@ class Customer(Base):
     wc_id = Column(
         String, nullable=False, index=True, unique=True)
     # XXX the title column attribute is not usable because it's shadowed by
-    # the title property below.
+    # the title property below. Should we delete the title column? Find out
+    # whether the database actually uses it.
     title = Column(String)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
@@ -126,11 +125,14 @@ class CardRequest(Base):
     customer_id = Column(
         String, ForeignKey('customer.id'), nullable=False, index=True)
     name = Column(Unicode, nullable=False)
+    # original_* contains the address input from the customer.
     original_line1 = Column(Unicode, nullable=False)
     original_line2 = Column(Unicode, nullable=True)
     original_city = Column(Unicode, nullable=False)
     original_state = Column(Unicode, nullable=False)
     original_zip_code = Column(Unicode, nullable=False)
+    # line1, line2, city, state, and zip_code are normalized by the USPS
+    # address info service.
     line1 = Column(Unicode, nullable=False)
     line2 = Column(Unicode, nullable=True)
     city = Column(Unicode, nullable=False)
@@ -138,6 +140,36 @@ class CardRequest(Base):
     zip_code = Column(Unicode, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     downloaded = Column(DateTime, nullable=True)
+
+
+class StaffToken(Base):
+    """An access token for a staff member.
+
+    Staff members authenticate through Amazon Cognito.
+    """
+    __tablename__ = 'staff_token'
+    id = Column(BigInteger, nullable=False, primary_key=True)
+    # The secret is random and stored in a cookie.
+    # secret_sha256 is the SHA-256 hex digest of the secret.
+    secret_sha256 = Column(String, nullable=False)
+    # The tokens_fernet column contains Fernet encrypted JSON.
+    # The encryption key is the value of the secret cookie.
+    # (Encryption prevents the tokens from being used even if
+    # an attacker has a copy of the database.)
+    # The decrypted JSON contains at least
+    # {access_token, expires_in, refresh_token, id_token}.
+    tokens_fernet = Column(String, nullable=False)
+    created = Column(DateTime, nullable=False, server_default=now_utc)
+    # The token is trusted without checking Amazon until update_ts,
+    # which should be a short time after the last call to get user info.
+    # Then we check the access token again.
+    update_ts = Column(DateTime, nullable=False)
+    # The token is no longer accepted after the expires time.
+    expires = Column(DateTime, nullable=False)
+    user_agent = Column(String, nullable=False)
+    remote_addr = Column(String, nullable=False)
+    username = Column(String, nullable=False)
+    email = Column(String, nullable=False)
 
 
 # all_metadata_defined must be at the end of the file. It signals that
