@@ -1,6 +1,7 @@
 from backend.site import API
 from backend.site import Site
 from colander import Invalid
+from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPServiceUnavailable
@@ -62,3 +63,11 @@ def unauthorized(context, request):
 @view_config(context=HTTPServiceUnavailable, renderer='json')
 def serviceunavailable(context, request):
     return {'error': 'service_unavailable'}
+
+
+@view_config(context=HTTPForbidden, renderer='json')
+def forbidden(context, request):
+    if getattr(context.exception, 'staff_token_required', False):
+        from backend.staff.staffauth import login_redirect
+        return login_redirect(request)
+    return {'error': 'forbidden'}
