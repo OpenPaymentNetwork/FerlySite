@@ -62,7 +62,7 @@ class TokenResolver:
                 token_row.id, token_row.username, self.request.remote_addr)
             return token_row
 
-        self.sync_token(token_row)
+        self.check_token()
         return token_row
 
     def forbidden(self):
@@ -102,7 +102,7 @@ class TokenResolver:
 
     @reify
     def authenticated_token_row(self):
-        """Return the authenticated StaffTokenRow."""
+        """Return the authenticated StaffToken row."""
         request = self.request
         token_id, secret = self.decoded_token
 
@@ -130,17 +130,24 @@ class TokenResolver:
 
         return token_row
 
-    def sync_token(self, token_row):
-        """Sync with the Amazon Cognito record.
+    @reify
+    def tokens_json(self):
+        """Get the decrypted tokens from the token_row."""
+        token_id, secret = self.decoded_token
+        token_row = self.authenticated_token_row
+        tokens_encoded = Fernet(secret).decrypt(
+            token_row.tokens_fernet.encode('ascii'))
+        return json.loads(tokens_encoded.decode('ascii'))
+
+    def check_token(self):
+        """Check the token using Cognito.
 
         Raise HTTPForbidden if the token is no longer valid.
         """
         request = self.request
         token_id, secret = self.decoded_token
-        tokens_encoded = Fernet(secret).decrypt(
-            token_row.tokens_fernet.encode('ascii'))
-        tokens_json = json.loads(tokens_encoded.decode('ascii'))
-        print(tokens_json)
+        token_row = self.authenticated_token_row
+        tokens_json = self.tokens_json
         access_token = tokens_json['access_token']
         settings = request.ferlysettings
 
@@ -179,8 +186,6 @@ class TokenResolver:
         new_attrs = (
             ('user_agent', request.user_agent),
             ('remote_addr', request.remote_addr),
-            ('username', user_info['username']),
-            ('email', user_info['email']),
         )
         for attr, value in new_attrs:
             if getattr(token_row, attr) != value:
@@ -192,7 +197,7 @@ class TokenResolver:
             seconds=settings.token_duration)
 
         log.info(
-            "Updated user_info for token %s from %s at %s: %s",
+            "Updated token %s from %s at %s: %s",
             token_id, token_row.username, request.remote_addr, user_info)
 
     def refresh(self, tokens_json):
@@ -216,4 +221,7 @@ class TokenResolver:
                 "Unable to refresh token %s from %s at %s: %s",
                 token_row.id, token_row.username, self.request.remote_addr, e)
             raise self.forbidden()
-        return resp.json()
+        new_tokens_json = resp.json()
+        assert 'access_token' in new_tokens_json
+        assert 'refresh_token' in new_tokens_json
+        return new_tokens_json

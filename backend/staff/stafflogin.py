@@ -1,6 +1,7 @@
 
 from backend.database.models import StaffToken
 from backend.site import StaffSite
+import cognitojwt
 from cryptography.fernet import Fernet
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPSeeOther
@@ -40,7 +41,7 @@ def login(staff_site, request):
     context=StaffSite,
     renderer='templates/cognito_cb.pt')
 def cognito_callback(staff_site, request):
-    """Receive an OAuth code and trade it for an access token."""
+    """Receive an OAuth code, add a StaffToken, and redirect."""
     settings = request.ferlysettings
     code = request.params.get('code')
     if not code or len(code) > 100:
@@ -59,24 +60,34 @@ def cognito_callback(staff_site, request):
         auth=(settings.cognito_client_id, settings.cognito_client_secret),
         data=token_data)
     resp.raise_for_status()
-    tokens = resp.json()
-    access_token = tokens['access_token']
+    tokens_json = resp.json()
+    assert 'access_token' in tokens_json
+    assert 'refresh_token' in tokens_json
 
-    info_url = 'https://%s/oauth2/userInfo' % settings.cognito_domain
-    resp = requests.get(
-        info_url, headers={
-            'Authorization': 'Bearer %s' % access_token,
-        })
-    resp.raise_for_status()
-    user_info = resp.json()
-    log.info("Staff login user_info: %s", user_info)
+    verified_claims = cognitojwt.decode(
+        tokens_json['id_token'],
+        settings.cognito_region,
+        settings.cognito_userpool_id,
+        app_client_id=settings.cognito_client_id,
+    )
 
-    username = user_info['username']
-    email = user_info['email']
+    # access_token = tokens_json['access_token']
+
+    # info_url = 'https://%s/oauth2/userInfo' % settings.cognito_domain
+    # resp = requests.get(
+    #     info_url, headers={
+    #         'Authorization': 'Bearer %s' % access_token,
+    #     })
+    # resp.raise_for_status()
+    # user_info = resp.json()
+    # log.info("Staff login user_info: %s", user_info)
+
+    username = verified_claims['cognito:username']
+    groups = verified_claims['cognito:groups']
 
     secret = Fernet.generate_key()
     secret_sha256 = hashlib.sha256(secret).hexdigest()
-    tokens_encoded = json.dumps(tokens).encode('utf-8')
+    tokens_encoded = json.dumps(tokens_json).encode('utf-8')
     tokens_fernet = Fernet(secret).encrypt(tokens_encoded).decode('ascii')
 
     now = datetime.datetime.utcnow()
@@ -90,7 +101,8 @@ def cognito_callback(staff_site, request):
         user_agent=request.user_agent,
         remote_addr=request.remote_addr,
         username=username,
-        email=email,
+        groups=groups,
+        id_claims=verified_claims,
     )
     request.dbsession.add(st)
     request.dbsession.flush()  # Assign st.id
@@ -105,6 +117,8 @@ def cognito_callback(staff_site, request):
         secure=settings.secure_cookie,
         httponly=True,
         max_age=datetime.timedelta(days=365))
+
+    delete_old_tokens(request)
 
     return {'location': location}
 
@@ -123,3 +137,10 @@ def logout(staff_site, request):
         secure=settings.secure_cookie,
         httponly=True)
     return {}
+
+
+def delete_old_tokens(request):
+    expire_time = datetime.datetime.utcnow() - datetime.timedelta(
+        days=request.ferlysettings.token_delete_days)
+    q = request.dbsession.query(StaffToken)
+    q.filter(StaffToken.expires <= expire_time).delete()

@@ -13,6 +13,7 @@ from sqlalchemy import String
 from sqlalchemy import Unicode
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import relationship
 
@@ -149,15 +150,17 @@ class StaffToken(Base):
     """
     __tablename__ = 'staff_token'
     id = Column(BigInteger, nullable=False, primary_key=True)
-    # The secret is random and stored in a cookie.
+    # The secret is a random Fernet encryption key and stored in a cookie.
     # secret_sha256 is the SHA-256 hex digest of the secret.
     secret_sha256 = Column(String, nullable=False)
     # The tokens_fernet column contains Fernet encrypted JSON.
-    # The encryption key is the value of the secret cookie.
-    # (Encryption prevents the tokens from being used even if
-    # an attacker has a copy of the database.)
+    # The encryption key is the value of the secret cookie. For security,
+    # the value of the secret cookie (and hence the encryption key) is
+    # intentionally not stored in the database.
+    # Encryption prevents the tokens from being used even if
+    # an attacker has a copy of the database.
     # The decrypted JSON contains at least
-    # {access_token, expires_in, refresh_token, id_token}.
+    # {access_token, refresh_token}.
     tokens_fernet = Column(String, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     # The token is trusted without checking Amazon until update_ts,
@@ -169,7 +172,9 @@ class StaffToken(Base):
     user_agent = Column(String, nullable=False)
     remote_addr = Column(String, nullable=False)
     username = Column(String, nullable=False)
-    email = Column(String, nullable=False)
+    groups = Column(ARRAY(String), nullable=False)
+    # id_claims contains the verified claims from the JWT id_token.
+    id_claims = Column(JSONB, nullable=False)
 
 
 # all_metadata_defined must be at the end of the file. It signals that

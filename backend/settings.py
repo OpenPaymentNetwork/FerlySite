@@ -98,6 +98,16 @@ class FerlySettings(object):
         return self._settings['cognito_domain']
 
     @reify
+    def cognito_region(self):
+        """Region of the Amazon Cognito service"""
+        return self._settings['cognito_region']
+
+    @reify
+    def cognito_userpool_id(self):
+        """User pool ID of the Amazon Cognito service"""
+        return self._settings['cognito_userpool_id']
+
+    @reify
     def secure_cookie(self):
         """True if cookies should only be passed through HTTPS"""
         return asbool(self._settings.get('secure_cookie', True))
@@ -111,3 +121,8 @@ class FerlySettings(object):
     def token_duration(self):
         """How long until inactive tokens expire, in seconds"""
         return int(self._settings.get('token_duration', 15 * 60))
+
+    @reify
+    def token_delete_days(self):
+        """How long to keep expired tokens, in days"""
+        return int(self._settings.get('token_delete_days', 7))
