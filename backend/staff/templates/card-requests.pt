@@ -1,0 +1,50 @@
+<html>
+<head>
+    <title>Ferly Card Requests</title>
+</head>
+<body>
+<h1>Ferly Card Requests</h1>
+
+<style>
+.card-req-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.card-req-table td, .card-req-table th {
+    border: 1px solid #777;
+    padding: 2px 8px;
+}
+</style>
+
+<table class="card-req-table">
+    <thead>
+        <tr>
+            <th>Request ID</th>
+            <th>Customer ID</th>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Created</th>
+            <th>Downloaded</th>
+            <th>Cancel</th>
+            <th>Download</th>
+        </tr>
+        <tr tal:repeat="row rows">
+            <td>${row.id}</td>
+            <td>${row.customer_id}</td>
+            <td>${row.name}</td>
+            <td>
+                ${row.line1}<span tal:condition="row.line2"> | ${row.line2}</span>,
+                ${row.city}, ${row.state} ${row.zip_code}
+            </td>
+            <td>${row.created}</td>
+            <td>${row.downloaded}</td>
+            <td><input type="checkbox" name="cancel:${row.id}" value="1" /></td>
+            <td><input type="checkbox" name="download:${row.id}" value="1"
+                checked="${'checked' if row.downloaded is None else None}" />
+            </td>
+        </tr>
+    </thead>
+</table>
+</body>
+</html>

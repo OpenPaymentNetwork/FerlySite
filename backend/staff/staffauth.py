@@ -127,7 +127,7 @@ class TokenAuthenticator:
 
     @reify
     def tokens_json(self):
-        """Get the decrypted tokens from the token_row."""
+        """Get the decrypted tokens from the unauthenticated_token_row."""
         token_id, secret = self.decoded_token
         token_row = self.unauthenticated_token_row
         tokens_encoded = Fernet(secret).decrypt(
@@ -155,7 +155,7 @@ class TokenAuthenticator:
         return token_row
 
     def check_token(self):
-        """Check the token using Cognito.
+        """Check the unauthenticated token using Cognito.
 
         Raise HTTPForbidden if the token is no longer valid.
         """

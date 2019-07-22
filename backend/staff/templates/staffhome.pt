@@ -4,6 +4,10 @@
 </head>
 <body>
     <h1>Ferly Staff Site</h1>
-    <p>Hi.</p>
+    <ul>
+        <li>
+            <a href="/staff/card-requests">Card Requests</a>
+        </li>
+    </ul>
 </body>
 </html>
