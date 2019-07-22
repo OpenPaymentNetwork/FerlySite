@@ -32,12 +32,19 @@ def login_redirect(request):
     return HTTPSeeOther(url)
 
 
-def resolve_token(request, params=None, field='staff_token'):
-    resolver = TokenResolver(request, params, field)
-    return resolver()
+def authenticate_token(
+        request, params=None, field='staff_token', require_group=None):
+    resolver = TokenAuthenticator(request, params, field)
+    row = resolver()
+    if require_group:
+        if require_group not in row.groups:
+            error = HTTPForbidden()
+            error.staff_require_group = require_group
+            raise error
+    return row
 
 
-class TokenResolver:
+class TokenAuthenticator:
     """Authenticate the user with a token."""
     def __init__(self, request, params=None, field='staff_token'):
         self.request = request
@@ -47,23 +54,11 @@ class TokenResolver:
             self.token_input = request.cookies.get(field)
 
     def __call__(self):
-        """If the user has an authenticated token, get the token row.
+        """Authenticate the token and return the StaffToken.
 
-        If not, raise HTTPForbidden (which should redirect to login).
-
-        Update cookies as necessary to help the user stay logged in.
+        Raise HTTPForbidden if the token is not valid.
         """
-        token_row = self.authenticated_token_row
-
-        if self.now < token_row.update_ts:
-            # Trust this token until update_ts.
-            log.debug(
-                "Trusting token %s from %s at %s",
-                token_row.id, token_row.username, self.request.remote_addr)
-            return token_row
-
-        self.check_token()
-        return token_row
+        return self.authenticated_token_row
 
     def forbidden(self):
         error = HTTPForbidden()
@@ -101,8 +96,8 @@ class TokenResolver:
         return token_id, secret
 
     @reify
-    def authenticated_token_row(self):
-        """Return the authenticated StaffToken row."""
+    def unauthenticated_token_row(self):
+        """Return the unauthenticated StaffToken row."""
         request = self.request
         token_id, secret = self.decoded_token
 
@@ -134,10 +129,30 @@ class TokenResolver:
     def tokens_json(self):
         """Get the decrypted tokens from the token_row."""
         token_id, secret = self.decoded_token
-        token_row = self.authenticated_token_row
+        token_row = self.unauthenticated_token_row
         tokens_encoded = Fernet(secret).decrypt(
             token_row.tokens_fernet.encode('ascii'))
         return json.loads(tokens_encoded.decode('ascii'))
+
+    @reify
+    def authenticated_token_row(self):
+        """If the user has an authenticated token, get the token row.
+
+        If not, raise HTTPForbidden (which should redirect to login).
+
+        Update cookies as necessary to help the user stay logged in.
+        """
+        token_row = self.unauthenticated_token_row
+
+        if self.now < token_row.update_ts:
+            # Trust this token until update_ts.
+            log.debug(
+                "Trusting token %s from %s at %s",
+                token_row.id, token_row.username, self.request.remote_addr)
+            return token_row
+
+        self.check_token()
+        return token_row
 
     def check_token(self):
         """Check the token using Cognito.
@@ -146,7 +161,7 @@ class TokenResolver:
         """
         request = self.request
         token_id, secret = self.decoded_token
-        token_row = self.authenticated_token_row
+        token_row = self.unauthenticated_token_row
         tokens_json = self.tokens_json
         access_token = tokens_json['access_token']
         settings = request.ferlysettings
@@ -216,7 +231,7 @@ class TokenResolver:
         try:
             resp.raise_for_status()
         except Exception as e:
-            token_row = self.authenticated_token_row
+            token_row = self.unauthenticated_token_row
             log.error(
                 "Unable to refresh token %s from %s at %s: %s",
                 token_row.id, token_row.username, self.request.remote_addr, e)

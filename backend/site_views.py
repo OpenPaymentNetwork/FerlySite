@@ -36,12 +36,12 @@ def notfound(request):
 
     The frontend code will route appropriately.
     """
-    if request.path.startswith('/api/'):
-        request.response.status = HTTPNotFound.code
-        return {
+    p = request.path
+    if p.startswith('/api/') or p.startswith('/staff/'):
+        return HTTPNotFound(json_body={
             'error': 'not_found',
             'error_description': 'The resource could not be found.',
-        }
+        })
 
     return index_html(request)
 
@@ -70,4 +70,11 @@ def forbidden(context, request):
     if getattr(context.exception, 'staff_token_required', False):
         from backend.staff.staffauth import login_redirect
         return login_redirect(request)
-    return {'error': 'forbidden'}
+    require_group = getattr(context.exception, 'staff_require_group', None)
+    if require_group:
+        desc = "You are not a member of the '%s' group" % require_group
+        return HTTPForbidden(json_body={
+            'error': 'forbidden',
+            'error_description': desc,
+        })
+    return HTTPForbidden(json_body={'error': 'forbidden'})
