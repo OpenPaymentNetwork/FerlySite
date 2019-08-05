@@ -1,50 +1,159 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Ferly Card Requests</title>
+    <link rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+        crossorigin="anonymous">
+    <script
+        src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
 </head>
-<body>
-<h1>Ferly Card Requests</h1>
+<body style="margin: 15px">
 
 <style>
-.card-req-table {
-    border-collapse: collapse;
-    border-spacing: 0;
-}
-
-.card-req-table td, .card-req-table th {
-    border: 1px solid #777;
-    padding: 2px 8px;
+.card-req-table > tbody > tr:hover {
+    background-color: #eee;
 }
 </style>
 
-<table class="card-req-table">
-    <thead>
-        <tr>
-            <th>Request ID</th>
-            <th>Customer ID</th>
-            <th>Name</th>
-            <th>Address</th>
-            <th>Created</th>
-            <th>Downloaded</th>
-            <th>Cancel</th>
-            <th>Download</th>
-        </tr>
-        <tr tal:repeat="row rows">
-            <td>${row.id}</td>
-            <td>${row.customer_id}</td>
-            <td>${row.name}</td>
-            <td>
-                ${row.line1}<span tal:condition="row.line2"> | ${row.line2}</span>,
-                ${row.city}, ${row.state} ${row.zip_code}
-            </td>
-            <td>${row.created}</td>
-            <td>${row.downloaded}</td>
-            <td><input type="checkbox" name="cancel:${row.id}" value="1" /></td>
-            <td><input type="checkbox" name="download:${row.id}" value="1"
-                checked="${'checked' if row.downloaded is None else None}" />
-            </td>
-        </tr>
-    </thead>
-</table>
+<script>
+/* global $ */
+function change_limit() {
+    var limit = $('select[name=limit]').val();
+    var bc = $('#before_created').val();
+    var params = new URLSearchParams(window.location.search);
+    params.set('limit', limit);
+    params.set('before_created', bc);
+    window.location = window.location.pathname + '?' + params.toString();
+}
+
+function change_show_downloaded() {
+    var params = new URLSearchParams(window.location.search);
+    if ($('#show-downloaded-checkbox').is(':checked')) {
+        params.set('show_downloaded', 'true');
+    } else {
+        params.delete('show_downloaded');
+    }
+    window.location = window.location.pathname + '?' + params.toString();
+}
+</script>
+
+<h1>Ferly Card Requests</h1>
+
+<form name="download" action="card-requests-download" method="POST">
+
+    <div style="margin: 15px 0">
+        <div style="float: right">
+            <label style="margin-right: 2em">
+                <input
+                    type="checkbox"
+                    id="show-downloaded-checkbox"
+                    checked="${'checked' if show_downloaded else None}"
+                    value="true"
+                    onchange="change_show_downloaded()" />
+                Show Downloaded Card Requests
+            </label>
+            <label>
+                Limit
+                <select name="limit" onchange="change_limit()">
+                    <option tal:repeat="choice (10, 100, 1000)" value="${choice}"
+                        selected="${'selected' if limit == choice else None}">${choice}</option>
+                </select>
+                <input type="hidden" id="before_created" value="${request.params.get('before_created', '')}" />
+            </label>
+        </div>
+
+        <button
+            type="submit"
+            class="btn btn-primary"
+            disabled
+            id="download-button">Download Selected</button>
+
+        <div class="clear: both; height: 1px"></div>
+    </div>
+
+    <table class="card-req-table table">
+        <thead>
+            <tr>
+                <th>Request ID</th>
+                <th>Customer ID</th>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Created</th>
+                <th>Downloaded</th>
+                <th>Cancel</th>
+                <th>Download</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr tal:repeat="row rows">
+                <td>${row.id}</td>
+                <td>${row.customer_id}</td>
+                <td>${row.name}</td>
+                <td>
+                    ${row.line1}<span tal:condition="row.line2"> / ${row.line2}</span> /
+                    ${row.city}, ${row.state} ${row.zip_code}
+                </td>
+                <td>${row.created}</td>
+                <td>${row.downloaded}</td>
+                <td><input
+                        type="checkbox"
+                        name="cancel"
+                        value="${row.id}"
+                        class="select-checkbox" /></td>
+                <td><input
+                        type="checkbox"
+                        name="download"
+                        value="${row.id}"
+                        checked="${'checked' if row.downloaded is None else None}"
+                        class="select-checkbox" />
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</form>
+
+<div tal:condition="more" style="margin: 15px 0">
+    <a id="next-page-link" href="#" data-next-before-created="${rows[-1].created.isoformat()}">Next Page</a>
+</div>
+
+<script>
+function update_download_enabled(event) {
+    var any_checked = false;
+    if (event && event.target.checked) {
+        any_checked = true;
+    } else {
+        for (var elem of $('.select-checkbox')) {
+            if (elem.checked) {
+                any_checked = true;
+                break;
+            }
+        }
+    }
+    if (any_checked) {
+        $('#download-button').removeAttr('disabled');
+    } else {
+        $('#download-button').attr('disabled', 'disabled');
+    }
+}
+
+
+$(document).ready(function() {
+    var params = new URLSearchParams(window.location.search);
+    var link = $('#next-page-link');
+    params.set('before_created', link.attr('data-next-before-created'));
+    $('#next-page-link').attr('href', window.location.pathname + '?' + params.toString());
+    update_download_enabled();
+});
+
+$(document).on('change', '.select-checkbox', update_download_enabled);
+
+</script>
+
 </body>
 </html>

@@ -1,4 +1,5 @@
 
+from backend.api_schemas import to_datetime
 from backend.database.models import CardRequest
 from backend.staff.staffauth import authenticate_token
 from backend.site import StaffSite
@@ -25,7 +26,13 @@ def staffhome(staff_site, request):
 def card_requests(staff_site, request):
     authenticate_token(request, require_group='FerlyAdministrators')
     params = request.params
-    offset = int(params.get('offset', 0))
+    before_created_str = params.get('before_created')
+    before_created = None
+    if before_created_str:
+        try:
+            before_created = to_datetime(before_created_str)
+        except ValueError:
+            pass
     limit = int(params.get('limit', 1000))
     show_downloaded = bool(params.get('show_downloaded', False))
 
@@ -34,11 +41,15 @@ def card_requests(staff_site, request):
     if not show_downloaded:
         q = q.filter(CardRequest.downloaded == null)
 
-    q = q.order_by(CardRequest.created.desc())
+    if before_created:
+        q = q.filter(CardRequest.created < before_created)
 
-    if offset:
-        q = q.offset(offset)
-    q = q.limit(limit)
+    q = q.order_by(CardRequest.created.desc()).limit(limit + 1)
 
     rows = q.all()
-    return {'rows': rows}
+    return {
+        'rows': rows[:limit],
+        'limit': limit,
+        'show_downloaded': show_downloaded,
+        'more': len(rows) > limit,
+    }
