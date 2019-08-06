@@ -56,7 +56,7 @@ requires = [
     'pyramid==1.10.4',
     'pytest-cov==2.7.1',
     'pytest==5.0.1',
-    'python==jose-3.0.1',
+    'python-jose==3.0.1',
     'repoze.lru==0.7',
     'requests==2.22.0',
     'rsa==4.0',
