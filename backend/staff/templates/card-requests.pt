@@ -14,6 +14,21 @@
 
 <script>
 /* global $ */
+function handle_download_checkbox() {
+    var any_checked = false;
+    var all_checked = true;
+    for (var elem of $('.select-checkbox')) {
+        if (elem.checked) {
+            any_checked = true;
+        } else {
+            all_checked = false;
+        }
+    }
+
+    $('#download-button').prop('disabled', !any_checked);
+    $('#select-all-download').prop('checked', all_checked);
+}
+
 function change_limit() {
     var limit = $('select[name=limit]').val();
     var bc = $('#before_created').val();
@@ -31,6 +46,12 @@ function change_show_downloaded() {
         params.delete('show_downloaded');
     }
     window.location = window.location.pathname + '?' + params.toString();
+}
+
+function change_select_all_download() {
+    var checked = $('#select-all-download').prop('checked');
+    $('.download-checkbox').prop('checked', checked);
+    handle_download_checkbox();
 }
 </script>
 
@@ -80,7 +101,12 @@ function change_show_downloaded() {
                 <th>Created</th>
                 <th>Downloaded</th>
                 <!--<th>Cancel</th>-->
-                <th>Download</th>
+                <th>
+                    <input type="checkbox" id="select-all-download"
+                        onchange="change_select_all_download()"
+                        style="margin-right: 0.5em" />
+                    Download
+                </th>
             </tr>
         </thead>
         <tbody>
@@ -106,7 +132,7 @@ function change_show_downloaded() {
                         name="download"
                         value="${row.id}"
                         checked="${'checked' if row.downloaded is None else None}"
-                        class="select-checkbox" />
+                        class="select-checkbox download-checkbox" />
                 </td>
             </tr>
         </tbody>
@@ -118,35 +144,16 @@ function change_show_downloaded() {
 </div>
 
 <script>
-function update_download_enabled(event) {
-    var any_checked = false;
-    if (event && event.target.checked) {
-        any_checked = true;
-    } else {
-        for (var elem of $('.select-checkbox')) {
-            if (elem.checked) {
-                any_checked = true;
-                break;
-            }
-        }
-    }
-    if (any_checked) {
-        $('#download-button').removeAttr('disabled');
-    } else {
-        $('#download-button').attr('disabled', 'disabled');
-    }
-}
-
 $(document).ready(function() {
     var params = new URLSearchParams(window.location.search);
     var link = $('#next-page-link');
     params.set('before_created', link.attr('data-next-before-created'));
     $('#next-page-link').attr('href', window.location.pathname + '?' + params.toString());
 
-    update_download_enabled();
+    handle_download_checkbox();
 });
 
-$(document).on('change', '.select-checkbox', update_download_enabled);
+$(document).on('change', '.select-checkbox', handle_download_checkbox);
 
 </script>
 
