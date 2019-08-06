@@ -67,6 +67,7 @@ class Device(Base):
     id = Column(
         String, nullable=False, primary_key=True,
         server_default=string_sequencer('device_seq'))
+    # device_id is the token that authenticates the device.
     device_id = Column(String, unique=True, nullable=False, index=True)
     customer_id = Column(
         String, ForeignKey('customer.id'), nullable=False)
