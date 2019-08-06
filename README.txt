@@ -41,10 +41,30 @@ Configuring a Database
 
     cd Ferly
 
-- Set the database url as an env var.
+- Set the database URL as an env var.
 
     export SQLALCHEMY_URL=postgres://user:password@url:port/dbname
 
 - Configure the database.
 
     env/bin/initialize_backend_db staging.ini
+
+
+Migrating a Database
+--------------------
+
+You can execute database migrations from your laptop/desktop (without logging
+in to EC2 or Elastic Beanstalk). You just need the SQLALCHEMY_URL for the
+environment.
+
+- Change to the backend/database directory.
+
+    cd backend/database
+
+- Set the database URL as an env var.
+
+    export SQLALCHEMY_URL=postgres://user:password@url:port/dbname
+
+- Use Alembic to upgrade. Replace REVISION with the target schema revision.
+
+    ../../env/bin/alembic upgrade REVISION
