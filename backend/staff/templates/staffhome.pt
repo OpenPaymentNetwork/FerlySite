@@ -10,6 +10,9 @@
         <li>
             <a href="/staff/card-requests">Card Requests</a>
         </li>
+        <li>
+            <a href="/staff/designs">Designs</a>
+        </li>
     </ul>
 </metal:block>
 </body>

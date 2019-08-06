@@ -1,0 +1,86 @@
+<html metal:use-macro="load: main.pt">
+<head>
+    <title metal:fill-slot="title">Designs</title>
+</head>
+<body>
+
+<metal:block fill-slot="content">
+
+<style>
+.design-table > tbody > tr:hover {
+    background-color: #eee;
+}
+
+.cell-image {
+    max-width: 100px;
+    max-height: 32px;
+}
+
+.listable-checked {
+    color: #3c3;
+}
+
+.listable-unchecked {
+    color: #c33;
+}
+
+.field-color-swatch {
+    width: 150px;
+    text-align: center;
+    padding: 2px 0;
+}
+
+.field-dark {
+    color: #fff;
+}
+
+.field-light {
+    color: #000;
+}
+</style>
+
+<h1>Ferly Cash Designs</h1>
+
+<table class="design-table table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>ID</th>
+            <th>OPN Note Design</th>
+            <th>Distribution Plan</th>
+            <th>Listable</th>
+            <th>Logo</th>
+            <th>Wallet Image</th>
+            <th>Field Color</th>
+            <th>Fee</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr tal:repeat="row rows">
+            <td>${row.title}</td>
+            <td>${row.id}</td>
+            <td>${row.wc_id}</td>
+            <td>${row.distribution_id}</td>
+            <td>
+                <span tal:condition="row.listable" class="listable-checked">&#x2714;</span>
+                <span tal:condition="not row.listable" class="listable-unchecked">&#x2715;</span>
+            </td>
+            <td><a tal:condition="row.logo_image_url" href="${row.logo_image_url}"><img src="${row.logo_image_url}" class="cell-image" /></a></td>
+            <td><a tal:condition="row.wallet_image_url" href="${row.wallet_image_url}"><img src="${row.wallet_image_url}" class="cell-image" /></a></td>
+            <td>
+                <div tal:condition="row.field_color"
+                    style="background-color: #${row.field_color}"
+                    class="field-color-swatch field-${'dark' if row.field_dark else 'light'}">
+                        ${row.field_color}
+                    ${'(dark)' if row.field_dark else '(light)'}
+                </div>
+            </td>
+            <td>${row.fee}</td>
+        </tr>
+    </tbody>
+</table>
+
+</metal:block>
+
+</body>
+</html>

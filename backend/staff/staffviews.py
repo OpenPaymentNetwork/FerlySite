@@ -1,6 +1,7 @@
 
 from backend.api_schemas import to_datetime
 from backend.database.models import CardRequest
+from backend.database.models import Design
 from backend.database.models import now_utc
 from backend.site import StaffSite
 from backend.staff.staffauth import authenticate_token
@@ -130,3 +131,27 @@ def card_requests_download(staff_site, request):
 
     # No download IDs specified.
     return HTTPSeeOther(request.resource_url(staff_site, 'card-requests'))
+
+
+@view_config(
+    name='designs',
+    context=StaffSite,
+    renderer='templates/designs.pt')
+def designs_view(staff_site, request):
+    authenticate_token(request, require_group='FerlyAdministrators')
+    rows = (
+        request.dbsession.query(Design)
+        .order_by(Design.title, Design.id)
+        .all())
+    return {
+        'rows': rows,
+        'breadcrumbs': [
+            {
+                'url': request.resource_url(staff_site),
+                'title': "Ferly Staff",
+            }, {
+                'url': request.resource_url(staff_site, 'designs'),
+                'title': "Designs",
+            },
+        ],
+    }

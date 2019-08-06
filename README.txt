@@ -68,3 +68,9 @@ environment.
 - Use Alembic to upgrade. Replace REVISION with the target schema revision.
 
     ../../env/bin/alembic upgrade REVISION
+
+Here is an example command for autogenerating a schema migration:
+
+    cd backend/database
+    SQLALCHEMY_URL=postgres:///ferlyapi ../../env/bin/alembic revision \
+        --rev-id 0011 --autogenerate -m "add field_color"

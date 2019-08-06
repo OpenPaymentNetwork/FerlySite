@@ -25,5 +25,7 @@ def serialize_design(request, design):
         'title': design.title,
         'fee': str(design.fee),
         'distribution_id': design.distribution_id,
-        'wallet_image_url': design.wallet_image_url
+        'wallet_image_url': design.wallet_image_url,
+        'field_color': design.field_color,
+        'field_dark': design.field_dark,
     }
