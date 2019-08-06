@@ -1,6 +1,9 @@
-from pyramid.config import Configurator
+
 from backend.settings import FerlySettings
 from backend.site import Site
+from pyramid.config import Configurator
+from pyramid.csrf import CookieCSRFStoragePolicy
+from pyramid.settings import asbool
 import os.path
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -26,6 +29,8 @@ def main(global_config, **settings):
         root_factory=make_root,
         settings=settings,
     )
+    config.set_csrf_storage_policy(CookieCSRFStoragePolicy(
+        secure=asbool(settings.get('secure_cookie', True))))
 
     config.add_static_view(name='files', path=settings['webpack_dist_dir'])
     config.add_static_view(

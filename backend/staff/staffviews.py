@@ -2,9 +2,10 @@
 from backend.api_schemas import to_datetime
 from backend.database.models import CardRequest
 from backend.database.models import now_utc
-from backend.staff.staffauth import authenticate_token
 from backend.site import StaffSite
+from backend.staff.staffauth import authenticate_token
 from io import StringIO
+from pyramid.csrf import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -77,7 +78,9 @@ def card_requests(staff_site, request):
     name='card-requests-download',
     context=StaffSite)
 def card_requests_download(staff_site, request):
+    check_csrf_token(request)
     authenticate_token(request, require_group='FerlyAdministrators')
+
     download_ids = set()
     for k, v in request.params.items():
         if k == 'download':

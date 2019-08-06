@@ -38,6 +38,8 @@ function change_show_downloaded() {
 
 <form name="download" action="${request.resource_url(staff_site, 'card-requests-download')}" method="POST">
 
+    <input type="hidden" name="csrf_token" value="${get_csrf_token()}" />
+
     <div style="margin: 15px 0">
         <div style="float: right">
             <label style="margin-right: 2em">

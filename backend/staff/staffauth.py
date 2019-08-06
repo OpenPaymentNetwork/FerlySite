@@ -32,9 +32,8 @@ def login_redirect(request):
     return HTTPSeeOther(url)
 
 
-def authenticate_token(
-        request, params=None, field='staff_token', require_group=None):
-    resolver = TokenAuthenticator(request, params, field)
+def authenticate_token(request, field='staff_token', require_group=None):
+    resolver = TokenAuthenticator(request, field)
     row = resolver()
     if require_group:
         if require_group not in row.groups:
@@ -46,12 +45,10 @@ def authenticate_token(
 
 class TokenAuthenticator:
     """Authenticate the user with a token."""
-    def __init__(self, request, params=None, field='staff_token'):
+    def __init__(self, request, field='staff_token'):
+        """Authenticate a staff token."""
         self.request = request
-        if params is not None:
-            self.token_input = params.get(field)
-        else:
-            self.token_input = request.cookies.get(field)
+        self.token_input = request.cookies.get(field)
 
     def __call__(self):
         """Authenticate the token and return the StaffToken.
