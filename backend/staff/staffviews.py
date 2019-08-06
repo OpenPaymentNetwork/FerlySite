@@ -1,9 +1,14 @@
 
 from backend.api_schemas import to_datetime
 from backend.database.models import CardRequest
+from backend.database.models import now_utc
 from backend.staff.staffauth import authenticate_token
 from backend.site import StaffSite
+from io import StringIO
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.response import Response
 from pyramid.view import view_config
+import csv
 import logging
 
 log = logging.getLogger(__name__)
@@ -16,7 +21,7 @@ null = None
     renderer='templates/staffhome.pt')
 def staffhome(staff_site, request):
     authenticate_token(request, require_group='FerlyAdministrators')
-    return {}
+    return {'breadcrumbs': []}
 
 
 @view_config(
@@ -32,6 +37,9 @@ def card_requests(staff_site, request):
         try:
             before_created = to_datetime(before_created_str)
         except ValueError:
+            log.warning(
+                "Invalid before_created parameter; ignoring: %s",
+                repr(before_created_str))
             pass
     limit = int(params.get('limit', 1000))
     show_downloaded = bool(params.get('show_downloaded', False))
@@ -52,4 +60,70 @@ def card_requests(staff_site, request):
         'limit': limit,
         'show_downloaded': show_downloaded,
         'more': len(rows) > limit,
+        'staff_site': staff_site,
+        'breadcrumbs': [
+            {
+                'url': request.resource_url(staff_site),
+                'title': "Ferly Staff",
+            }, {
+                'url': request.resource_url(staff_site, 'card-requests'),
+                'title': "Card Requests",
+            },
+        ],
     }
+
+
+@view_config(
+    name='card-requests-download',
+    context=StaffSite)
+def card_requests_download(staff_site, request):
+    authenticate_token(request, require_group='FerlyAdministrators')
+    download_ids = set()
+    for k, v in request.params.items():
+        if k == 'download':
+            download_ids.add(v)
+
+    if download_ids:
+        dbsession = request.dbsession
+        rows = (
+            dbsession.query(CardRequest)
+            .filter(CardRequest.id.in_(download_ids))
+            .order_by(CardRequest.created.desc())
+            .all())
+        f = StringIO()
+        writer = csv.writer(f)  # Use the default 'excel' dialect
+
+        # These column names are intended to be similar enough to the
+        # the address list Excel template from:
+        # https://www.avery.com/resources/my-mail-merge-address-list-excel.xls
+        writer.writerow([
+            "Name",
+            "Street Address",
+            "Street Address Line 2",
+            "City",
+            "State",
+            "Zip Code",
+        ])
+
+        for row in rows:
+            if row.id in download_ids:
+                row.downloaded = now_utc
+                writer.writerow([
+                    row.name,
+                    row.line1,
+                    row.line2,
+                    row.city,
+                    row.state,
+                    row.zip_code,
+                ])
+
+        f.seek(0)
+        body = f.read().encode('utf8')
+        headers = {
+            'Content-Disposition': 'attachment; filename="addresses.csv"',
+            'Content-Type': 'application/x-force-download',
+            'Content-Length': '%d' % len(body)}
+        return Response(body, headers=headers)
+
+    # No download IDs specified.
+    return HTTPSeeOther(request.resource_url(staff_site, 'card-requests'))

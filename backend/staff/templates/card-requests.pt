@@ -1,19 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
+<html metal:use-macro="load: main.pt">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Ferly Card Requests</title>
-    <link rel="stylesheet"
-        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-        crossorigin="anonymous">
-    <script
-        src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-        crossorigin="anonymous"></script>
+    <title metal:fill-slot="title">Ferly Card Requests</title>
 </head>
-<body style="margin: 15px">
+<body>
+
+<metal:block fill-slot="content">
 
 <style>
 .card-req-table > tbody > tr:hover {
@@ -45,7 +36,7 @@ function change_show_downloaded() {
 
 <h1>Ferly Card Requests</h1>
 
-<form name="download" action="card-requests-download" method="POST">
+<form name="download" action="${request.resource_url(staff_site, 'card-requests-download')}" method="POST">
 
     <div style="margin: 15px 0">
         <div style="float: right">
@@ -86,7 +77,7 @@ function change_show_downloaded() {
                 <th>Address</th>
                 <th>Created</th>
                 <th>Downloaded</th>
-                <th>Cancel</th>
+                <!--<th>Cancel</th>-->
                 <th>Download</th>
             </tr>
         </thead>
@@ -101,11 +92,13 @@ function change_show_downloaded() {
                 </td>
                 <td>${row.created}</td>
                 <td>${row.downloaded}</td>
-                <td><input
+                <!--
+                    <td><input
                         type="checkbox"
                         name="cancel"
                         value="${row.id}"
                         class="select-checkbox" /></td>
+                -->
                 <td><input
                         type="checkbox"
                         name="download"
@@ -142,18 +135,20 @@ function update_download_enabled(event) {
     }
 }
 
-
 $(document).ready(function() {
     var params = new URLSearchParams(window.location.search);
     var link = $('#next-page-link');
     params.set('before_created', link.attr('data-next-before-created'));
     $('#next-page-link').attr('href', window.location.pathname + '?' + params.toString());
+
     update_download_enabled();
 });
 
 $(document).on('change', '.select-checkbox', update_download_enabled);
 
 </script>
+
+</metal:block>
 
 </body>
 </html>

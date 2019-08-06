@@ -1,13 +1,16 @@
-<html>
+<html metal:use-macro="load: main.pt">
 <head>
-    <title>Ferly Staff</title>
+    <title metal:fill-slot="title">Ferly Site Site</title>
 </head>
 <body>
+
+<metal:block fill-slot="content">
     <h1>Ferly Staff Site</h1>
     <ul>
         <li>
             <a href="/staff/card-requests">Card Requests</a>
         </li>
     </ul>
+</metal:block>
 </body>
 </html>
