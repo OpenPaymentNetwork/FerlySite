@@ -1,6 +1,6 @@
 <html metal:use-macro="load: main.pt">
 <head>
-    <title metal:fill-slot="title">Ferly Site Site</title>
+    <title metal:fill-slot="title">Ferly Staff Site</title>
 </head>
 <body>
 
