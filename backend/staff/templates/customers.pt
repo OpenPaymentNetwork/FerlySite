@@ -77,7 +77,7 @@ function change_limit() {
                 </td>
                 <td>${customer.stripe_id}</td>
                 <td>${last_used}</td>
-                <td>${sorted(set(oses))}</td>
+                <td>${' '.join(sorted(set(filter(None, oses))))}</td>
             </tal:row>
         </tr>
     </tbody>
