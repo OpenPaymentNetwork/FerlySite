@@ -17,9 +17,12 @@ from sqlalchemy import func
 from sqlalchemy import Unicode
 from xml.etree import ElementTree
 import boto3
+import logging
 import os
 import requests
 import uuid
+
+log = logging.getLogger(__name__)
 
 
 @view_config(name='request-card', renderer='json')
@@ -285,6 +288,19 @@ def edit_profile(request):
     return {}
 
 
+def get_loop_id_from_transfer(transfer):
+    try:
+        # Display the design from the first closed loop movement, if any.
+        for movement in transfer['movements']:
+            for loop in movement['loops']:
+                if loop['loop_id'] != '0':
+                    return loop['loop_id']
+    except Exception:
+        log.exception(
+            "Failed to parse movements from transfer %s", transfer['id'])
+    return None
+
+
 @view_config(name='history', renderer='json')
 def history(request):
     """Request and return the customer's WingCash transfer history."""
@@ -304,30 +320,31 @@ def history(request):
     results = json.get('results', [])
     has_more = bool(json.get('more'))
     history = []
-    designs = {}
+
+    # Gather the designs using a single query for speed.
+    all_loop_ids = set()
+    transfer_loop_ids = {}  # {transfer_id: loop_id}
+    for transfer in results:
+        loop_id = get_loop_id_from_transfer(transfer)
+        if loop_id:
+            all_loop_ids.add(loop_id)
+        transfer_loop_ids[transfer['id']] = loop_id
+
+    if all_loop_ids:
+        rows = (
+            dbsession.query(Design)
+            .filter(Design.wc_id.in_(all_loop_ids))
+            .all())
+        designs = {row.wc_id: row for row in rows}
+    else:
+        designs = {}
+
     for transfer in results:
         amount = transfer['amount']
         timestamp = transfer['timestamp']
-        title = 'Unrecognized'
-        logo_image_url = ''
-        try:
-            # TODO Make sure all loop_ids are the same
-            first_movement_loop = transfer['movements'][0]['loops'][0]
-            loop_id = first_movement_loop['loop_id']
-        except Exception:
-            # No money was moved. ie waiting or canceled transfer
-            pass
-        else:
-            # TODO Get CLC title from memcache by loop_id or call wingcash and
-            # cache it in parallel
+        loop_id = transfer_loop_ids.get(transfer['id'])
+        if loop_id:
             design = designs.get(loop_id)
-            if not design:
-                design = dbsession.query(Design).filter(
-                    Design.wc_id == loop_id).first()
-                designs[loop_id] = design
-            if design:
-                title = design.title
-                logo_image_url = design.logo_image_url
 
         sender_info = transfer['sender_info']
         recipient_info = transfer['recipient_info']
@@ -346,13 +363,20 @@ def history(request):
             else:
                 transfer_type = 'redeem'
 
+        design_json = (
+            None if design is None else serialize_design(request, design))
+
         history.append({
             'id': transfer['id'],
             'amount': amount,
             'transfer_type': transfer_type,
             'counter_party': counter_party,
-            'design_title': title,
-            'design_logo_image_url': logo_image_url,
+            'design': design_json,
+            # NOTE: design_title and design_logo_image_url are deprecated in
+            # favor of the design attribute. They will be removed soon.
+            'design_title': 'Unrecognized' if design is None else design.title,
+            'design_logo_image_url': (
+                '' if design is None else design.logo_image_url),
             'timestamp': timestamp,
             # 'loop_id': loop_id
         })

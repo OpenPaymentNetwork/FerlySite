@@ -724,6 +724,13 @@ class TestSend(TestCase):
 
 
 class TestHistory(TestCase):
+    maxDiff = None
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
 
     def _call(self, *args, **kw):
         from backend.appapi.views.customer_views import history
@@ -735,7 +742,7 @@ class TestHistory(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.HistorySchema().bind(
             request=request).deserialize(request_params)
@@ -764,9 +771,30 @@ class TestHistory(TestCase):
         transfer.update(**kw)
         return transfer
 
+    def _add_design(
+            self,
+            loop_id='defaultloopid',
+            logo_image_url='mylogourl'):
+        dbsession = self.dbsession
+        design = Design(
+            distribution_id='00101',
+            wc_id=loop_id,
+            title='ftitle',
+            listable=True,
+            logo_image_url=logo_image_url,
+            wallet_image_url='',
+            fee=2,
+            field_color='ff9900',
+            field_dark=True,
+        )
+        dbsession.add(design)
+        dbsession.flush()  # Assign design.id
+        return design
+
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
@@ -791,7 +819,8 @@ class TestHistory(TestCase):
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_has_more_is_returned(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_has_more_is_returned(self, get_device, wc_contact, get_wc_token):
         more = True
         wc_contact.return_value.json.return_value = {'more': more}
         response = self._call(self._make_request())
@@ -799,45 +828,47 @@ class TestHistory(TestCase):
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_design_query(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_design_query(self, get_device, wc_contact, get_wc_token):
         loop_id = 'myloop_id'
+        self._add_design(loop_id)
         results = [self._make_transfer(loop_id=loop_id)]
         wc_contact.return_value.json.return_value = {'results': results}
         request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter
-        self._call(request)
-        expression = Design.wc_id == loop_id
-        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+        response = self._call(request)
+        self.assertEqual(1, len(response['history']))
+        transfer = response['history'][0]
+        self.assertEqual('myloop_id', transfer['design']['wingcash_id'])
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_design_title_is_returned(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_design_title(self, get_device, wc_contact, get_wc_token):
+        self._add_design()
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
-        mock_filter = request.dbsession.query.return_value.filter
-        mock_design = mock_filter.return_value.first.return_value
-        mock_design.title = 'ftitle'
         response = self._call(request)
         transfer = response['history'][0]
-        self.assertEqual(transfer['design_title'], 'ftitle')
+        self.assertEqual('ftitle', transfer['design_title'])     # Old
+        self.assertEqual('ftitle', transfer['design']['title'])  # New
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_design_logo_image_url_is_returned(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_design_logo_image_url(self, get_device, wc_contact, get_wc_token):
+        self._add_design()
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
-        mock_filter = request.dbsession.query.return_value.filter
-        mock_design = mock_filter.return_value.first.return_value
-        mock_design.logo_image_url = 'mylogourl'
         response = self._call(request)
         transfer = response['history'][0]
         self.assertEqual(transfer['design_logo_image_url'], 'mylogourl')
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_amount_is_returned(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_amount_is_returned(self, get_device, wc_contact, get_wc_token):
         amount = 10
         request = self._make_request()
         results = [self._make_transfer(amount=amount)]
@@ -848,7 +879,8 @@ class TestHistory(TestCase):
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_timestamp_is_returned(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_timestamp_is_returned(self, get_device, wc_contact, get_wc_token):
         import datetime
         timestamp = datetime.datetime.utcnow()
         request = self._make_request()
@@ -860,7 +892,8 @@ class TestHistory(TestCase):
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_id_is_returned(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_id_is_returned(self, get_device, wc_contact, get_wc_token):
         transfer_id = 'mytransfer_id'
         request = self._make_request()
         results = [self._make_transfer(id=transfer_id)]
@@ -871,7 +904,8 @@ class TestHistory(TestCase):
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_multiple_results(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.customer_views.get_device')
+    def test_multiple_results(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         transfer = self._make_transfer()
         results = [transfer, transfer, transfer]
@@ -979,12 +1013,11 @@ class TestHistory(TestCase):
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
-        mock_filter = request.dbsession.query.return_value.filter
-        mock_filter.return_value.first.return_value = None
         response = self._call(request)
         transfer = response['history'][0]
         self.assertEqual(transfer['design_title'], 'Unrecognized')
         self.assertEqual(transfer['design_logo_image_url'], '')
+        self.assertIsNone(transfer['design'])
 
     @patch('backend.appapi.views.customer_views.get_wc_token')
     @patch('backend.appapi.views.customer_views.wc_contact')
@@ -994,8 +1027,6 @@ class TestHistory(TestCase):
         request = self._make_request()
         results = [self._make_transfer()]
         wc_contact.return_value.json.return_value = {'results': results}
-        mock_filter = request.dbsession.query.return_value.filter
-        mock_filter.return_value.first.return_value = None
         response = self._call(request)
         transfer = response['history'][0]
         self.assertEqual(transfer['transfer_type'], 'unrecognized')
