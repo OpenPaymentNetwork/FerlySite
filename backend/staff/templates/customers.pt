@@ -57,22 +57,28 @@ function change_limit() {
             <th>Created</th>
             <th>Profile Image</th>
             <th>Stripe ID</th>
+            <th>Last Used</th>
+            <th>Operating Systems</th>
         </tr>
     </thead>
     <tbody>
         <tr tal:repeat="row rows">
-            <td>${row.id}</td>
-            <td>${row.wc_id}</td>
-            <td>${row.first_name}</td>
-            <td>${row.last_name}</td>
-            <td>${row.username}</td>
-            <td>${row.created}</td>
-            <td>
-                <a tal:condition="row.profile_image_url" href="${row.profile_image_url}"><img
-                    src="${row.profile_image_url}" class="cell-image"
-                    /></a>
-            </td>
-            <td>${row.stripe_id}</td>
+            <tal:row define="(customer, last_used, oses) row">
+                <td>${customer.id}</td>
+                <td>${customer.wc_id}</td>
+                <td>${customer.first_name}</td>
+                <td>${customer.last_name}</td>
+                <td>${customer.username}</td>
+                <td>${customer.created}</td>
+                <td>
+                    <a tal:condition="customer.profile_image_url" href="${customer.profile_image_url}"><img
+                        src="${customer.profile_image_url}" class="cell-image"
+                        /></a>
+                </td>
+                <td>${customer.stripe_id}</td>
+                <td>${last_used}</td>
+                <td>${sorted(set(oses))}</td>
+            </tal:row>
         </tr>
     </tbody>
 </table>

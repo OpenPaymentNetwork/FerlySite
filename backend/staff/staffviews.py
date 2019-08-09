@@ -3,6 +3,7 @@ from backend.api_schemas import to_datetime
 from backend.database.models import CardRequest
 from backend.database.models import Customer
 from backend.database.models import Design
+from backend.database.models import Device
 from backend.database.models import now_utc
 from backend.site import StaffSite
 from backend.staff.staffauth import authenticate_token
@@ -11,6 +12,7 @@ from pyramid.csrf import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 from pyramid.view import view_config
+from sqlalchemy import func
 import csv
 import logging
 
@@ -170,14 +172,21 @@ def customers(staff_site, request):
     before_created = get_before_created(params)
     limit = int(params.get('limit', 1000))
 
-    q = request.dbsession.query(Customer)
+    q = (
+        request.dbsession.query(
+            Customer, func.max(Device.last_used), func.array_agg(Device.os))
+        .outerjoin(Device, Device.customer_id == Customer.id))
 
     if before_created:
         q = q.filter(Customer.created < before_created)
 
-    q = q.order_by(Customer.created.desc()).limit(limit + 1)
+    rows = (
+        q
+        .group_by(Customer.id)
+        .order_by(Customer.created.desc())
+        .limit(limit + 1)
+        .all())
 
-    rows = q.all()
     return {
         'rows': rows[:limit],
         'limit': limit,
