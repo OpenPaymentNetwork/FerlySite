@@ -1,0 +1,96 @@
+<html metal:use-macro="load: main.pt">
+<head>
+    <title metal:fill-slot="title">Ferly Customers</title>
+</head>
+<body>
+
+<metal:block fill-slot="content">
+
+<style>
+.customer-table > tbody > tr:hover {
+    background-color: #eee;
+}
+
+.cell-image {
+    max-width: 100px;
+    max-height: 32px;
+}
+</style>
+
+<script>
+/* global $ */
+function change_limit() {
+    var limit = $('select[name=limit]').val();
+    var bc = $('#before_created').val();
+    var params = new URLSearchParams(window.location.search);
+    params.set('limit', limit);
+    params.set('before_created', bc);
+    window.location = window.location.pathname + '?' + params.toString();
+}
+</script>
+
+<h1>Ferly Customers</h1>
+
+<div style="margin: 15px 0">
+    <div style="float: right">
+        <label>
+            Limit
+            <select name="limit" onchange="change_limit()">
+                <option tal:repeat="choice (10, 100, 1000, 10000)" value="${choice}"
+                    selected="${'selected' if limit == choice else None}">${choice}</option>
+            </select>
+            <input type="hidden" id="before_created" value="${request.params.get('before_created', '')}" />
+        </label>
+    </div>
+
+    <div class="clear: both; height: 1px"></div>
+</div>
+
+<table class="customer-table table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>OPN Profile</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Username</th>
+            <th>Created</th>
+            <th>Profile Image</th>
+            <th>Stripe ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr tal:repeat="row rows">
+            <td>${row.id}</td>
+            <td>${row.wc_id}</td>
+            <td>${row.first_name}</td>
+            <td>${row.last_name}</td>
+            <td>${row.username}</td>
+            <td>${row.created}</td>
+            <td>
+                <a tal:condition="row.profile_image_url" href="${row.profile_image_url}"><img
+                    src="${row.profile_image_url}" class="cell-image"
+                    /></a>
+            </td>
+            <td>${row.stripe_id}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div tal:condition="more" style="margin: 15px 0">
+    <a id="next-page-link" href="#" data-next-before-created="${rows[-1].created.isoformat()}">Next Page</a>
+</div>
+
+<script>
+$(document).ready(function() {
+    var params = new URLSearchParams(window.location.search);
+    var link = $('#next-page-link');
+    params.set('before_created', link.attr('data-next-before-created'));
+    $('#next-page-link').attr('href', window.location.pathname + '?' + params.toString());
+});
+</script>
+
+</metal:block>
+
+</body>
+</html>

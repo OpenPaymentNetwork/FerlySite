@@ -46,6 +46,7 @@ class Customer(Base):
     username = Column(String, unique=True, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     profile_image_url = Column(String)
+    # recents is a list of recent Ferly customers the customer has sent to.
     recents = Column(ARRAY(String), nullable=False, default=[])
     tsvector = Column(TSVECTOR)
     stripe_id = Column(String)
