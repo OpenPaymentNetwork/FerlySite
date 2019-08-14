@@ -28,7 +28,7 @@ def wc_contact(
         args.update({'auth': wcauth})
     else:
         if secret:
-            authorization = 'wingcash secret=\"{0}\"'.format(secret)
+            authorization = 'wingcash secret="{0}"'.format(secret)
         else:
             token = access_token or request.ferlysettings.wingcash_api_token
             authorization = 'Bearer {0}'.format(token)

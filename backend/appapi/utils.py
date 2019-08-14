@@ -4,8 +4,10 @@ from backend.wccontact import wc_contact
 from pyramid.httpexceptions import HTTPUnauthorized
 import datetime
 import hashlib
+import logging
 import requests
-import json
+
+log = logging.getLogger(__name__)
 
 
 def get_device(request, params):
@@ -51,7 +53,14 @@ def notify_customer(request, customer, title, body, channel_id=None):
             'accept-encoding': 'gzip, deflate',
             'content-type': 'application/json',
         }
-        requests.post(url, data=json.dumps(notifications), headers=headers)
+        response = requests.post(
+            url, json=notifications, headers=headers)
+        try:
+            response.raise_for_status()
+        except Exception:
+            log.exception(
+                "Error while notifying customer %s, title %s: %s",
+                repr(customer.id), repr(title), repr(response.text))
 
 
 def get_wc_token(request, customer, permissions=[]):
@@ -61,4 +70,11 @@ def get_wc_token(request, customer, permissions=[]):
         'permissions': permissions
     }
     response = wc_contact(request, 'GET', 'p/token', params, auth=True)
+    try:
+        response.raise_for_status()
+    except Exception:
+        log.exception(
+            "Error while getting access token from OPN: %s",
+            repr(response.text))
+        return None
     return response.json().get('access_token')
