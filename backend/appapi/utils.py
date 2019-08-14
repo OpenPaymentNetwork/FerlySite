@@ -11,10 +11,33 @@ log = logging.getLogger(__name__)
 
 
 def get_device(request, params):
-    token = params.get('device_id', '')
-    if len(token) < 32:
+    """Authenticate a device."""
+    token = None
+
+    # First try the preferred method of getting the device token: the
+    # Authorization header.
+    header = request.headers.get('Authorization')
+    if header:
+        header = header.strip()
+        if header.startswith('Bearer '):
+            token = header[7:]
+
+    if not token:
+        # For backward compat, accept the token as a parameter.
+        # This is a security issue for at least two reasons:
+        # 1. The token may be transmitted with other parameters
+        #    in compressed form, enabling a BREACH or CRIME attack.
+        # 2. If the request is a GET, the token will be logged,
+        #    making access logs valuable for attackers.
+        # Transmission of device tokens in the Authorization header
+        # avoids these issues.
+        token = params.get('device_id')
+
+    if not token or len(token) < 32 or len(token) > 200:
         raise HTTPUnauthorized()
+
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
+
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
         Device.token_sha256 == token_sha256).first()
@@ -76,5 +99,6 @@ def get_wc_token(request, customer, permissions=[]):
         log.exception(
             "Error while getting access token from OPN: %s",
             repr(response.text))
-        return None
+        # Propagate the error.
+        raise
     return response.json().get('access_token')

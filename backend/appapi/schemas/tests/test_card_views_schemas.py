@@ -53,10 +53,6 @@ class TestAddCardSchema(TestCase):
         obj.update(**kw)
         return obj
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_pan_required(self):
         with self.assertRaisesRegex(Invalid, "'pan': 'Required'"):
             self._call()
@@ -109,10 +105,6 @@ class TestChangePinSchema(TestCase):
     def _call(self, obj={}):
         return schemas.ChangePinSchema().deserialize(obj)
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_card_id_required(self):
         with self.assertRaisesRegex(Invalid, "'card_id': 'Required'"):
             self._call()
@@ -126,10 +118,6 @@ class TestCardSchema(TestCase):
 
     def _call(self, obj={}):
         return schemas.CardSchema().deserialize(obj)
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_card_id_required(self):
         with self.assertRaisesRegex(Invalid, "'card_id': 'Required'"):

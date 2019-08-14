@@ -38,7 +38,16 @@ class TestGetDevice(TestCase):
         with self.assertRaises(HTTPUnauthorized):
             self._call(request, params={})
 
-    def test_valid_device(self):
+    def test_valid_device_with_authorization_header(self):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        dbsession = request.dbsession = self.dbsession
+        device = add_device(dbsession)
+        result = self._call(request, {})
+        self.assertEqual(device, result)
+
+    def test_valid_device_with_param(self):
         request = pyramid.testing.DummyRequest()
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)

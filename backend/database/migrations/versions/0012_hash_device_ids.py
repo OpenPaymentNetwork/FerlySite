@@ -37,12 +37,16 @@ def upgrade():
     op.add_column('device', sa.Column('token_sha256', sa.String()))
 
     for device in dbsession.query(Device).all():
-        if len(device.device_id) < 32:
-            raise AssertionError(
-                "Device %s: length of device_id is too short" % device.id)
+        if len(device.device_id) < 2:
+            raise ValueError(
+                "Device %s: length of device_id is too short: %s" %
+                (device.id, repr(device.device_id)))
         digest = hashlib.sha256(device.device_id.encode('utf-8')).hexdigest()
         device.token_sha256 = digest
+
+    print("device_ids hashed; sending...")
     dbsession.commit()
+    print("sent hashes.")
 
     op.alter_column('device', 'token_sha256', nullable=False)
     op.create_index(op.f('ix_device_token_sha256'), 'device', ['token_sha256'], unique=True)

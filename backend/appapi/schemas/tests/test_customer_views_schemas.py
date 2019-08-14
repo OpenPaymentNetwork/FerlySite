@@ -107,10 +107,6 @@ class TestAddressSchema(TestCase):
         obj.update(**kw)
         return obj
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_name_required(self):
         with self.assertRaisesRegex(Invalid, "'name': 'Required'"):
             self._call()
@@ -202,10 +198,6 @@ class TestRegisterSchema(TestCase):
         with self.assertRaisesRegex(Invalid, "'username': 'Required'"):
             self._call()
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_first_name_required(self):
         with self.assertRaisesRegex(Invalid, "'first_name': 'Required'"):
             self._call()
@@ -227,10 +219,6 @@ class TestIsCustomerSchema(TestCase):
 
     def _call(self, obj={}):
         return schemas.IsCustomerSchema().deserialize(obj)
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_expected_env_required(self):
         with self.assertRaisesRegex(Invalid, "'expected_env': 'Required'"):
@@ -254,10 +242,6 @@ class TestSendSchema(TestCase):
         }
         obj.update(**kw)
         return obj
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_design_id_required(self):
         with self.assertRaisesRegex(Invalid, "'design_id': 'Required'"):
@@ -305,10 +289,6 @@ class TestEditProfileSchema(TestCase):
         obj.update(**kw)
         return obj
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_first_name_required(self):
         with self.assertRaisesRegex(Invalid, "'first_name': 'Required'"):
             self._call()
@@ -331,10 +311,6 @@ class TestHistorySchema(TestCase):
         obj = {'device_id': 'defaultdeviceid0defaultdeviceid0'}
         obj.update(**kw)
         return obj
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_default_limit(self):
         response = self._call(self._make())
@@ -368,10 +344,6 @@ class TestTransferSchema(TestCase):
     def _call(self, obj={}):
         return schemas.TransferSchema().deserialize(obj)
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_transfer_id_required(self):
         with self.assertRaisesRegex(Invalid, "'transfer_id': 'Required'"):
             self._call()
@@ -382,10 +354,6 @@ class TestSearchCustomersSchema(TestCase):
     def _call(self, obj={}):
         return schemas.SearchCustomersSchema().deserialize(obj)
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_query_required(self):
         with self.assertRaisesRegex(Invalid, "'query': 'Required'"):
             self._call()
@@ -395,10 +363,6 @@ class TestUploadProfileImageSchema(TestCase):
 
     def _call(self, obj={}):
         return schemas.UploadProfileImageSchema().deserialize(obj)
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     # TODO: assert image is required
     # def test_image_required(self):

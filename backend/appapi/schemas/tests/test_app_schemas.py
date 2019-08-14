@@ -8,9 +8,10 @@ class TestCustomerDeviceSchema(TestCase):
     def _call(self, obj={}):
         return app_schemas.CustomerDeviceSchema().deserialize(obj)
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
+    def test_device_id_optional(self):
+        obj = {}
+        response = self._call(obj)
+        self.assertEqual({'device_id': ''}, response)
 
     def test_valid(self):
         obj = {'device_id': 'myid' * 8}

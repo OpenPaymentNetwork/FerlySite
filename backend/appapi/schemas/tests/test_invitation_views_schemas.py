@@ -14,10 +14,6 @@ class TestExistingInvitationSchema(TestCase):
         obj.update(**kw)
         return obj
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_default_status(self):
         response = self._call(self._make())
         self.assertIsNone(response['status'])
@@ -36,10 +32,6 @@ class TestInviteSchema(TestCase):
     def _call(self, obj={}):
         return self._get_schema().deserialize(obj)
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_recipient_required(self):
         with self.assertRaisesRegex(Invalid, "'recipient': 'Required'"):
             self._call()
@@ -53,10 +45,6 @@ class TestDeleteInvitationSchema(TestCase):
 
     def _call(self, obj={}):
         return schemas.DeleteInvitationSchema().deserialize(obj)
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_invite_id_required(self):
         with self.assertRaisesRegex(Invalid, "'invite_id': 'Required'"):

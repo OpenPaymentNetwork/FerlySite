@@ -20,10 +20,6 @@ class TestRecoverySchema(TestCase):
         obj.update(**kw)
         return obj
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_login_required(self):
         with self.assertRaisesRegex(Invalid, "'login': 'Required'"):
             self._call()
@@ -51,10 +47,6 @@ class TestRecoveryCodeSchema(TestCase):
         }
         obj.update(**kw)
         return obj
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_code_required(self):
         with self.assertRaisesRegex(Invalid, "'code': 'Required'"):
@@ -106,10 +98,6 @@ class TestAddUIDSchema(TestCase):
         obj.update(**kw)
         return obj
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_login_required(self):
         with self.assertRaisesRegex(Invalid, "'login': 'Required'"):
             self._call()
@@ -145,10 +133,6 @@ class TestAddUIDCodeSchema(TestCase):
         }
         obj.update(**kw)
         return obj
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_code_required(self):
         with self.assertRaisesRegex(Invalid, "'code': 'Required'"):

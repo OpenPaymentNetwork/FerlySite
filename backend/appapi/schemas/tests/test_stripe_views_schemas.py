@@ -8,10 +8,6 @@ class TestDeleteSourceSchema(TestCase):
     def _call(self, obj={}):
         return schemas.DeleteSourceSchema().deserialize(obj)
 
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
-
     def test_source_id_required(self):
         with self.assertRaisesRegex(Invalid, "'source_id': 'Required'"):
             self._call()
@@ -32,10 +28,6 @@ class TestPurchaseSchema(TestCase):
         }
         obj.update(**kw)
         return obj
-
-    def test_device_id_required(self):
-        with self.assertRaisesRegex(Invalid, "'device_id': 'Required'"):
-            self._call()
 
     def test_source_id_required(self):
         with self.assertRaisesRegex(Invalid, "'source_id': 'Required'"):
