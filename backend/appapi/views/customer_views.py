@@ -1,5 +1,6 @@
 from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.appapi.utils import get_device
+from backend.appapi.utils import get_device_token
 from backend.appapi.utils import get_wc_token
 from backend.appapi.utils import notify_customer
 from backend.database.models import CardRequest
@@ -103,7 +104,7 @@ def request_card(request):
 def signup(request):
     """Associate a device with a new customer and wallet."""
     params = request.get_params(schemas.RegisterSchema())
-    token = params['device_id']
+    token = get_device_token(request, params, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
     os = params['os']
@@ -153,11 +154,11 @@ def signup(request):
 
 @view_config(name='is-customer', renderer='json')
 def is_customer(request):
-    """Return if the device_id is associated with a customer."""
+    """Return {'is_customer': true} if the device token is for a customer."""
     params = request.get_params(schemas.IsCustomerSchema())
     if params['expected_env'] != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
-    token = params['device_id']
+    token = get_device_token(request, params, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(

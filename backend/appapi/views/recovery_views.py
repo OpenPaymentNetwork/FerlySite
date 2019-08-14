@@ -1,4 +1,6 @@
+
 from backend.appapi.schemas import recovery_views_schemas as schemas
+from backend.appapi.utils import get_device_token
 from backend.database.models import Device
 from backend.database.models import Customer
 from backend.appapi.utils import get_device
@@ -7,13 +9,21 @@ from backend.wccontact import wc_contact
 from colander import Invalid
 from pyramid.view import view_config
 import hashlib
+import uuid
 
 
 @view_config(name='recover', renderer='json')
 def recover(request):
     params = request.get_params(schemas.RecoverySchema())
 
-    wc_params = {'login': params['login'], 'device_uuid': params['device_id']}
+    token = get_device_token(request, params, required=True)
+    # Device tokens should be kept secret, so don't send them to
+    # other services, even OPN/WingCash. However, we do want to send a UUID
+    # that is consistent for the device. Therefore, derive a hashed UUID
+    # from the device token.
+    device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, token))
+
+    wc_params = {'login': params['login'], 'device_uuid': device_uuid}
     response = wc_contact(request, 'POST', 'aa/signin-closed', auth=True,
                           params=wc_params, return_errors=True)
     response_json = response.json()
@@ -49,12 +59,12 @@ def recover(request):
 @view_config(name='recover-code', renderer='json')
 def recover_code(request):
     params = request.get_params(schemas.RecoveryCodeSchema())
-    dbsession = request.dbsession
-
-    token = params['device_id']
+    token = get_device_token(request, params, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
     os = params['os']
+
+    dbsession = request.dbsession
     device = dbsession.query(Device).filter(
         Device.token_sha256 == token_sha256).first()
     if device:

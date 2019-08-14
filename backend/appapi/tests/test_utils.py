@@ -1,6 +1,7 @@
 
 from backend.testing import add_device
 from backend.testing import DBFixture
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPUnauthorized
 from unittest import TestCase
 from unittest.mock import MagicMock
@@ -18,6 +19,70 @@ def setup_module():
 
 def teardown_module():
     dbfixture.close_fixture()
+
+
+class Test_get_device_token(TestCase):
+
+    def _call(self, *args, **kw):
+        from ..utils import get_device_token
+        return get_device_token(*args, **kw)
+
+    def test_missing_token_when_not_required(self):
+        request = pyramid.testing.DummyRequest()
+        self.assertIsNone(self._call(request, params={}))
+
+    def test_valid_token_with_authorization_header(self):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        result = self._call(request, {})
+        self.assertEqual('defaultdeviceid0defaultdeviceid0', result)
+
+    def test_valid_token_with_param(self):
+        request = pyramid.testing.DummyRequest()
+        result = self._call(request, params={
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+        })
+        self.assertEqual('defaultdeviceid0defaultdeviceid0', result)
+
+    def test_token_required_but_missing(self):
+        request = pyramid.testing.DummyRequest(headers={})
+        with self.assertRaises(HTTPBadRequest) as cm:
+            self._call(request, {}, required=True)
+        self.assertRegexpMatches(
+            str(cm.exception.json_body), r'device_token_required')
+
+    def test_token_too_short_but_not_required(self):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer id0',
+        })
+        result = self._call(request, {})
+        self.assertIsNone(result)
+
+    def test_token_too_short_when_required(self):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer id0',
+        })
+        with self.assertRaises(HTTPBadRequest) as cm:
+            self._call(request, {}, required=True)
+        self.assertRegexpMatches(
+            str(cm.exception.json_body), r'device_token_too_short')
+
+    def test_token_too_long_but_not_required(self):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer ' + '1' * 201,
+        })
+        result = self._call(request, {})
+        self.assertIsNone(result)
+
+    def test_token_too_long_when_required(self):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer ' + '1' * 201,
+        })
+        with self.assertRaises(HTTPBadRequest) as cm:
+            self._call(request, {}, required=True)
+        self.assertRegexpMatches(
+            str(cm.exception.json_body), r'device_token_too_long')
 
 
 class TestGetDevice(TestCase):

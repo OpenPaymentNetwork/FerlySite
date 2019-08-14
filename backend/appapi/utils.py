@@ -1,6 +1,7 @@
 from backend.database.models import Device
 from backend.database.models import now_utc
 from backend.wccontact import wc_contact
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPUnauthorized
 import datetime
 import hashlib
@@ -9,31 +10,60 @@ import requests
 
 log = logging.getLogger(__name__)
 
+min_device_token_length = 32
+max_device_token_length = 200
 
-def get_device(request, params):
-    """Authenticate a device."""
-    token = None
 
+def get_device_token(request, params, required=False):
     # First try the preferred method of getting the device token: the
     # Authorization header.
+    token = None
+
     header = request.headers.get('Authorization')
     if header:
         header = header.strip()
         if header.startswith('Bearer '):
-            token = header[7:]
+            token = header[7:].lstrip()
 
     if not token:
-        # For backward compat, accept the token as a parameter.
-        # This is a security issue for at least two reasons:
+        # For backward compat, accept the device token as a parameter
+        # called device_id. Accepting the device token this way is a security
+        # issue for at least two reasons:
+        #
         # 1. The token may be transmitted with other parameters
         #    in compressed form, enabling a BREACH or CRIME attack.
         # 2. If the request is a GET, the token will be logged,
         #    making access logs valuable for attackers.
+        #
         # Transmission of device tokens in the Authorization header
-        # avoids these issues.
+        # instead avoids these issues.
         token = params.get('device_id')
 
-    if not token or len(token) < 32 or len(token) > 200:
+    if (token and
+            len(token) >= min_device_token_length and
+            len(token) <= max_device_token_length):
+        return token
+
+    if required:
+        if token and len(token) < min_device_token_length:
+            raise HTTPBadRequest(json={
+                'error': 'device_token_too_short',
+            })
+        if token and len(token) > max_device_token_length:
+            raise HTTPBadRequest(json={
+                'error': 'device_token_too_long',
+            })
+        raise HTTPBadRequest(json={
+            'error': 'device_token_required',
+        })
+
+    return None
+
+
+def get_device(request, params):
+    """Authenticate a device."""
+    token = get_device_token(request, params)
+    if not token:
         raise HTTPUnauthorized()
 
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()

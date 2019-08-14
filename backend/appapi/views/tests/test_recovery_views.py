@@ -45,13 +45,15 @@ class TestRecover(TestCase):
 
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_wc_params(self, wc_contact):
+        import uuid
         login = 'email@example.com'
         device_id = 'mydeviceid' * 4
+        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, device_id))
         request = self._make_request(login=login, device_id=device_id)
         self._call(request)
         wc_contact.assert_called_with(
             request, 'POST', 'aa/signin-closed', auth=True, return_errors=True,
-            params={'login': login, 'device_uuid': device_id})
+            params={'login': login, 'device_uuid': device_uuid})
 
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_invalid_login_message(self, wc_contact):
