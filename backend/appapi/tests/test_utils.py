@@ -1,18 +1,29 @@
+
 from backend.database.models import Device
-from backend.appapi.utils import get_device
-from backend.appapi.utils import get_wc_token
-from backend.appapi.utils import notify_customer
+from backend.testing import add_device
+from backend.testing import DBFixture
 from pyramid.httpexceptions import HTTPUnauthorized
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
+import datetime
 import pyramid.testing
+
+
+def setup_module():
+    global dbfixture
+    dbfixture = DBFixture()
+
+
+def teardown_module():
+    dbfixture.close_fixture()
 
 
 @patch('requests.post')
 class TestNotifyCustomer(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.utils import notify_customer
         args = {
             'request': MagicMock(),
             'customer': MagicMock(),
@@ -121,6 +132,7 @@ class TestNotifyCustomer(TestCase):
 class TestGetWCToken(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.utils import get_wc_token
         return get_wc_token(*args, **kw)
 
     def test_params(self, mock_wc_contact):
@@ -164,44 +176,61 @@ class TestGetWCToken(TestCase):
 
 class TestGetDevice(TestCase):
 
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
     def _call(self, *args, **kw):
+        from backend.appapi.utils import get_device
         return get_device(*args, **kw)
 
     def test_invalid_device_id(self):
         request = pyramid.testing.DummyRequest()
-        mdbsession = request.dbsession = MagicMock()
-        mock_query = mdbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
+        request.dbsession = self.dbsession
         with self.assertRaises(HTTPUnauthorized):
             self._call(request, params={})
 
-    def test_device_has_no_customer(self):
+    def test_valid_device(self):
         request = pyramid.testing.DummyRequest()
-        mdbsession = request.dbsession = MagicMock()
-        mdevice = MagicMock()
-        mdevice.customer = None
-        mock_query = mdbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = mdevice
+        dbsession = request.dbsession = self.dbsession
+        device = add_device(dbsession)
+        result = self._call(request, params={
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+        })
+        self.assertEqual(device, result)
+
+    def test_device_not_found(self):
+        request = pyramid.testing.DummyRequest()
+        dbsession = request.dbsession = self.dbsession
+        add_device(dbsession)
         with self.assertRaises(HTTPUnauthorized):
-            self._call(request, params={})
+            self._call(request, params={
+                'device_id': 'fakedeviceid' * 4,
+            })
 
-    def test_return_value(self):
+    def test_update_device_used_yesterday(self):
+        from backend.database.models import now_utc
         request = pyramid.testing.DummyRequest()
-        mdbsession = request.dbsession = MagicMock()
-        mdevice = MagicMock()
-        mock_query = mdbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = mdevice
-        response = self._call(request, params={})
-        self.assertEqual(mdevice, response)
+        dbsession = request.dbsession = self.dbsession
+        device = add_device(dbsession)
+        device.last_used = (
+            datetime.datetime.utcnow() - datetime.timedelta(days=1))
+        result = self._call(request, params={
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+        })
+        self.assertEqual(device, result)
+        self.assertIs(now_utc, device.last_used)
 
-    def test_query(self):
+    def test_no_update_device_used_2_seconds_ago(self):
         request = pyramid.testing.DummyRequest()
-        mdbsession = request.dbsession = MagicMock()
-        mdevice = MagicMock()
-        mock_query = mdbsession.query = MagicMock()
-        mock_filter = mock_query.return_value.filter = MagicMock()
-        mock_filter.return_value.first.return_value = mdevice
-        device_id = '123'
-        self._call(request, params={'device_id': device_id})
-        expression = Device.device_id == device_id
-        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+        dbsession = request.dbsession = self.dbsession
+        device = add_device(dbsession)
+        last_used = datetime.datetime.utcnow() - datetime.timedelta(seconds=2)
+        device.last_used = last_used
+        result = self._call(request, params={
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+        })
+        self.assertEqual(device, result)
+        self.assertEqual(last_used, device.last_used)

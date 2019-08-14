@@ -1,8 +1,6 @@
 from backend.appapi.schemas import recovery_views_schemas as schemas
-from backend.appapi.views.recovery_views import add_uid
-from backend.appapi.views.recovery_views import confirm_uid
-from backend.appapi.views.recovery_views import recover
-from backend.appapi.views.recovery_views import recover_code
+from backend.testing import add_device
+from backend.testing import DBFixture
 from colander import Invalid
 from unittest import TestCase
 from unittest.mock import MagicMock
@@ -10,19 +8,28 @@ from unittest.mock import patch
 import pyramid.testing
 
 
+def setup_module():
+    global dbfixture
+    dbfixture = DBFixture()
+
+
+def teardown_module():
+    dbfixture.close_fixture()
+
+
 class TestRecover(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.recovery_views import recover
         return recover(*args, **kw)
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'login': 'email@example.com'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.RecoverySchema().bind(
             request=request).deserialize(request_params)
@@ -39,7 +46,7 @@ class TestRecover(TestCase):
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_wc_params(self, wc_contact):
         login = 'email@example.com'
-        device_id = 'mydeviceid'
+        device_id = 'mydeviceid' * 4
         request = self._make_request(login=login, device_id=device_id)
         self._call(request)
         wc_contact.assert_called_with(
@@ -109,12 +116,19 @@ class TestRecover(TestCase):
 
 class TestRecoverCode(TestCase):
 
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
     def _call(self, *args, **kw):
+        from backend.appapi.views.recovery_views import recover_code
         return recover_code(*args, **kw)
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'code': '123456789',
             'secret': 'defaultsecret',
             'factor_id': 'defaultfactor_id',
@@ -124,7 +138,7 @@ class TestRecoverCode(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.RecoveryCodeSchema().bind(
             request=request).deserialize(request_params)
@@ -140,9 +154,8 @@ class TestRecoverCode(TestCase):
             isinstance(schema_used, schemas.RecoveryCodeSchema))
 
     def test_existing_device(self):
+        add_device(self.dbsession)
         request = self._make_request()
-        query = request.dbsession.query.return_value
-        query.filter.return_value.first.return_value = 'existing_device'
         response = self._call(request)
         self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
@@ -156,8 +169,6 @@ class TestRecoverCode(TestCase):
         request = self._make_request(
             code=code, attempt_path=attempt_path, secret=secret,
             factor_id=factor_id, recaptcha_response=recaptcha_response)
-        query = request.dbsession.query.return_value
-        query.filter.return_value.first.return_value = None
         self._call(request)
         expected_url_tail = attempt_path + '/auth-uid'
         expected_wc_params = {
@@ -172,8 +183,6 @@ class TestRecoverCode(TestCase):
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_no_mfa(self, wc_contact):
         request = self._make_request()
-        query = request.dbsession.query.return_value
-        query.filter.return_value.first.return_value = None
         wc_contact.return_value.json.return_value = {
             'profile_id': 'myprofile_id'
         }
@@ -184,8 +193,6 @@ class TestRecoverCode(TestCase):
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_no_profile_id(self, wc_contact):
         request = self._make_request()
-        query = request.dbsession.query.return_value
-        query.filter.return_value.first.return_value = None
         wc_contact.return_value.json.return_value = {
             'completed_mfa': True
         }
@@ -193,45 +200,43 @@ class TestRecoverCode(TestCase):
         response = self._call(request)
         self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
 
-    @patch('backend.appapi.views.recovery_views.Device')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_device_added(self, wc_contact, mock_device):
-        device_id = 'mydevice_id'
+    def test_device_added(self, wc_contact):
+        customer = add_device(self.dbsession).customer
+        device_id = 'newdevice' * 4
         os = 'android:28'
         expo_token = 'myexpo_token'
         request = self._make_request(
             device_id=device_id, os=os, expo_token=expo_token)
-        query = request.dbsession.query.return_value
-        query.filter.return_value.first.return_value = None
-        profile_id = 'myprofile_id'
         wc_contact.return_value.json.return_value = {
             'completed_mfa': True,
-            'profile_id': profile_id
+            'profile_id': customer.wc_id,
         }
-        query.filter.return_value.one.return_value = customer = MagicMock()
-        customer.id = 'mycustomerid'
         wc_contact().status_code = 200
         self._call(request)
-        mock_device.assert_called_with(device_id=device_id,
-                                       customer_id=customer.id,
-                                       expo_token=expo_token, os=os)
-        request.dbsession.add.assert_called_with(mock_device.return_value)
+        from backend.database.models import Device
+        devices = self.dbsession.query(Device).all()
+        self.assertEqual(2, len(devices))
+        # mock_device.assert_called_with(device_id=device_id,
+        #                                customer_id=customer.id,
+        #                                expo_token=expo_token, os=os)
+        # request.dbsession.add.assert_called_with(mock_device.return_value)
 
 
 class TestAddUid(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.recovery_views import add_uid
         return add_uid(*args, **kw)
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'uid_type': 'email',
             'login': 'email@example.com'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.AddUIDSchema().bind(
             request=request).deserialize(request_params)
@@ -239,7 +244,8 @@ class TestAddUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
@@ -247,7 +253,8 @@ class TestAddUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_wc_params(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_wc_params(self, get_device, wc_contact, get_wc_token):
         uid_type = 'email'
         login = 'defaultemail@example.com'
         request = self._make_request(uid_type=uid_type, login=login)
@@ -260,7 +267,8 @@ class TestAddUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_revealed_codes(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_revealed_codes(self, get_device, wc_contact, get_wc_token):
         wc_contact.return_value.json.return_value = {
             'revealed_codes': 'mycodes'
         }
@@ -269,7 +277,8 @@ class TestAddUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_response(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_response(self, get_device, wc_contact, get_wc_token):
         good_values = {
             'secret': 'mysecret',
             'code_length': 9,
@@ -287,18 +296,18 @@ class TestAddUid(TestCase):
 class TestConfirmUid(TestCase):
 
     def _call(self, *args, **kw):
+        from backend.appapi.views.recovery_views import confirm_uid
         return confirm_uid(*args, **kw)
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'code': 'defaultcode',
             'secret': 'defaultsecret',
             'attempt_id': 'defaultattemptid'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.AddUIDCodeSchema().bind(
             request=request).deserialize(request_params)
@@ -306,7 +315,8 @@ class TestConfirmUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
@@ -314,7 +324,8 @@ class TestConfirmUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_with_replace_uid(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_with_replace_uid(self, get_device, wc_contact, get_wc_token):
         replace_uid = 'oldemail@example.com'
         self._call(self._make_request(replace_uid=replace_uid))
         self.assertEqual(
@@ -322,7 +333,8 @@ class TestConfirmUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_wc_params(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_wc_params(self, get_device, wc_contact, get_wc_token):
         params = {
             'secret': 'mysecret',
             'attempt_id': 'myattemptid',
@@ -340,7 +352,8 @@ class TestConfirmUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_wc_invalid(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_wc_invalid(self, get_device, wc_contact, get_wc_token):
         wc_contact().json.return_value = {'invalid': {'code': 'wrong code'}}
         wc_contact().status_code = 400
         with self.assertRaises(Invalid):
@@ -348,7 +361,8 @@ class TestConfirmUid(TestCase):
 
     @patch('backend.appapi.views.recovery_views.get_wc_token')
     @patch('backend.appapi.views.recovery_views.wc_contact')
-    def test_recaptcha_required(self, wc_contact, get_wc_token):
+    @patch('backend.appapi.views.recovery_views.get_device')
+    def test_recaptcha_required(self, get_device, wc_contact, get_wc_token):
         wc_contact().json.return_value = {'error': 'recaptcha_required'}
         wc_contact().status_code = 410
         response = self._call(self._make_request())

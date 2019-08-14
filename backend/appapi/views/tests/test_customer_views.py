@@ -1,12 +1,11 @@
 
 from backend.appapi.schemas import customer_views_schemas as schemas
-from backend.database.models import Customer
 from backend.database.models import Design
 from backend.database.models import Device
+from backend.testing import add_device
 from backend.testing import DBFixture
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from unittest import TestCase
-from unittest.mock import call
 from unittest.mock import MagicMock
 from unittest.mock import patch
 import pyramid.testing
@@ -21,15 +20,18 @@ def teardown_module():
     dbfixture.close_fixture()
 
 
-requests_config = {
+@patch('backend.appapi.views.customer_views.get_device')
+@patch('backend.appapi.views.customer_views.requests', **{
     'post.return_value.content':
         "<AddressValidateResponse><Address/></AddressValidateResponse>"
-}
-
-
-@patch('backend.appapi.views.customer_views.get_device')
-@patch('backend.appapi.views.customer_views.requests', **requests_config)
+})
 class TestRequestCard(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
 
     def _call(self, *args, **kw):
         from backend.appapi.views.customer_views import request_card
@@ -37,7 +39,7 @@ class TestRequestCard(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid1defaultdeviceid1',
             'name': 'default_name',
             'line1': 'default_line1',
             'city': 'default_city',
@@ -46,7 +48,7 @@ class TestRequestCard(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         request.ferlysettings = MagicMock()
         request.ferlysettings.usps_address_info_url = (
@@ -62,6 +64,11 @@ class TestRequestCard(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.AddressSchema))
+
+    def test_get_device_called(self, requests, get_device):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
 
     def test_no_usps_username_exception(self, requests, get_device):
         request = self._make_request()
@@ -142,8 +149,8 @@ class TestRequestCard(TestCase):
         }
         self.assertEqual(response, expected_response)
 
-    @patch('backend.appapi.views.customer_views.CardRequest')
-    def test_card_request_added(self, CardRequest, requests, get_device):
+    def test_card_request_added(self, requests, get_device):
+        get_device.return_value = add_device(self.dbsession)
         address_values = {
             'line1': 'my_line1',
             'line2': 'my_line2',
@@ -165,18 +172,21 @@ class TestRequestCard(TestCase):
             name='my_name'
         )
         self._call(request)
-        CardRequest.assert_called_once_with(
-            customer_id=get_device.return_value.customer.id,
-            original_line1='original_line1',
-            original_line2='original_line2',
-            original_city='original_city',
-            original_state='CA',
-            original_zip_code='84047',
-            name='my_name',
-            zip_code='84606-3709',
-            **address_values
-        )
-        request.dbsession.add.assert_called_once_with(CardRequest.return_value)
+        from backend.database.models import CardRequest
+        cr = self.dbsession.query(CardRequest).one()
+
+        self.assertEqual(get_device.return_value.customer.id, cr.customer_id)
+        self.assertEqual('original_line1', cr.original_line1)
+        self.assertEqual('original_line2', cr.original_line2)
+        self.assertEqual('original_city', cr.original_city)
+        self.assertEqual('CA', cr.original_state)
+        self.assertEqual('84047', cr.original_zip_code)
+        self.assertEqual('my_name', cr.name)
+        self.assertEqual('84606-3709', cr.zip_code)
+        self.assertEqual('my_line1', cr.line1)
+        self.assertEqual('my_line2', cr.line2)
+        self.assertEqual('my_city', cr.city)
+        self.assertEqual('TX', cr.state)
 
     def test_return_values(self, requests, get_device):
         address_values = {
@@ -196,7 +206,14 @@ class TestRequestCard(TestCase):
         self.assertEqual(response, address_values)
 
 
+@patch('backend.appapi.views.customer_views.wc_contact')
 class TestSignUp(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
 
     def _call(self, *args, **kw):
         from backend.appapi.views.customer_views import signup
@@ -204,113 +221,66 @@ class TestSignUp(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'first_name': 'defaultfirstname',
             'last_name': 'defaultlastname',
             'username': 'defaultusername',
-            'expo_token:': 'defaulttoken',
+            'expo_token': 'defaulttoken',
             'os': 'defaultos:android'
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.RegisterSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self):
+    def _make_response(self, json_content):
+        class MockJSONResponse:
+            def json(self):
+                return json_content
+
+        return MockJSONResponse()
+
+    def test_correct_schema_used(self, wc_contact):
+        wc_contact.return_value = self._make_response({'id': '12345678901'})
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.RegisterSchema))
 
-    def test_already_registered(self):
+    def test_already_registered(self, wc_contact):
+        add_device(self.dbsession)
         request = self._make_request()
-        mock_query = request.dbsession.query.return_value
-        mdevice = MagicMock()
-        mock_query.filter.return_value.first.return_value = mdevice
         response = self._call(request)
         expected_response = {'error': 'device_already_registered'}
         self.assertEqual(response, expected_response)
 
-    def test_query(self):
-        device_id = '123'
+    def test_add_customer_and_device(self, wc_contact):
+        wc_contact.return_value = self._make_response({'id': '12345678901'})
+        device_id = '1234' * 8
         request = self._make_request(device_id=device_id)
-        mock_query = request.dbsession.query = MagicMock()
-        mock_filter = mock_query.return_value.filter = MagicMock()
         self._call(request)
-        expression = Device.device_id == device_id
-        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+        devices = self.dbsession.query(Device).all()
+        self.assertEqual(1, len(devices))
+        customer = devices[0].customer
+        self.assertEqual('defaultfirstname', customer.first_name)
+        self.assertEqual('defaultlastname', customer.last_name)
+        self.assertEqual('defaultusername', customer.username)
+        self.assertEqual('12345678901', customer.wc_id)
+        self.assertEqual('defaulttoken', devices[0].expo_token)
+        self.assertEqual('defaultos:android', devices[0].os)
+        self.assertEqual(
+            "'defaultfirstnam':1 'defaultlastnam':2 'defaultusernam':3",
+            customer.tsvector)
 
-    @patch('backend.appapi.views.customer_views.Device')
-    @patch('backend.appapi.views.customer_views.Customer')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_add_customer(self, mock_wc_contact, customer, mock_device):
-        first_name = 'firstname'
-        last_name = 'lastname'
-        username = 'username'
-        request = self._make_request(
-            first_name=first_name, last_name=last_name, username=username)
-        mock_query = request.dbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
-        wc_id = 'newid'
-        mock_wc_contact.return_value.json.return_value = {'id': wc_id}
-        customer.return_value.id = 'customerid'
-        mock_customer = {'wc_id': wc_id, 'first_name': first_name,
-                         'username': username, 'last_name': last_name}
-        self._call(request)
-        customer.assert_called_once_with(**mock_customer)
-        request.dbsession.add.assert_any_call(customer.return_value)
-
-    @patch('backend.appapi.views.customer_views.Device')
-    @patch('backend.appapi.views.customer_views.Customer')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_add_device(self, mock_wc_contact, customer, mock_device):
-        device_id = 'deviceid'
-        os = 'android:28'
-        expo_token = 'myexpotoken'
-        request = self._make_request(
-            device_id=device_id, os=os, expo_token=expo_token)
-        mock_query = request.dbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
-        customer.return_value.id = customer_id = 'customerid'
-        device = {'device_id': device_id, 'customer_id': customer_id, 'os': os,
-                  'expo_token': expo_token}
-        self._call(request)
-        mock_device.assert_called_once_with(**device)
-        request.dbsession.add.assert_any_call(mock_device.return_value)
-
-    @patch('backend.appapi.views.customer_views.Device')
-    @patch('backend.appapi.views.customer_views.Customer')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_db_flush(self, mock_wc_contact, customer, mock_device):
-        request = self._make_request()
-        mock_query = request.dbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
-        mdevice = mock_device.return_value
-        self._call(request)
-        request.dbsession.assert_has_calls(
-            [call.add(customer.return_value), call.flush, call.add(mdevice)])
-
-    @patch('backend.appapi.views.customer_views.Device')
-    @patch('backend.appapi.views.customer_views.Customer')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_update_tsvector(self, mock_wc_contact, customer, mock_device):
-        request = self._make_request()
-        mock_query = request.dbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
-        self._call(request)
-        customer.return_value.update_tsvector.assert_called()
-
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_wc_contact_params(self, mock_wc_contact):
+    def test_wc_contact_params(self, wc_contact):
+        wc_contact.return_value = self._make_response({'id': '12345678901'})
         first_name = 'firstname'
         last_name = 'lastname'
         request = self._make_request(
             first_name=first_name, last_name=last_name)
-        mock_query = request.dbsession.query.return_value
-        mock_query.filter.return_value.first.return_value = None
         self._call(request)
         args = (request, 'POST', 'p/add-individual')
         params = {
@@ -322,17 +292,26 @@ class TestSignUp(TestCase):
             'params': params,
             'auth': True
         }
-        mock_wc_contact.assert_called_once_with(*args, **kw)
+        wc_contact.assert_called_once_with(*args, **kw)
 
-    def test_deny_existing_username(self):
-        request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.side_effect = [None, not None]
+    def test_deny_existing_username(self, wc_contact):
+        add_device(self.dbsession)
+        request = self._make_request(
+            device_id='other' * 8, username='defaultusername')
         response = self._call(request)
         self.assertEqual(response, {'error': 'existing_username'})
 
 
+@patch('backend.appapi.views.customer_views.wc_contact')
+@patch('backend.appapi.views.customer_views.get_wc_token')
+@patch('backend.appapi.views.customer_views.get_device')
 class TestEditProfile(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
 
     def _call(self, *args, **kw):
         from backend.appapi.views.customer_views import edit_profile
@@ -340,49 +319,52 @@ class TestEditProfile(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'first_name': 'defaultfirstname',
             'last_name': 'defaultlastname',
             'username': 'defaultusername'
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
+        request.dbsession = self.dbsession
         params.return_value = schemas.EditProfileSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self):
+    def test_correct_schema_used(self, get_device, get_wc_token, wc_contact):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.EditProfileSchema))
 
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_unchanged_username(self, get_device, get_token, wc_contact):
+    def test_get_device_called(self, get_device, *args):
         request = self._make_request()
-        customer = get_device.return_value.customer
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = customer
+        self._call(request)
+        get_device.assert_called()
+
+    def test_unchanged_username(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)
+        request = self._make_request()
         response = self._call(request)
         self.assertEqual(response, {})
+        wc_contact.assert_not_called()
 
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_existing_username(self, get_device):
-        request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = not None
+    def test_existing_username(self, get_device, get_wc_token, wc_contact):
+        add_device(
+            self.dbsession,
+            username='greatusername',
+            wc_id='12',
+            device_id=b'otherdeviceid')
+        get_device.return_value = add_device(self.dbsession)
+        request = self._make_request(username='greatusername')
         response = self._call(request)
         self.assertEqual(response, {'error': 'existing_username'})
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_edit_username_only(self, get_device, wc_contact, get_wc_token):
-        customer = get_device.return_value.customer
+    def test_edit_username_only(self, get_device, get_wc_token, wc_contact):
+        device = add_device(self.dbsession)
+        get_device.return_value = device
+        customer = device.customer
         customer.first_name = current_first_name = 'firstname'
         customer.last_name = current_last_name = 'lastname'
         customer.username = 'current_username'
@@ -390,10 +372,8 @@ class TestEditProfile(TestCase):
         request = self._make_request(
             first_name=current_first_name,
             last_name=current_last_name,
-            username=newusername
+            username=newusername,
         )
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = None
         self._call(request)
         self.assertFalse(get_wc_token.called)
         self.assertFalse(wc_contact.called)
@@ -401,11 +381,10 @@ class TestEditProfile(TestCase):
         self.assertEqual(customer.last_name, current_last_name)
         self.assertEqual(customer.username, newusername)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_edit_first_name_only(self, get_device, wc_contact, get_wc_token):
-        customer = get_device.return_value.customer
+    def test_edit_first_name_only(self, get_device, get_wc_token, wc_contact):
+        device = add_device(self.dbsession)
+        get_device.return_value = device
+        customer = device.customer
         customer.first_name = 'firstname'
         customer.last_name = current_last_name = 'lastname'
         customer.username = current_username = 'username'
@@ -413,10 +392,8 @@ class TestEditProfile(TestCase):
         request = self._make_request(
             first_name=new_first_name,
             last_name=current_last_name,
-            username=current_username
+            username=current_username,
         )
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = None
         self._call(request)
         get_wc_token.assert_called_with(request, customer)
         wc_contact.assert_called_with(
@@ -432,11 +409,10 @@ class TestEditProfile(TestCase):
         self.assertEqual(customer.last_name, current_last_name)
         self.assertEqual(customer.username, current_username)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_edit_last_name_only(self, get_device, wc_contact, get_wc_token):
-        customer = get_device.return_value.customer
+    def test_edit_last_name_only(self, get_device, get_wc_token, wc_contact):
+        device = add_device(self.dbsession)
+        get_device.return_value = device
+        customer = device.customer
         customer.first_name = current_first_name = 'firstname'
         customer.last_name = 'lastname'
         customer.username = current_username = 'username'
@@ -446,8 +422,6 @@ class TestEditProfile(TestCase):
             last_name=new_last_name,
             username=current_username
         )
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = None
         self._call(request)
         get_wc_token.assert_called_with(request, customer)
         wc_contact.assert_called_with(
@@ -463,14 +437,12 @@ class TestEditProfile(TestCase):
         self.assertEqual(customer.last_name, new_last_name)
         self.assertEqual(customer.username, current_username)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_update_tsvector(self, get_device, wc_contact, get_wc_token):
-        customer = get_device.return_value.customer
+    def test_update_tsvector(self, get_device, get_wc_token, wc_contact):
+        device = add_device(self.dbsession)
+        get_device.return_value = device
+        customer = device.customer
+        customer.update_tsvector = MagicMock()
         request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = None
         self._call(request)
         customer.update_tsvector.assert_called()
 
@@ -487,40 +459,20 @@ class TestIsCustomer(TestCase):
         from backend.appapi.views.customer_views import is_customer
         return is_customer(*args, **kw)
 
-    def _make_request(self, **args):
+    def _make_request(self, **kw):
         request_params = {
-            'device_id': args.get('device_id', 'defaultdevice'),
-            'expected_env': args.get('expected_env', 'staging')
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'expected_env': 'staging',
         }
+        request_params.update(kw)
         request = pyramid.testing.DummyRequest(params=request_params)
         settings = request.ferlysettings = MagicMock()
-        settings.environment = args.get('environment', 'staging')
+        settings.environment = kw.get('environment', 'staging')
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.IsCustomerSchema().bind(
             request=request).deserialize(request_params)
         return request
-
-    def _add_device(self):
-        from backend.database.models import Customer, Device
-        dbsession = self.dbsession
-        customer = Customer(
-            wc_id='11',
-            first_name='Testy',
-            last_name='Customer',
-            username='testycust',
-        )
-        dbsession.add(customer)
-        dbsession.flush()  # Assign customer.id
-
-        device = Device(
-            device_id='defaultdevice',
-            customer_id=customer.id,
-        )
-        dbsession.add(device)
-        dbsession.flush()  # Assign device.id
-
-        return device
 
     def test_correct_schema_used(self):
         request = self._make_request()
@@ -538,17 +490,21 @@ class TestIsCustomer(TestCase):
         self.assertFalse(response.get('is_customer'))
 
     def test_valid_device_id(self):
-        self._add_device()
+        add_device(self.dbsession)
         response = self._call(self._make_request())
         self.assertTrue(response.get('is_customer'))
 
     def test_dont_find_wrong_device(self):
-        self._add_device()
-        request = self._make_request(device_id='123')
+        add_device(self.dbsession)
+        request = self._make_request(device_id='1234' * 8)
         response = self._call(request)
         self.assertFalse(response.get('is_customer'))
 
 
+@patch('backend.appapi.views.customer_views.notify_customer')
+@patch('backend.appapi.views.customer_views.get_wc_token')
+@patch('backend.appapi.views.customer_views.wc_contact')
+@patch('backend.appapi.views.customer_views.get_device')
 class TestSend(TestCase):
 
     def setUp(self):
@@ -561,46 +517,23 @@ class TestSend(TestCase):
         from backend.appapi.views.customer_views import send
         return send(*args, **kw)
 
-    def _make_request(self, **args):
+    def _make_request(self, **kw):
         request_params = {
-            'expected_env': args.get('expected_env', 'staging'),
-            'device_id': args.get('device_id', 'defaultdevice'),
-            'recipient_id': args.get('recipient_id', '01'),
+            'expected_env': 'staging',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'recipient_id': '01',
             'amount': '2.53',
-            'design_id': args.get('design_id', '00'),
+            'design_id': '00',
         }
-        message = args.get('message')
-        if message:
-            request_params['message'] = message
+        request_params.update(kw)
         request = pyramid.testing.DummyRequest()
         settings = request.ferlysettings = MagicMock()
-        settings.environment = args.get('environment', 'staging')
+        settings.environment = kw.get('environment', 'staging')
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.SendSchema().bind(
             request=request).deserialize(request_params)
         return request
-
-    def _add_device(self, recipient_id='recip'):
-        from backend.database.models import Customer, Device
-        dbsession = self.dbsession
-        self.customer = customer = Customer(
-            wc_id='11',
-            first_name='Testy',
-            last_name='Customer',
-            username='testycust',
-        )
-        dbsession.add(customer)
-        dbsession.flush()  # Assign customer.id
-
-        device = Device(
-            device_id='defaultdevice',
-            customer_id=customer.id,
-        )
-        dbsession.add(device)
-        dbsession.flush()  # Assign device.id
-
-        return device
 
     def _add_design(self):
         from backend.database.models import Design
@@ -627,28 +560,32 @@ class TestSend(TestCase):
         dbsession.flush()  # Assign recipient.id
         return recipient
 
-    def test_correct_schema_used(self):
-        self._add_device()
+    def test_correct_schema_used(self, *args):
+        add_device(self.dbsession)
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.SendSchema))
 
-    def test_invalid_design(self):
-        self._add_device()
+    def test_get_device_called(self, get_device, *args):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_invalid_design(self, *args):
         request = self._make_request()
         response = self._call(request)
         self.assertEqual({'error': 'invalid_design'}, response)
 
-    @patch('backend.appapi.views.customer_views.notify_customer')
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
     def test_success_without_message(
-            self, wc_contact, get_wc_token, notify_customer):
-        self._add_device()
+            self, get_device, wc_contact, get_wc_token, notify_customer):
+        device = add_device(self.dbsession)
+        customer = device.customer
+        get_device.return_value = device
+
         design = self._add_design()
         recipient = self._add_recipient()
-        self.customer.recents = [
+        customer.recents = [
             'cust1', 'cust2', 'cust3', 'cust4', recipient.id,
             'cust5', 'cust6', 'cust7', 'cust8', 'cust9']
 
@@ -658,7 +595,7 @@ class TestSend(TestCase):
         self.assertEqual({}, response)
 
         access_token = get_wc_token.return_value
-        get_wc_token.assert_called_with(request, self.customer)
+        get_wc_token.assert_called_with(request, customer)
         expect_params = {
             'sender_id': '11',
             'recipient_uid': 'wingcash:12',
@@ -674,21 +611,22 @@ class TestSend(TestCase):
             request,
             recipient,
             'Received $2.53 Test Design',
-            'from Testy Customer',
+            'from defaultfirstname defaultlastname',
             channel_id='gift-received')
 
         self.assertEqual([
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
-            'cust5', 'cust6', 'cust7', 'cust8'], self.customer.recents)
+            'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
 
-    @patch('backend.appapi.views.customer_views.notify_customer')
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_with_message(self, wc_contact, get_wc_token, notify_customer):
-        self._add_device()
+    def test_with_message(
+            self, get_device, wc_contact, get_wc_token, notify_customer):
+        device = add_device(self.dbsession)
+        customer = device.customer
+        get_device.return_value = device
+
         design = self._add_design()
         recipient = self._add_recipient()
-        self.customer.recents = [
+        customer.recents = [
             'cust1', 'cust2', 'cust3', 'cust4',
             'cust5', 'cust6', 'cust7', 'cust8']
 
@@ -698,7 +636,7 @@ class TestSend(TestCase):
         self.assertEqual({}, response)
 
         access_token = get_wc_token.return_value
-        get_wc_token.assert_called_with(request, self.customer)
+        get_wc_token.assert_called_with(request, customer)
         expect_params = {
             'sender_id': '11',
             'recipient_uid': 'wingcash:12',
@@ -715,14 +653,17 @@ class TestSend(TestCase):
             request,
             recipient,
             'Received $2.53 Test Design',
-            'hi sir\nfrom Testy Customer',
+            'hi sir\nfrom defaultfirstname defaultlastname',
             channel_id='gift-received')
 
         self.assertEqual([
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
-            'cust5', 'cust6', 'cust7', 'cust8'], self.customer.recents)
+            'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
 
 
+@patch('backend.appapi.views.customer_views.get_wc_token')
+@patch('backend.appapi.views.customer_views.wc_contact')
+@patch('backend.appapi.views.customer_views.get_device')
 class TestHistory(TestCase):
     maxDiff = None
 
@@ -738,7 +679,7 @@ class TestHistory(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid'
+            'device_id': 'defaultdeviceid0defaultdeviceid0'
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
@@ -791,18 +732,17 @@ class TestHistory(TestCase):
         dbsession.flush()  # Assign design.id
         return design
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.HistorySchema))
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
+    def test_get_device_called(self, get_device, *args):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
     def test_get_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         limit = 100
         offset = 0
@@ -817,18 +757,12 @@ class TestHistory(TestCase):
             request, 'GET', 'wallet/history', params=post_params,
             access_token=access_token)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_has_more_is_returned(self, get_device, wc_contact, get_wc_token):
         more = True
         wc_contact.return_value.json.return_value = {'more': more}
         response = self._call(self._make_request())
         self.assertEqual(more, response['has_more'])
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_design_query(self, get_device, wc_contact, get_wc_token):
         loop_id = 'myloop_id'
         self._add_design(loop_id)
@@ -840,9 +774,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual('myloop_id', transfer['design']['wingcash_id'])
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_design_title(self, get_device, wc_contact, get_wc_token):
         self._add_design()
         request = self._make_request()
@@ -853,9 +784,6 @@ class TestHistory(TestCase):
         self.assertEqual('ftitle', transfer['design_title'])     # Old
         self.assertEqual('ftitle', transfer['design']['title'])  # New
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_design_logo_image_url(self, get_device, wc_contact, get_wc_token):
         self._add_design()
         request = self._make_request()
@@ -865,9 +793,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['design_logo_image_url'], 'mylogourl')
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_amount_is_returned(self, get_device, wc_contact, get_wc_token):
         amount = 10
         request = self._make_request()
@@ -877,9 +802,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['amount'], amount)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_timestamp_is_returned(self, get_device, wc_contact, get_wc_token):
         import datetime
         timestamp = datetime.datetime.utcnow()
@@ -890,9 +812,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['timestamp'], timestamp)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_id_is_returned(self, get_device, wc_contact, get_wc_token):
         transfer_id = 'mytransfer_id'
         request = self._make_request()
@@ -902,9 +821,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['id'], transfer_id)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_multiple_results(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         transfer = self._make_transfer()
@@ -913,9 +829,6 @@ class TestHistory(TestCase):
         response = self._call(request)
         self.assertEqual(len(response['history']), len(results))
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_sender_counter_party(self, get_device, wc_contact, get_wc_token):
         customer_wc_id = 'mycustomerid'
         recipient_title = 'myrecipient_title'
@@ -929,9 +842,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['counter_party'], recipient_title)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_recipient_counter_party(
             self, get_device, wc_contact, get_wc_token):
         recipient_wc_id = 'mycustomerid'
@@ -946,9 +856,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['counter_party'], sender_title)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_redeem_type(self, get_device, wc_contact, get_wc_token):
         sender_wc_id = 'mywcid'
         request = self._make_request()
@@ -961,9 +868,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['transfer_type'], 'redeem')
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_send_type(self, get_device, wc_contact, get_wc_token):
         sender_wc_id = 'mywcid'
         request = self._make_request()
@@ -976,9 +880,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['transfer_type'], 'send')
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_receive_type(self, get_device, wc_contact, get_wc_token):
         recipient_wc_id = 'mywcid'
         request = self._make_request()
@@ -991,9 +892,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['transfer_type'], 'receive')
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_purchase_type(self, get_device, wc_contact, get_wc_token):
         recipient_wc_id = 'mywcid'
         request = self._make_request()
@@ -1006,9 +904,6 @@ class TestHistory(TestCase):
         transfer = response['history'][0]
         self.assertEqual(transfer['transfer_type'], 'purchase')
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_unrecognized_design(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         results = [self._make_transfer()]
@@ -1019,9 +914,6 @@ class TestHistory(TestCase):
         self.assertEqual(transfer['design_logo_image_url'], '')
         self.assertIsNone(transfer['design'])
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_unrecognized_customer_role(
             self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
@@ -1032,7 +924,16 @@ class TestHistory(TestCase):
         self.assertEqual(transfer['transfer_type'], 'unrecognized')
 
 
+@patch('backend.appapi.views.customer_views.get_wc_token')
+@patch('backend.appapi.views.customer_views.wc_contact')
+@patch('backend.appapi.views.customer_views.get_device')
 class TestTransfer(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
 
     def _call(self, *args, **kw):
         from backend.appapi.views.customer_views import transfer
@@ -1040,12 +941,12 @@ class TestTransfer(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'transfer_id': 'defaulttransferid'
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.TransferSchema().bind(
             request=request).deserialize(request_params)
@@ -1072,17 +973,17 @@ class TestTransfer(TestCase):
         transfer.update(**kw)
         return transfer
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.TransferSchema))
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
+    def test_get_device_called(self, get_device, *args):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
     def test_get_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         transfer_id = 'mytransferid'
         customer = get_device.return_value.customer
@@ -1095,113 +996,121 @@ class TestTransfer(TestCase):
             request, 'GET', 't/{0}'.format(transfer_id),
             access_token=access_token)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_message_is_returned(self, get_device, wc_contact, get_wc_token):
+        device = add_device(self.dbsession)
+        customer = device.customer
+        get_device.return_value = device
+
         message = 'mymessage'
-        customer_id = 'mycustomerid'
-        customer = get_device.return_value.customer
-        customer.wc_id = customer_id
-        transfer = self._make_transfer(sender_id=customer_id, message=message)
+        transfer = self._make_transfer(
+            sender_id=customer.wc_id, message=message)
         wc_contact.return_value.json.return_value = transfer
         response = self._call(self._make_request())
         self.assertEqual(response['message'], message)
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_sender_counter_party(self, get_device, wc_contact, get_wc_token):
-        recipient_id = 'myrecipientid'
-        sender_id = 'mysenderid'
-        customer = get_device.return_value.customer
-        customer.wc_id = recipient_id
+        sender_device = add_device(
+            self.dbsession,
+            username='senderuser',
+            wc_id='11',
+            device_id='senderdev')
+        recipient_device = add_device(
+            self.dbsession,
+            username='recipientuser',
+            wc_id='12',
+            device_id='recipientdev')
+
+        get_device.return_value = sender_device
+        recipient_device.customer.profile_image_url = (
+            'https://profile.example.com/recip.png')
+
         transfer = self._make_transfer(
-            recipient_id=recipient_id, sender_id=sender_id)
+            recipient_id=recipient_device.customer.wc_id,
+            sender_id=sender_device.customer.wc_id)
         wc_contact.return_value.json.return_value = transfer
         request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter
-        self._call(request)
-        expression = Customer.wc_id == sender_id
-        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+        response = self._call(request)
+        self.assertEqual(
+            'https://profile.example.com/recip.png',
+            response['counter_party_profile_image_url'])
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_recipient_counter_party(
             self, get_device, wc_contact, get_wc_token):
-        sender_id = 'mysenderid'
-        recipient_id = 'myrecipientid'
-        customer = get_device.return_value.customer
-        customer.wc_id = sender_id
+        sender_device = add_device(
+            self.dbsession,
+            username='senderuser',
+            wc_id='11',
+            device_id='senderdev')
+        recipient_device = add_device(
+            self.dbsession,
+            username='recipientuser',
+            wc_id='12',
+            device_id='recipientdev')
+
+        get_device.return_value = recipient_device
+        sender_device.customer.profile_image_url = (
+            'https://profile.example.com/sender.png')
+
         transfer = self._make_transfer(
-            recipient_id=recipient_id, sender_id=sender_id)
+            recipient_id=recipient_device.customer.wc_id,
+            sender_id=sender_device.customer.wc_id)
         wc_contact.return_value.json.return_value = transfer
         request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter
-        self._call(request)
-        expression = Customer.wc_id == recipient_id
-        self.assertTrue(expression.compare(mock_filter.call_args[0][0]))
+        response = self._call(request)
+        self.assertEqual(
+            'https://profile.example.com/sender.png',
+            response['counter_party_profile_image_url'])
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
     def test_permission_denied(self, get_device, wc_contact, get_wc_token):
-        recipient_id = 'myrecipientid'
-        sender_id = 'mysenderid'
-        customer = get_device.return_value.customer
-        customer.wc_id = 'differentid'
+        device = add_device(self.dbsession)
+        get_device.return_value = device
         transfer = self._make_transfer(
-            recipient_id=recipient_id, sender_id=sender_id)
+            recipient_id='otherrecipientid', sender_id='othersenderid')
         wc_contact.return_value.json.return_value = transfer
         response = self._call(self._make_request())
         self.assertEqual(response, {'error': 'permission_denied'})
 
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_query_for_customers_only(
+    def test_business_counter_party_should_have_no_profile_image_url(
             self, get_device, wc_contact, get_wc_token):
-        sender_id = 'mysenderid'
-        customer = get_device.return_value.customer
-        customer.wc_id = sender_id
+        sender_device = add_device(
+            self.dbsession,
+            username='senderuser',
+            wc_id='11',
+            device_id='senderdev')
+        recipient_device = add_device(
+            self.dbsession,
+            username='recipientuser',
+            wc_id='12',
+            device_id='recipientdev')
+
+        get_device.return_value = sender_device
+        recipient_device.customer.profile_image_url = (
+            'https://profile.example.com/recip.png')
+
         transfer = self._make_transfer(
-            sender_id=sender_id, recipient_is_individual=False)
+            recipient_id=recipient_device.customer.wc_id,
+            sender_id=sender_device.customer.wc_id,
+            recipient_is_individual=False)
         wc_contact.return_value.json.return_value = transfer
         request = self._make_request()
-        self._call(request)
-        request.dbsession.query.assert_not_called()
-
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_no_counter_party_customer(
-            self, get_device, wc_contact, get_wc_token):
-        sender_id = 'mysenderid'
-        customer = get_device.return_value.customer
-        customer.wc_id = sender_id
-        transfer = self._make_transfer(sender_id=sender_id)
-        wc_contact.return_value.json.return_value = transfer
-        request = self._make_request()
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value = None
-        response = self._call(request)
-        self.assertEqual(response['counter_party_profile_image_url'], '')
-
-    @patch('backend.appapi.views.customer_views.get_wc_token')
-    @patch('backend.appapi.views.customer_views.wc_contact')
-    @patch('backend.appapi.views.customer_views.get_device')
-    def test_profile_image_url_is_returned(
-            self, get_device, wc_contact, get_wc_token):
-        sender_id = 'mysenderid'
-        customer = get_device.return_value.customer
-        customer.wc_id = sender_id
-        transfer = self._make_transfer(sender_id=sender_id)
-        wc_contact.return_value.json.return_value = transfer
-        request = self._make_request()
-        image_url = 'myimageurl'
-        mock_filter = request.dbsession.query.return_value.filter.return_value
-        mock_filter.first.return_value.profile_image_url = image_url
         response = self._call(request)
         self.assertEqual(
-            response['counter_party_profile_image_url'], image_url)
+            '', response['counter_party_profile_image_url'])
+
+    def test_no_customer_found_for_counter_party(
+            self, get_device, wc_contact, get_wc_token):
+        sender_device = add_device(
+            self.dbsession,
+            username='senderuser',
+            wc_id='11',
+            device_id='senderdev')
+
+        get_device.return_value = sender_device
+
+        transfer = self._make_transfer(
+            sender_id=sender_device.customer.wc_id,
+            recipient_id='15')
+        wc_contact.return_value.json.return_value = transfer
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual('', response['counter_party_profile_image_url'])

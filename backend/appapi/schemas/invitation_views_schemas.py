@@ -1,3 +1,4 @@
+from colander import Length
 from colander import OneOf
 from colander import SchemaNode
 from colander import String
@@ -6,7 +7,7 @@ from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
 
 class DeleteInvitationSchema(CustomerDeviceSchema):
-    invite_id = SchemaNode(String())
+    invite_id = SchemaNode(String(), validator=Length(max=100))
 
 
 class ExistingInvitationsSchema(CustomerDeviceSchema):

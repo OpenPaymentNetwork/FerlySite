@@ -6,6 +6,7 @@ from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
 from colander import Invalid
 from pyramid.view import view_config
+import hashlib
 
 
 @view_config(name='recover', renderer='json')
@@ -50,11 +51,12 @@ def recover_code(request):
     params = request.get_params(schemas.RecoveryCodeSchema())
     dbsession = request.dbsession
 
-    device_id = params['device_id']
+    token = params['device_id']
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
     os = params['os']
     device = dbsession.query(Device).filter(
-        Device.device_id == device_id).first()
+        Device.token_sha256 == token_sha256).first()
     if device:
         # Trying to recover a device in use
         return {'error': 'unexpected_auth_attempt'}
@@ -87,8 +89,11 @@ def recover_code(request):
     wc_id = profile_id
     customer = dbsession.query(Customer).filter(Customer.wc_id == wc_id).one()
 
-    new_device = Device(device_id=device_id, customer_id=customer.id,
-                        expo_token=expo_token, os=os)
+    new_device = Device(
+        token_sha256=token_sha256,
+        customer_id=customer.id,
+        expo_token=expo_token,
+        os=os)
     dbsession.add(new_device)
 
     return {}

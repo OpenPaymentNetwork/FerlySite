@@ -13,7 +13,10 @@ class TestRecoverySchema(TestCase):
         return self._get_schema().deserialize(obj)
 
     def _make(self, *args, **kw):
-        obj = {'device_id': 'default_device_id', 'login': 'default_login'}
+        obj = {
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'login': 'default_login',
+        }
         obj.update(**kw)
         return obj
 
@@ -40,7 +43,7 @@ class TestRecoveryCodeSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'code': 'default_code',
             'secret': 'default_secret',
             'factor_id': 'default_factor_id',
@@ -135,7 +138,7 @@ class TestAddUIDCodeSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'code': 'default_code',
             'secret': 'default_secret',
             'attempt_id': 'default_attempt_id'

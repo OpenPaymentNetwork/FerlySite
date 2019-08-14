@@ -2,18 +2,28 @@ from backend.database.models import Device
 from backend.database.models import now_utc
 from backend.wccontact import wc_contact
 from pyramid.httpexceptions import HTTPUnauthorized
+import datetime
+import hashlib
 import requests
 import json
 
 
 def get_device(request, params):
-    device_id = params.get('device_id')
+    token = params.get('device_id', '')
+    if len(token) < 32:
+        raise HTTPUnauthorized()
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
-        Device.device_id == device_id).first()
-    if device is None or device.customer is None:
-        raise HTTPUnauthorized
-    device.last_used = now_utc
+        Device.token_sha256 == token_sha256).first()
+    if device is None:
+        raise HTTPUnauthorized()
+    now = datetime.datetime.utcnow()
+    # If at least 5 minutes have passed since the last use of this device,
+    # update last_used. We avoid doing this on every request because
+    # database writes can be much more expensive than reads.
+    if now - device.last_used >= datetime.timedelta(seconds=5 * 60):
+        device.last_used = now_utc
     return device
 
 

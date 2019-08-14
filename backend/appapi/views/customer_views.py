@@ -17,6 +17,7 @@ from sqlalchemy import func
 from sqlalchemy import Unicode
 from xml.etree import ElementTree
 import boto3
+import hashlib
 import logging
 import os
 import requests
@@ -102,12 +103,13 @@ def request_card(request):
 def signup(request):
     """Associate a device with a new customer and wallet."""
     params = request.get_params(schemas.RegisterSchema())
-    device_id = params['device_id']
+    token = params['device_id']
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
     os = params['os']
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
-        Device.device_id == device_id).first()
+        Device.token_sha256 == token_sha256).first()
     if device is not None:
         return {'error': 'device_already_registered'}
     else:
@@ -140,8 +142,11 @@ def signup(request):
         dbsession.add(new_customer)
         dbsession.flush()
 
-        device = Device(device_id=device_id, customer_id=new_customer.id,
-                        expo_token=expo_token, os=os)
+        device = Device(
+            token_sha256=token_sha256,
+            customer_id=new_customer.id,
+            expo_token=expo_token,
+            os=os)
         dbsession.add(device)
     return {}
 
@@ -152,10 +157,11 @@ def is_customer(request):
     params = request.get_params(schemas.IsCustomerSchema())
     if params['expected_env'] != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
-    device_id = params['device_id']
+    token = params['device_id']
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
-        Device.device_id == device_id).first()
+        Device.token_sha256 == token_sha256).first()
     # Doing more than this requires updating device.last_used to models.now_utc
     return {'is_customer': device is not None}
 
@@ -405,11 +411,16 @@ def transfer(request):
     elif transfer['sender_id'] == customer.wc_id:
         counter_party = recipient_info
     else:
+        # Note: Refusing permission here may be overzealous.
+        # OPN automatically applies transfer view policies that allow view
+        # access only to transfers in which the viewer is a stakeholder.
+        # There are more stakeholder roles than just sender and recipient.
         return {'error': 'permission_denied'}
 
     profile_image_url = ''
-    #  is_individual may not always be accurate, according to WingCash.
-    if bool(counter_party['is_individual']):
+    # Note: sender_info and/or recipient_info is not always available.
+    # For example, sometimes the recipient has not yet created a wallet.
+    if bool(counter_party and counter_party['is_individual']):
         cp_customer = dbsession.query(Customer).filter(
             Customer.wc_id == counter_party['uid_value']).first()
         if cp_customer is not None:

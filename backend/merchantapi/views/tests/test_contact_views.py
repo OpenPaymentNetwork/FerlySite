@@ -1,21 +1,37 @@
+
 from backend.merchantapi.schemas import site_schemas
-from backend.merchantapi.views.contact_views import create_contact
+from backend.testing import DBFixture
 from unittest import TestCase
 from unittest.mock import MagicMock
-from unittest.mock import patch
 import pyramid.testing
+
+
+def setup_module():
+    global dbfixture
+    dbfixture = DBFixture()
+
+
+def teardown_module():
+    dbfixture.close_fixture()
 
 
 class TestCreateContact(TestCase):
 
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
     def _call(self, *args, **kw):
+        from backend.merchantapi.views.contact_views import create_contact
         return create_contact(*args, **kw)
 
     def _make_request(self, **kw):
         request_params = {'email': 'defaultemail@example.com'}
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
+        request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = site_schemas.ContactSchema().bind(
             request=request).deserialize(request_params)
@@ -27,11 +43,10 @@ class TestCreateContact(TestCase):
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, site_schemas.ContactSchema))
 
-    @patch('backend.merchantapi.views.contact_views.Contact')
-    def test_contact_created(self, mock_contact):
+    def test_contact_created(self):
+        from backend.database.models import Contact
         email = 'example@example.com'
         request = self._make_request(email=email)
-        mcontact = mock_contact.return_value
         self._call(request)
-        mock_contact.assert_called_once_with(email=email)
-        request.dbsession.add.assert_called_once_with(mcontact)
+        contact = self.dbsession.query(Contact).one()
+        self.assertEqual(email, contact.email)

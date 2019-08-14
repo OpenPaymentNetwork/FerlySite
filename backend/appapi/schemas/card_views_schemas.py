@@ -1,4 +1,5 @@
 from colander import Invalid
+from colander import Length
 from colander import SchemaNode
 from colander import String
 from backend.api_schemas import StrippedString
@@ -41,9 +42,9 @@ class AddCardSchema(CustomerDeviceSchema):
 
 
 class ChangePinSchema(CustomerDeviceSchema):
-    card_id = SchemaNode(String())
+    card_id = SchemaNode(String(), validator=Length(max=200))
     pin = pin()
 
 
 class CardSchema(CustomerDeviceSchema):
-    card_id = SchemaNode(String())
+    card_id = SchemaNode(String(), validator=Length(max=200))

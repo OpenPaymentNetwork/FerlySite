@@ -151,8 +151,8 @@ class TestAddressSchema(TestCase):
 
     def test_city_max_length(self):
         with self.assertRaisesRegex(
-                Invalid, "'city': 'Longer than maximum length 15'"):
-            self._call(self._make(city='1234567809123456'))
+                Invalid, "'city': 'Longer than maximum length 100'"):
+            self._call(self._make(city='City ' * 21))
 
     def test_name_is_strippedstring(self):
         typ = self._get_schema().get(name='name').typ
@@ -190,7 +190,7 @@ class TestRegisterSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'first_name': 'default_first_name',
             'last_name': 'default_last_name',
             'username': 'defaultusername'
@@ -247,7 +247,7 @@ class TestSendSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'design_id': 'default_first_name',
             'recipient_id': 'default_recipient_name',
             'amount': 0.01
@@ -328,7 +328,7 @@ class TestHistorySchema(TestCase):
         return schemas.HistorySchema().deserialize(obj)
 
     def _make(self, *args, **kw):
-        obj = {'device_id': 'default_device_id'}
+        obj = {'device_id': 'defaultdeviceid0defaultdeviceid0'}
         obj.update(**kw)
         return obj
 

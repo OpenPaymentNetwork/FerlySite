@@ -46,7 +46,7 @@ class TestAddCardSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'pan': '1234123412341234',
             'pin': '1234'
         }

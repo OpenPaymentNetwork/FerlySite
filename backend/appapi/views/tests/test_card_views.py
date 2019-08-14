@@ -12,6 +12,7 @@ import pyramid.testing
 
 @patch('backend.appapi.views.card_views.get_wc_token')
 @patch('backend.appapi.views.card_views.wc_contact')
+@patch('backend.appapi.views.card_views.get_device')
 class TestAddCard(TestCase):
 
     def _call(self, *args, **kw):
@@ -19,25 +20,32 @@ class TestAddCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'pin': '1234',
             'pan': '4747474747474747'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.AddCardSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.AddCardSchema))
 
-    @patch('backend.appapi.views.card_views.get_device')
+    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_with(request, {
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'pan': '4747474747474747',
+            'pin': '1234',
+        })
+
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
         request = self._make_request()
@@ -45,7 +53,7 @@ class TestAddCard(TestCase):
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
 
-    def test_wc_contact_args(self, wc_contact, get_wc_token):
+    def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value
         card_params = {'pan': '4532015112830366', 'pin': '2345'}
         request = self._make_request(**card_params)
@@ -54,12 +62,13 @@ class TestAddCard(TestCase):
                                       params=card_params,
                                       access_token=access_token)
 
-    def test_fail_wc_response(self, wc_contact, get_wc_token):
+    def test_fail_wc_response(self, get_device, wc_contact, get_wc_token):
         wc_contact.return_value.json.return_value = {'linked': False}
         response = self._call(self._make_request())
         self.assertFalse(response['result'])
 
-    def test_successful_wc_response(self, wc_contact, get_wc_token):
+    def test_successful_wc_response(
+            self, get_device, wc_contact, get_wc_token):
         wc_contact.return_value.json.return_value = {'linked': True}
         response = self._call(self._make_request())
         self.assertTrue(response['result'])
@@ -67,6 +76,7 @@ class TestAddCard(TestCase):
 
 @patch('backend.appapi.views.card_views.get_wc_token')
 @patch('backend.appapi.views.card_views.wc_contact')
+@patch('backend.appapi.views.card_views.get_device')
 class TestDeleteCard(TestCase):
 
     def _call(self, *args, **kw):
@@ -74,24 +84,30 @@ class TestDeleteCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.CardSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.CardSchema))
 
-    @patch('backend.appapi.views.card_views.get_device')
+    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_with(request, {
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'card_id': 'default_card_id',
+        })
+
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
         request = self._make_request()
@@ -99,7 +115,7 @@ class TestDeleteCard(TestCase):
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
 
-    def test_wc_contact_args(self, wc_contact, get_wc_token):
+    def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value
         card_params = {'card_id': '0bb0ed76a44e9204'}
         request = self._make_request(**card_params)
@@ -111,6 +127,7 @@ class TestDeleteCard(TestCase):
 
 @patch('backend.appapi.views.card_views.get_wc_token')
 @patch('backend.appapi.views.card_views.wc_contact')
+@patch('backend.appapi.views.card_views.get_device')
 class TestChangePin(TestCase):
 
     def _call(self, *args, **kw):
@@ -118,25 +135,32 @@ class TestChangePin(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'pin': '1234',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.ChangePinSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.ChangePinSchema))
 
-    @patch('backend.appapi.views.card_views.get_device')
+    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_with(request, {
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'card_id': 'default_card_id',
+            'pin': '1234',
+        })
+
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
         request = self._make_request()
@@ -144,7 +168,7 @@ class TestChangePin(TestCase):
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
 
-    def test_wc_contact_args(self, wc_contact, get_wc_token):
+    def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value
         card_params = {'card_id': '0bb0ed76a44e9204', 'pin': '4321'}
         request = self._make_request(**card_params)
@@ -156,6 +180,7 @@ class TestChangePin(TestCase):
 
 @patch('backend.appapi.views.card_views.get_wc_token')
 @patch('backend.appapi.views.card_views.wc_contact')
+@patch('backend.appapi.views.card_views.get_device')
 class TestSuspendCard(TestCase):
 
     def _call(self, *args, **kw):
@@ -163,24 +188,22 @@ class TestSuspendCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.CardSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.CardSchema))
 
-    @patch('backend.appapi.views.card_views.get_device')
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
         request = self._make_request()
@@ -188,7 +211,15 @@ class TestSuspendCard(TestCase):
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
 
-    def test_wc_contact_args(self, wc_contact, get_wc_token):
+    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_with(request, {
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'card_id': 'default_card_id',
+        })
+
+    def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value
         card_params = {'card_id': '0bb0ed76a44e9204'}
         request = self._make_request(**card_params)
@@ -200,6 +231,7 @@ class TestSuspendCard(TestCase):
 
 @patch('backend.appapi.views.card_views.get_wc_token')
 @patch('backend.appapi.views.card_views.wc_contact')
+@patch('backend.appapi.views.card_views.get_device')
 class TestUnsuspendCard(TestCase):
 
     def _call(self, *args, **kw):
@@ -207,24 +239,22 @@ class TestUnsuspendCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'default_device_id',
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
-        request.dbsession = MagicMock()
         request.get_params = params = MagicMock()
         params.return_value = schemas.CardSchema().bind(
             request=request).deserialize(request_params)
         return request
 
-    def test_correct_schema_used(self, wc_contact, get_wc_token):
+    def test_correct_schema_used(self, get_device, wc_contact, get_wc_token):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.CardSchema))
 
-    @patch('backend.appapi.views.card_views.get_device')
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
         request = self._make_request()
@@ -232,7 +262,15 @@ class TestUnsuspendCard(TestCase):
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
 
-    def test_wc_contact_args(self, wc_contact, get_wc_token):
+    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_with(request, {
+            'device_id': 'defaultdeviceid0defaultdeviceid0',
+            'card_id': 'default_card_id',
+        })
+
+    def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value
         card_params = {'card_id': '0bb0ed76a44e9204'}
         request = self._make_request(**card_params)

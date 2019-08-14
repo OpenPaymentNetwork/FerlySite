@@ -68,8 +68,12 @@ class Device(Base):
     id = Column(
         String, nullable=False, primary_key=True,
         server_default=string_sequencer('device_seq'))
-    # device_id is the token that authenticates the device.
-    device_id = Column(String, unique=True, nullable=False, index=True)
+    # token_sha256 is the sha-256 hex digest of the token that authenticates
+    # the device. The token is called "device_id" in API calls. Note that for
+    # security, this database stores only the digest (aka hash) of the token,
+    # not the token itself. Otherwise, an attacker who gets a copy of the
+    # database would be able to authenticate as any Ferly user.
+    token_sha256 = Column(String, nullable=False, index=True, unique=True)
     customer_id = Column(
         String, ForeignKey('customer.id'), nullable=False)
     expo_token = Column(String)

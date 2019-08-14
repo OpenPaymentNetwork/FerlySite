@@ -85,3 +85,35 @@ class DBFixture:
         if engine is not None:
             engine.dispose()
             del self.engine
+
+
+def add_device(
+        dbsession,
+        username='defaultusername',
+        first_name='defaultfirstname',
+        last_name='defaultlastname',
+        wc_id='11',
+        device_id=b'defaultdeviceid0defaultdeviceid0'):
+    """Add a Customer and Device to the database."""
+    from backend.database.models import Customer, Device
+    import hashlib
+
+    customer = Customer(
+        wc_id=wc_id,
+        first_name=first_name,
+        last_name=last_name,
+        username=username,
+    )
+    dbsession.add(customer)
+    dbsession.flush()  # Assign customer.id
+
+    if not isinstance(device_id, bytes):
+        device_id = device_id.encode('utf-8')
+    device = Device(
+        token_sha256=hashlib.sha256(device_id).hexdigest(),
+        customer_id=customer.id,
+    )
+    dbsession.add(device)
+    dbsession.flush()  # Assign device.id
+
+    return device

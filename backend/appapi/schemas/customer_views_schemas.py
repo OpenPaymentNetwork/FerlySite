@@ -35,7 +35,7 @@ class AddressSchema(CustomerDeviceSchema):
     name = SchemaNode(StrippedString(), validator=Length(max=50))
     line1 = SchemaNode(StrippedString(), validator=Length(max=50))
     line2 = SchemaNode(StrippedString(), missing='', validator=Length(max=50))
-    city = SchemaNode(String(), validator=Length(max=15))
+    city = SchemaNode(String(), validator=Length(max=100))
     state = SchemaNode(
         String(), validator=Regex('^[A-Za-z]{2}$', msg='Must be two letters'))
     zip_code = SchemaNode(
@@ -46,8 +46,8 @@ class RegisterSchema(CustomerDeviceSchema):
     first_name = name(name='first_name')
     last_name = name(name='last_name')
     username = username()
-    expo_token = SchemaNode(String(), missing='')
-    os = SchemaNode(String(), missing='')
+    expo_token = SchemaNode(String(), missing='', validator=Length(max=1000))
+    os = SchemaNode(String(), missing='', validator=Length(max=100))
 
 
 class IsCustomerSchema(CustomerDeviceSchema):
@@ -74,11 +74,11 @@ class HistorySchema(CustomerDeviceSchema):
 
 
 class TransferSchema(CustomerDeviceSchema):
-    transfer_id = SchemaNode(String())
+    transfer_id = SchemaNode(String(), validator=Length(max=100))
 
 
 class SearchCustomersSchema(CustomerDeviceSchema):
-    query = SchemaNode(String())
+    query = SchemaNode(String(), validator=Length(max=1000))
 
 
 class UploadProfileImageSchema(CustomerDeviceSchema):
