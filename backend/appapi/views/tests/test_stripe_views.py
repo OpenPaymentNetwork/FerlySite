@@ -417,8 +417,8 @@ class TestPurchase(TestCase):
         expected_args = {
             'distribution_plan_id': design.distribution_id,
             'recipient_uid': 'wingcash:' + customer.wc_id,
-            'amount': amount,
-            'appdata.ferly.convenience_fee': fee,
+            'amount': str(amount),
+            'appdata.ferly.convenience_fee': str(fee),
             'appdata.ferly.stripe_brand':
                 charge.payment_method_details.card.brand,
             'appdata.ferly.stripe_last4':
