@@ -53,37 +53,33 @@ class TestWCContact(TestCase):
         request.ferlysettings.wingcash_client_secret = 'client_secret'
         self._call(request, 'GET', 'urlTail', access_token='token', auth=True)
         auth = ('client_id', 'client_secret')
-        kw = {'auth': auth, 'json': {}}
+        kw = {'auth': auth, 'params': {}}
         mock_get.assert_called_once_with('url/urlTail', **kw)
 
     @patch('requests.get')
-    def test_headers(self, mock_get):
+    def test_headers_with_access_token(self, mock_get):
         request = self._make_request()
         request.ferlysettings.wingcash_api_url = 'url'
         access_token = 'token'
         self._call(request, 'GET', 'urlTail', access_token=access_token)
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_get.assert_called_once_with('url/urlTail', **header, json={})
+        mock_get.assert_called_once_with('url/urlTail', **header, params={})
 
     @patch('requests.get')
-    def test_settings_token(self, mock_get):
+    def test_headers_with_anon(self, mock_get):
         request = self._make_request()
         request.ferlysettings.wingcash_api_url = 'url'
-        access_token = 'token'
-        request.ferlysettings.wingcash_api_token = access_token
-        self._call(request, 'GET', 'urlTail')
-        header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_get.assert_called_once_with('url/urlTail', **header, json={})
+        self._call(request, 'GET', 'urlTail', anon=True)
+        mock_get.assert_called_once_with('url/urlTail', params={})
 
     @patch('requests.get')
-    def test_token_priority(self, mock_get):
+    def test_without_auth_specification(self, mock_get):
         request = self._make_request()
         request.ferlysettings.wingcash_api_url = 'url'
-        access_token = 'token'
-        request.ferlysettings.wingcash_api_token = 'wrong_token'
-        self._call(request, 'GET', 'urlTail', access_token=access_token)
-        header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_get.assert_called_once_with('url/urlTail', **header, json={})
+        with self.assertRaisesRegexp(
+                ValueError,
+                r'No authorization method was specified for wc_contact'):
+            self._call(request, 'GET', 'urlTail')
 
     @patch('requests.get')
     def test_params(self, mock_get):
@@ -95,7 +91,7 @@ class TestWCContact(TestCase):
                    params=params)
         header = {'headers': {'Authorization': 'Bearer ' + access_token}}
         mock_get.assert_called_once_with('url/urlTail', **header,
-                                         json=params)
+                                         params=params)
 
     @patch('requests.get')
     def test_url_tail(self, mock_get):
@@ -111,31 +107,31 @@ class TestWCContact(TestCase):
         self.assertEqual(mock_get.call_args[0][0], expected_url)
 
     @patch('requests.post')
-    def test_data(self, mock_post):
+    def test_post(self, mock_post):
         request = self._make_request()
         request.ferlysettings.wingcash_api_url = 'url'
         access_token = 'token'
         data = {'key': 'value'}
         self._call(request, 'POST', 'urlTail', access_token=access_token,
                    params=data)
-        header = {'headers': {'Authorization': 'Bearer ' + access_token}}
-        mock_post.assert_called_once_with('url/urlTail', **header,
-                                          data=data)
+        headers = {'Authorization': 'Bearer ' + access_token}
+        mock_post.assert_called_once_with(
+            'url/urlTail', headers=headers, json=data)
 
     @patch('requests.get')
     def test_raise_for_status_called(self, get):
         request = self._make_request()
         request.ferlysettings.wingcash_api_url = 'url'
         wc_response = get.return_value
-        self._call(request, 'GET', 'urlTail')
-        self.assertTrue(wc_response.raise_for_status.called)
+        self._call(request, 'GET', 'urlTail', access_token='token')
+        wc_response.raise_for_status.assert_called_once()
 
     @patch('requests.get')
     def test_valid_response(self, get):
         request = self._make_request()
         wc_response = {'key': 'value'}
         get.return_value = MagicMock(return_value=wc_response)
-        response = self._call(request, 'GET', 'urlTail')
+        response = self._call(request, 'GET', 'urlTail', access_token='token')
         self.assertIsNotNone(response)
         self.assertEqual(wc_response, response.return_value)
 
@@ -145,7 +141,7 @@ class TestWCContact(TestCase):
         get.return_value.raise_for_status.side_effect = Exception()
         get.return_value.json.side_effect = Exception()
         with self.assertRaises(HTTPServiceUnavailable):
-            self._call(request, 'GET', 'urlTail')
+            self._call(request, 'GET', 'urlTail', access_token='token')
 
     @patch('requests.get')
     def test_invalid_response(self, get):
@@ -153,7 +149,7 @@ class TestWCContact(TestCase):
         get.return_value.raise_for_status.side_effect = Exception()
         get.return_value.json.return_value = {'invalid': {'key': 'value'}}
         with self.assertRaises(Invalid):
-            self._call(request, 'GET', 'urlTail')
+            self._call(request, 'GET', 'urlTail', access_token='token')
 
     @patch('requests.get')
     def test_return_errors_doesnt_raise_invalid(self, get):
@@ -161,7 +157,9 @@ class TestWCContact(TestCase):
         get.return_value.raise_for_status.side_effect = Exception()
         invalid_response = {'invalid': {'key': 'value'}}
         get.return_value.json.return_value = invalid_response
-        response = self._call(request, 'GET', 'urlTail', return_errors=True)
+        response = self._call(
+            request, 'GET', 'urlTail',
+            return_errors=True, access_token='token')
         self.assertEqual(response, get.return_value)
 
     @patch('requests.get')
@@ -171,4 +169,4 @@ class TestWCContact(TestCase):
         unexpected_error = {'result': 'unexpected'}
         get.return_value.json.return_value = unexpected_error
         with self.assertRaises(HTTPServiceUnavailable):
-            self._call(request, 'GET', 'urlTail')
+            self._call(request, 'GET', 'urlTail', access_token='token')

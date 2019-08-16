@@ -9,30 +9,59 @@ log = logging.getLogger(__name__)
 
 def wc_contact(
         request, method, urlTail, params={}, secret='',
-        access_token=None, auth=False, return_errors=False):
+        access_token=None, auth=False, return_errors=False, anon=False):
+    """Issue an OPN API call and return the Response.
+
+    The caller must specify which authentication mechanism to use:
+
+    - anon (bool): If true, use no authentication.
+
+    - auth (bool): Use Basic authentication to authenticate the app rather
+      than an OPN profile.
+
+    - secret (str): Provide a secret in the Authorization header.
+
+    - access_token: Provide a Bearer access token in the Authorization header.
+
+    Raise ValueError if no authentication mechanism is specified.
+
+    If return_errors is true, return the Response even if OPN indicated
+    a 4xx or 5xx error.
+    """
     args = {}
 
     if method == 'POST':
         requests_func = requests.post
-        args.update({'data': params})
+        args.update({'json': params})
     elif method == 'GET':
         requests_func = requests.get
-        args.update({'json': params})
+        args.update({'params': params})
     else:
         raise Exception("Only 'GET' and 'POST' are accepted methods")
 
-    if auth:
+    if anon:
+        # No authorization needed.
+        pass
+    elif auth:
+        # Use HTTP Basic auth.
         wcauth = (
             request.ferlysettings.wingcash_client_id,
             request.ferlysettings.wingcash_client_secret)
         args.update({'auth': wcauth})
-    else:
-        if secret:
-            authorization = 'wingcash secret="{0}"'.format(secret)
-        else:
-            token = access_token or request.ferlysettings.wingcash_api_token
-            authorization = 'Bearer {0}'.format(token)
+    elif secret:
+        # Use a secret value.
+        authorization = 'wingcash secret="{0}"'.format(secret)
         args.update({'headers': {'Authorization': authorization}})
+    elif access_token:
+        # Use a Bearer access token.
+        authorization = 'Bearer {0}'.format(access_token)
+        args.update({'headers': {'Authorization': authorization}})
+    else:
+        # Note: we used to fall back on settings.wingcash_api_token,
+        # but that setting was error prone. Now callers of wc_contact
+        # are required to specify the authentication method.
+        raise ValueError(
+            "No authorization method was specified for wc_contact()")
 
     wingcash_api_url = request.ferlysettings.wingcash_api_url
     url = os.path.join(wingcash_api_url, urlTail.strip('/'))

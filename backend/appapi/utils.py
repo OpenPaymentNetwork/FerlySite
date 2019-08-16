@@ -122,13 +122,13 @@ def get_wc_token(request, customer, permissions=[]):
         'concurrent': True,
         'permissions': permissions
     }
-    response = wc_contact(request, 'GET', 'p/token', params, auth=True)
+    response = wc_contact(request, 'POST', 'p/token', params, auth=True)
     try:
         response.raise_for_status()
     except Exception:
         log.exception(
-            "Error while getting access token from OPN: %s",
-            repr(response.text))
+            "Error while getting access token from OPN for customer %s: %s",
+            customer.id, repr(response.text))
         # Propagate the error.
         raise
     return response.json().get('access_token')

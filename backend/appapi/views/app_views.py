@@ -17,13 +17,21 @@ log = logging.getLogger(__name__)
 @view_config(name='redemption-notification', renderer='json')
 def redemption_notification(request):
     """WingCash webhook endpoint for when a customer's card is used."""
+    # XXX Security issue: Anyone can trigger this and create havoc.
+    # The webhook message should be signed.
+    # See: https://github.com/pyauth/requests-http-signature
     if getattr(request, 'content_type', None) == 'application/json':
         param_map = request.json_body
     else:
         param_map = request.params
     source_url = param_map.get('source_url', '')
     ferly_id = request.ferlysettings.wingcash_profile_id
-    if '/p/{0}/webhook'.format(ferly_id) not in source_url:
+    expect_source = '/p/{0}/webhook'.format(ferly_id)
+    if expect_source not in source_url:
+        log.warning(
+            "Ignoring webhook notification from source %s "
+            "because the source does not contain %s",
+            repr(source_url), repr(expect_source))
         return {}
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
@@ -58,7 +66,8 @@ def redemption_notification(request):
 
 @view_config(name='recaptcha-sitekey', renderer='json')
 def recaptcha_sitekey(request):
-    response = wc_contact(request, 'GET', 'aa/recaptcha_invisible_sitekey')
+    response = wc_contact(
+        request, 'GET', 'aa/recaptcha_invisible_sitekey', anon=True)
     return response.json()
 
 
@@ -78,8 +87,10 @@ def locations(request):
     design = request.dbsession.query(Design).get(params['design_id'])
     if design is None:
         return {'error': 'invalid_design'}
-    response = wc_contact(request, 'GET',
-                          '/design/{0}/redeemers'.format(design.wc_id))
+    response = wc_contact(
+        request, 'GET',
+        '/design/{0}/redeemers'.format(design.wc_id),
+        anon=True)
 
     locations = []
     for location in response.json():

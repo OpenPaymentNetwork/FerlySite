@@ -273,7 +273,7 @@ class TestGetWCToken(TestCase):
             'uid': 'wingcash:' + customer.wc_id,
             'concurrent': True,
             'permissions': []}
-        args = (request, 'GET', 'p/token', params)
+        args = (request, 'POST', 'p/token', params)
         kw = {'auth': True}
         mock_wc_contact.assert_called_once_with(*args, **kw)
 

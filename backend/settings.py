@@ -31,10 +31,21 @@ class FerlySettings(object):
         return os.environ.get('WINGCASH_CLIENT_SECRET',
                               self._settings.get('wingcash_client_secret'))
 
+    # No longer in use:
+    # @reify
+    # def wingcash_api_token(self):
+    #     return os.environ.get('WINGCASH_API_TOKEN',
+    #                           self._settings.get('wingcash_api_token'))
+
     @reify
-    def wingcash_api_token(self):
-        return os.environ.get('WINGCASH_API_TOKEN',
-                              self._settings.get('wingcash_api_token'))
+    def distributor_uid(self):
+        """The OPN UID of the cash distributor (a business)"""
+        return self._settings['distributor_uid']
+
+    @reify
+    def distributor_manager_uid(self):
+        """The OPN UID of the manager (an individual) of the distributor"""
+        return self._settings['distributor_manager_uid']
 
     @reify
     def sendgrid_api_key(self):

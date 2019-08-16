@@ -8,7 +8,10 @@ from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.response import FileResponse
 from pyramid.view import notfound_view_config
 from pyramid.view import view_config
+import logging
 import os
+
+log = logging.getLogger(__name__)
 
 
 @view_config(name='version', context=API, renderer='json')
@@ -49,8 +52,11 @@ def notfound(request):
 @view_config(context=Invalid, renderer='json')
 def invalid(context, request):
     if not context.children:
-        return {'invalid': context.messages()}
-    return {'invalid': context.asdict()}
+        d = context.messages()
+    else:
+        d = context.asdict()
+    log.warning("Invalid: %s", d)
+    return {'invalid': d}
 
 
 @view_config(context=HTTPUnauthorized, renderer='json')

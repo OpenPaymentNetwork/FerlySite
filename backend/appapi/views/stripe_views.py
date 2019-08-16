@@ -61,6 +61,27 @@ def delete_stripe_source(request):
     return {'result': stripe_response.get('deleted', False)}
 
 
+def get_distributor_token(request):
+    """Get an access token for distributing cash to the purchaser."""
+    ferlysettings = request.ferlysettings
+    params = {
+        'uid': ferlysettings.distributor_uid,
+        'manager_uid': ferlysettings.distributor_manager_uid,
+        'concurrent': True,
+        'permissions': ['apply_design'],
+    }
+    response = wc_contact(request, 'POST', 'p/token', params, auth=True)
+    try:
+        response.raise_for_status()
+    except Exception:
+        log.exception(
+            "Error while getting distributor token from OPN: %s",
+            repr(response.text))
+        # Propagate the error.
+        raise
+    return response.json().get('access_token')
+
+
 @view_config(name='purchase', renderer='json')
 def purchase(request):
     params = request.get_params(schemas.PurchaseSchema())
@@ -86,6 +107,8 @@ def purchase(request):
             "design.fee = %s, specified fee = %s",
             design.fee, fee)
         return {'error': 'fee_mismatch'}
+
+    distributor_token = get_distributor_token(request)
 
     stripe_customer = get_stripe_customer(request, customer.stripe_id)
     if not stripe_customer:
@@ -142,9 +165,11 @@ def purchase(request):
         'appdata.ferly.stripe_brand': charge.payment_method_details.card.brand,
         'appdata.ferly.stripe_last4': charge.payment_method_details.card.last4
     }
-    wc_response = wc_contact(request, 'POST',
-                             'design/{0}/send'.format(design.wc_id),
-                             params=post_params)
+    wc_response = wc_contact(
+        request, 'POST',
+        'design/{0}/send'.format(design.wc_id),
+        params=post_params,
+        access_token=distributor_token)
     if wc_response.status_code != 200:
         log.warning(
             "purchase() returning result = false because "

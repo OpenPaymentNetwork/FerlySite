@@ -9,7 +9,17 @@ from backend.wccontact import wc_contact
 from colander import Invalid
 from pyramid.view import view_config
 import hashlib
+import logging
 import uuid
+
+log = logging.getLogger(__name__)
+
+
+def recovery_error(request, msg):
+    log.warning(
+        "Recovery error %s for IP address %s",
+        repr(msg), getattr(request, 'remote_addr', None))
+    return {'error': msg}
 
 
 @view_config(name='recover', renderer='json')
@@ -37,7 +47,7 @@ def recover(request):
     mfa = response_json.get('completed_mfa')
     factor_id = response_json.get('factor_id', False)
     if mfa or not factor_id:
-        return {'error': 'unexpected_auth_attempt'}
+        return recovery_error(request, 'unexpected_auth_attempt')
     unauthenticated = response_json['unauthenticated']
     login_type = [x.split(':')[0] for x in unauthenticated.keys()][0]
     if login_type == 'username':
@@ -69,7 +79,7 @@ def recover_code(request):
         Device.token_sha256 == token_sha256).first()
     if device:
         # Trying to recover a device in use
-        return {'error': 'unexpected_auth_attempt'}
+        return recovery_error(request, 'unexpected_auth_attempt')
     wc_params = {
         'code': params['code'],
         'factor_id': params['factor_id'],
@@ -88,16 +98,21 @@ def recover_code(request):
             # Recaptcha required, or attempt expired
             error = response_json.get('error')
             if error == 'captcha_required':
-                return {'error': 'recaptcha_required'}
+                return recovery_error(request, 'recaptcha_required')
             else:
-                return {'error': 'code_expired'}
+                return recovery_error(request, 'code_expired')
     mfa = response_json.get('completed_mfa', False)
     profile_id = response_json.get('profile_id')
     if not mfa or profile_id is None:
-        return {'error': 'unexpected_auth_attempt'}
+        return recovery_error(request, 'unexpected_auth_attempt')
 
     wc_id = profile_id
-    customer = dbsession.query(Customer).filter(Customer.wc_id == wc_id).one()
+    customer = dbsession.query(Customer).filter(
+        Customer.wc_id == wc_id).first()
+    if customer is None:
+        # This user authenticated successfully to OPN, but the user
+        # is not in the Ferly customer table.
+        return recovery_error(request, 'not_a_customer')
 
     new_device = Device(
         token_sha256=token_sha256,
@@ -159,9 +174,9 @@ def confirm_uid(request):
             # Recaptcha required, or attempt expired
             error = response.json().get('error')
             if error == 'captcha_required':
-                return {'error': 'recaptcha_required'}
+                return recovery_error(request, 'recaptcha_required')
             elif response.status_code == 410:
-                return {'error': 'code_expired'}
+                return recovery_error(request, 'code_expired')
             else:
-                return {'error': 'unexpected_wc_response'}
+                return recovery_error(request, 'unexpected_wc_response')
     return {}

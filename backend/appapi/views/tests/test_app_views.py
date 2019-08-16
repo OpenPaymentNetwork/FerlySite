@@ -78,7 +78,10 @@ class TestLocationsCard(TestCase):
         request = self._make_request(design_id=design.id)
         self._call(request)
         wc_contact.assert_called_with(
-            request, 'GET', '/design/{0}/redeemers'.format(design.wc_id))
+            request,
+            'GET',
+            '/design/{0}/redeemers'.format(design.wc_id),
+            anon=True)
 
     def test_response(self, wc_contact):
         design = self._add_design()
