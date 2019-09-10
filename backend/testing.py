@@ -1,4 +1,4 @@
-
+import os
 from pyramid.decorator import reify
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm.session import Session
@@ -10,7 +10,10 @@ def get_metadata():
 
 
 def make_engine():
-    return create_engine('postgresql://test:test1234@localhost/ferlyapitest')
+    if os.name == 'nt':
+        return create_engine('postgresql://test:test1234@localhost/ferlyapitest')
+    else:
+        return create_engine('postgresql:///ferlyapitest')
 
 
 class DBFixture:
