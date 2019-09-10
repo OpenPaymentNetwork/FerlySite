@@ -10,7 +10,7 @@ def get_metadata():
 
 
 def make_engine():
-    return create_engine('postgresql:///ferlyapitest')
+    return create_engine('postgresql://test:test1234@localhost/ferlyapitest')
 
 
 class DBFixture:

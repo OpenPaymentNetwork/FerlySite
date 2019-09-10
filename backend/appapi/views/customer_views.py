@@ -496,7 +496,6 @@ def upload_profile_image(request):
         Fileobj=image.file,
         Key=new_file_name,
         ExtraArgs={'ACL': 'public-read', 'ContentType': content_type})
-    customer.profile_image_url = os.path.join(
-        s3Url, bucket_name, new_file_name)
+    customer.profile_image_url = s3Url.strip('/') + '/' + bucket_name + '/' +  new_file_name
 
     return {}

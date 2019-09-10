@@ -64,7 +64,7 @@ def wc_contact(
             "No authorization method was specified for wc_contact()")
 
     wingcash_api_url = request.ferlysettings.wingcash_api_url
-    url = os.path.join(wingcash_api_url, urlTail.strip('/'))
+    url = wingcash_api_url.strip('/') + "/" + urlTail.strip('/')
     response = requests_func(url, **args)
     try:
         response.raise_for_status()
