@@ -1,8 +1,9 @@
-from colander import Email
+from colander.compat import text_
 from colander import Decimal
 from colander import Invalid
 from colander import null
 from colander import Range
+from colander import Regex
 from colander import SchemaNode
 from colander import SchemaType
 from colander import String
@@ -10,9 +11,27 @@ import cgi
 import decimal
 import phonenumbers
 import re
-
+import translationstring
+_ = translationstring.TranslationStringFactory('colander')
 phone_detect_re = re.compile(r'^[(+\s]*[0-9]')
+EMAIL_RE = (
+    r"^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9]+[.]"
+    r"(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9]"
+    r"(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+)
 
+
+class Email(Regex):
+    """ Email address validator. If ``msg`` is supplied, it will be
+        the error message to be used when raising :exc:`colander.Invalid`;
+        otherwise, defaults to 'Invalid email address'.
+    """
+
+    def __init__(self, msg=None):
+        email_regex = text_(EMAIL_RE)
+        if msg is None:
+            msg = _("Invalid email address")
+        super(Email, self).__init__(email_regex, msg=msg)
 _email_validator = Email()
 
 
