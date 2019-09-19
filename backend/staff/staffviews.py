@@ -197,7 +197,7 @@ class DesignPage(colander.MappingSchema):
     logo_image_url = colander.SchemaNode(colander.String(), title='Logo Image URL', missing='')
     wallet_image_url = colander.SchemaNode(colander.String(), title='Wallet Image URL', missing='')
     field_color = colander.SchemaNode(colander.String(), title='Field Color', missing='')
-    field_dark = colander.SchemaNode(colander.Bool(), title='Field Dark', missing='')
+    field_dark = colander.SchemaNode(colander.Bool(), title='Field Dark', missing='False')
     fee = colander.SchemaNode(colander.Decimal(), title='Fee')
 
 @view_config(
