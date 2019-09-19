@@ -11,14 +11,20 @@ from io import StringIO
 from pyramid.csrf import check_csrf_token
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
-from pyramid.view import view_config
+from pyramid.view import (
+    view_config,
+    view_defaults
+    )
 from sqlalchemy import func
 import csv
 import logging
+import colander
+import deform.widget
+from deform import ValidationFailure
+from backend.site import DesignCollection
 
 log = logging.getLogger(__name__)
 null = None
-
 
 def get_before_created(params):
     s = params.get('before_created')
@@ -29,7 +35,6 @@ def get_before_created(params):
             log.warning(
                 "Invalid before_created parameter; ignoring: %s", repr(s))
     return None
-
 
 @view_config(
     name='',
@@ -138,28 +143,140 @@ def card_requests_download(staff_site, request):
     return HTTPSeeOther(request.resource_url(staff_site, 'card-requests'))
 
 
+
+class design(object):
+    def __init__(self, designs, request):
+        self.request = request
+        self.designs = designs
+    
+    @property
+    def design_form(self):
+        schema = DesignPage()
+        return deform.Form(schema, buttons=('submit',))
+
+    @property
+    def reqts(self):
+        return self.design_form.get_widget_resources()
+    
+    @view_config(
+        name='',
+        context=DesignCollection,
+        renderer = 'templates/designs.pt')
+    def designs_view(self):
+        authenticate_token(self.request, require_group='FerlyAdministrators')
+        rows = (
+            self.request.dbsession.query(Design)
+            .order_by(Design.title, Design.id)
+            .all())
+        parent = self.designs
+        for row in rows:
+            row.__parent__ = parent
+            row.__name__ = str(row.id)
+        #appstruct = {'title': rows[0].title}
+        #print(type(rows[0].title))
+        #form = self.design_form.render(appstruct)
+        return {
+            'parent': parent,
+            'rows': rows,
+            'breadcrumbs': [
+                {
+                    'url': self.request.resource_url(self.designs.__parent__),
+                    'title': "Ferly Staff",
+                }, {
+                    'url': self.request.resource_url(self.designs),
+                    'title': "Designs",
+                },
+            ],
+        }
+
+class DesignPage(colander.MappingSchema):
+    title = colander.SchemaNode(colander.String(), title='Title')
+    wc_id = colander.SchemaNode(colander.String(), title='OPN Note Design')
+    distribution_id = colander.SchemaNode(colander.String(), title='Distribution Plan')
+    listable = colander.SchemaNode(colander.Bool(), title='Listable')
+    logo_image_url = colander.SchemaNode(colander.String(), title='Logo Image URL')
+    wallet_image_url = colander.SchemaNode(colander.String(), title='Wallet Image URL')
+    field_color = colander.SchemaNode(colander.String(), title='Field Color')
+    field_dark = colander.SchemaNode(colander.Bool(), title='Field Dark')
+    fee = colander.SchemaNode(colander.Decimal(), title='Fee')
+
 @view_config(
-    name='designs',
-    context=StaffSite,
-    renderer='templates/designs.pt')
-def designs_view(staff_site, request):
+    name = 'edit',
+    context=Design,
+    renderer='templates/designsEdit.pt'
+)
+def edit(design, request):
     authenticate_token(request, require_group='FerlyAdministrators')
-    rows = (
-        request.dbsession.query(Design)
-        .order_by(Design.title, Design.id)
-        .all())
-    return {
-        'rows': rows,
-        'breadcrumbs': [
-            {
-                'url': request.resource_url(staff_site),
-                'title': "Ferly Staff",
-            }, {
-                'url': request.resource_url(staff_site, 'designs'),
-                'title': "Designs",
-            },
-        ],
-    }
+    schema = DesignPage()
+    form = deform.Form(schema, buttons=('submit',))
+    if 'submit' in request.POST:
+        controls = request.POST.items()
+        template_values = {'breadcrumbs': []}
+        try:
+            appstruct = form.validate(controls)
+        except ValidationFailure as e:
+            template_values['form_rendered'] = e.render()
+            return template_values
+        else:
+            design.distribution_id = appstruct['distribution_id']
+            design.wc_id = appstruct['wc_id']
+            design.title = appstruct['title']
+            design.listable = appstruct['listable']
+            design.logo_image_url = appstruct['logo_image_url']
+            design.wallet_image_url = appstruct['wallet_image_url']
+            design.fee = round(appstruct['fee'],2)
+            design.field_color = appstruct['field_color']
+            design.field_dark = appstruct['field_dark']
+            return HTTPSeeOther(location=request.resource_url(design.__parent__))
+    appstruct = {
+                'distribution_id': design.distribution_id,
+                'wc_id': design.wc_id,
+                'title': design.title,
+                'listable': design.listable,
+                'logo_image_url': design.logo_image_url,
+                'wallet_image_url': design.wallet_image_url,
+                'fee': design.fee,
+                'field_color': design.field_color,
+                'field_dark': design.field_dark
+        }
+    return {'form_rendered': form.render(appstruct), 'breadcrumbs': []}
+
+@view_config(
+name = 'add',
+context=DesignCollection,
+renderer='templates/designsAdd.pt'
+)
+def add(designCollection, request):
+    authenticate_token(request, require_group='FerlyAdministrators')
+    schema = DesignPage()
+    form = deform.Form(schema, buttons=('submit',))
+    if 'submit' in request.POST:
+        controls = request.POST.items()
+        template_values = {'breadcrumbs': []}
+        try:
+            appstruct = form.validate(controls)
+        except ValidationFailure as e:
+            template_values['form_rendered'] = e.render()
+        else:
+            dbsession = request.dbsession
+            myNewDesign = Design(
+                distribution_id = appstruct['distribution_id'],
+                wc_id = appstruct['wc_id'],
+                title = appstruct['title'],
+                listable = appstruct['listable'],
+                logo_image_url = appstruct['logo_image_url'],
+                wallet_image_url = appstruct['wallet_image_url'],
+                fee = round(appstruct['fee'],2),
+                field_color = appstruct['field_color'],
+                field_dark = appstruct['field_dark'],
+                )
+            myNewDesign.update_tsvector()
+            dbsession.add(myNewDesign)
+            return HTTPSeeOther(location=request.resource_url(designCollection))
+        return template_values
+
+    return {'form_rendered': form.render(), 'breadcrumbs': []}
+
 
 
 @view_config(
