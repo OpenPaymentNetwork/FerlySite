@@ -193,11 +193,11 @@ class DesignPage(colander.MappingSchema):
     title = colander.SchemaNode(colander.String(), title='Title')
     wc_id = colander.SchemaNode(colander.String(), title='OPN Note Design')
     distribution_id = colander.SchemaNode(colander.String(), title='Distribution Plan')
-    listable = colander.SchemaNode(colander.Bool(), title='Listable')
-    logo_image_url = colander.SchemaNode(colander.String(), title='Logo Image URL')
-    wallet_image_url = colander.SchemaNode(colander.String(), title='Wallet Image URL')
-    field_color = colander.SchemaNode(colander.String(), title='Field Color')
-    field_dark = colander.SchemaNode(colander.Bool(), title='Field Dark')
+    listable = colander.SchemaNode(colander.Bool(), title='Listable', missing =False)
+    logo_image_url = colander.SchemaNode(colander.String(), title='Logo Image URL', missing='')
+    wallet_image_url = colander.SchemaNode(colander.String(), title='Wallet Image URL', missing='')
+    field_color = colander.SchemaNode(colander.String(), title='Field Color', missing='')
+    field_dark = colander.SchemaNode(colander.Bool(), title='Field Dark', missing='')
     fee = colander.SchemaNode(colander.Decimal(), title='Fee')
 
 @view_config(
