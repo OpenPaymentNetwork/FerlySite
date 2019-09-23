@@ -41,6 +41,8 @@ def main(global_config, **settings):
     config.add_request_method(get_params)
     config.add_tween(
         'backend.ise.internalservererror.InternalServerErrorTween')
+    config.add_tween(
+        'backend.tweens.HeaderTween')
     config.include('backend.database')
     config.include('pyramid_chameleon')
     config.scan()

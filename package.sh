@@ -5,7 +5,7 @@
 cd $(dirname $0)
 
 cd frontend
-npm run deploy
+#npm run deploy
 cd ..
 
 mkdir -p dist
