@@ -53,6 +53,7 @@ def get_device_token(request, params, required=False):
             raise HTTPBadRequest(json={
                 'error': 'device_token_too_long',
             })
+        log.error("Device token missing from request: %s", request)
         raise HTTPBadRequest(json={
             'error': 'device_token_required',
         })
