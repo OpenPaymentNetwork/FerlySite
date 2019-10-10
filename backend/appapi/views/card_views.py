@@ -10,12 +10,9 @@ from pyramid.view import view_config
 def verifyAddress(request):
     device = get_device(request)
     customer = device.customer
-    print("here")
     card_request  = request.dbsession.query(CardRequest).filter(CardRequest.customer_id == customer.id).first()
     if (card_request == None):
-        print("here2")
         return { 'error': 'No address on file'}
-    print("here3")
     return serialize_card_request(request, card_request)
     
 @view_config(name='add-card', renderer='json')
