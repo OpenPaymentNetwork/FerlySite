@@ -26,7 +26,7 @@ def recovery_error(request, msg):
 def recover(request):
     params = request.get_params(schemas.RecoverySchema())
 
-    token = get_device_token(request, params, required=True)
+    token = get_device_token(request, required=True)
     # Device tokens should be kept secret, so don't send them to
     # other services, even OPN/WingCash. However, we do want to send a UUID
     # that is consistent for the device. Therefore, derive a hashed UUID
@@ -65,11 +65,37 @@ def recover(request):
             r[key] = response_json[key]
     return r
 
+@view_config(name='login', renderer='json')
+def login(request):
+    params = request.get_params(schemas.LoginSchema())
+    token = get_device_token(request, required=True)
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    device = request.dbsession.query(Device).filter(
+        Device.token_sha256 == token_sha256).first()
+    if device:
+        # Trying to recover a device in use
+        return recovery_error(request, 'unexpected_auth_attempt')
+    expo_token = params['expo_token']
+    os = params['os']
+    wc_id = params['profile_id']
+    customer = request.dbsession.query(Customer).filter(
+        Customer.wc_id == wc_id).first()
+    if customer is None:
+        # This user authenticated successfully to OPN, but the user
+        # is not in the Ferly customer table.
+        return recovery_error(request, 'not_a_customer')
+    new_device = Device(
+        token_sha256=token_sha256,
+        customer_id=customer.id,
+        expo_token=expo_token,
+        os=os)
+    request.dbsession.add(new_device)
+    return {}
 
 @view_config(name='recover-code', renderer='json')
 def recover_code(request):
     params = request.get_params(schemas.RecoveryCodeSchema())
-    token = get_device_token(request, params, required=True)
+    token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
     os = params['os']
@@ -128,7 +154,7 @@ def recover_code(request):
 def add_uid(request):
     """Associate an email or phone number with a customer's profile"""
     params = request.get_params(schemas.AddUIDSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
 
     wc_params = {
@@ -150,7 +176,7 @@ def add_uid(request):
 @view_config(name='confirm-uid', renderer='json')
 def confirm_uid(request):
     params = request.get_params(schemas.AddUIDCodeSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
 
     wc_params = {

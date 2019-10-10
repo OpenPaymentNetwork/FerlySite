@@ -149,6 +149,7 @@ class CardRequest(Base):
     zip_code = Column(Unicode, nullable=False)
     created = Column(DateTime, nullable=False, server_default=now_utc)
     downloaded = Column(DateTime, nullable=True)
+    verified = Column(Unicode, nullable=False, server_default='')
 
 
 class StaffToken(Base):

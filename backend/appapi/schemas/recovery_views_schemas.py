@@ -1,21 +1,25 @@
 
 from colander import Length
 from colander import OneOf
+from colander import Schema
 from colander import SchemaNode
 from colander import String
 from backend.api_schemas import StrippedString
-from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
 
 def recaptcha_response(missing=None):
     return SchemaNode(String(), missing=missing, validator=Length(max=1000))
 
 
-class RecoverySchema(CustomerDeviceSchema):
+class RecoverySchema(Schema):
     login = SchemaNode(StrippedString(), validator=Length(max=100))
 
+class LoginSchema(Schema):
+    profile_id = SchemaNode(String(), validator=Length(max=100))
+    expo_token = SchemaNode(String(), missing='', validator=Length(max=1000))
+    os = SchemaNode(String(), missing='', validator=Length(max=100))
 
-class RecoveryCodeSchema(CustomerDeviceSchema):
+class RecoveryCodeSchema(Schema):
     code = SchemaNode(StrippedString(), validator=Length(max=100))
     secret = SchemaNode(String(), validator=Length(max=1000))
     factor_id = SchemaNode(String(), validator=Length(max=100))
@@ -25,12 +29,12 @@ class RecoveryCodeSchema(CustomerDeviceSchema):
     os = SchemaNode(String(), missing='', validator=Length(max=100))
 
 
-class AddUIDSchema(CustomerDeviceSchema):
+class AddUIDSchema(Schema):
     login = SchemaNode(StrippedString(), validator=Length(max=100))
     uid_type = SchemaNode(String(), validator=OneOf(['phone', 'email']))
 
 
-class AddUIDCodeSchema(CustomerDeviceSchema):
+class AddUIDCodeSchema(Schema):
     code = SchemaNode(StrippedString(), validator=Length(max=100))
     secret = SchemaNode(String(), validator=Length(max=1000))
     attempt_id = SchemaNode(String(), validator=Length(max=100))
@@ -39,6 +43,6 @@ class AddUIDCodeSchema(CustomerDeviceSchema):
         String(), missing=None, validator=Length(max=1000))
 
 
-class AuthUIDCodeSchema(CustomerDeviceSchema):
+class AuthUIDCodeSchema(Schema):
     code = SchemaNode(StrippedString(), validator=Length(max=100))
     factor_id = SchemaNode(String(), validator=Length(max=100))

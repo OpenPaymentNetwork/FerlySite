@@ -32,7 +32,6 @@ class TestInvite(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'recipient': 'email@example.com'
         }
         request_params.update(**params)
@@ -220,7 +219,6 @@ class TestDeleteInvitation(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'invite_id': 'id',
         }
         request_params.update(**params)

@@ -14,30 +14,15 @@ min_device_token_length = 32
 max_device_token_length = 200
 
 
-def get_device_token(request, params, required=False):
+def get_device_token(request, required=False):
     # First try the preferred method of getting the device token: the
     # Authorization header.
     token = None
-
     header = request.headers.get('Authorization')
     if header:
         header = header.strip()
         if header.startswith('Bearer '):
             token = header[7:].lstrip()
-
-    if not token:
-        # For backward compat, accept the device token as a parameter
-        # called device_id. Accepting the device token this way is a security
-        # issue for at least two reasons:
-        #
-        # 1. The token may be transmitted with other parameters
-        #    in compressed form, enabling a BREACH or CRIME attack.
-        # 2. If the request is a GET, the token will be logged,
-        #    making access logs valuable for attackers.
-        #
-        # Transmission of device tokens in the Authorization header
-        # instead avoids these issues.
-        token = params.get('device_id')
 
     if (token and
             len(token) >= min_device_token_length and
@@ -61,9 +46,9 @@ def get_device_token(request, params, required=False):
     return None
 
 
-def get_device(request, params):
+def get_device(request):
     """Authenticate a device."""
-    token = get_device_token(request, params)
+    token = get_device_token(request)
     if not token:
         raise HTTPUnauthorized()
 

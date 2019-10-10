@@ -2,6 +2,7 @@
 from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.database.models import Design
 from backend.database.models import Device
+from backend import settings
 from backend.testing import add_device
 from backend.testing import DBFixture
 from pyramid.httpexceptions import HTTPServiceUnavailable
@@ -9,6 +10,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
 import pyramid.testing
+import uuid
 
 
 def setup_module():
@@ -39,15 +41,17 @@ class TestRequestCard(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid1defaultdeviceid1',
             'name': 'default_name',
             'line1': 'default_line1',
             'city': 'default_city',
             'state': 'UT',
-            'zip_code': '84062'
+            'zip_code': '84062',
+            'verified': 'yes'
         }
         request_params.update(**kw)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         request.ferlysettings = MagicMock()
@@ -60,12 +64,14 @@ class TestRequestCard(TestCase):
         return request
 
     def test_correct_schema_used(self, requests, get_device):
+        get_device.return_value = add_device(self.dbsession)
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.AddressSchema))
 
     def test_get_device_called(self, requests, get_device):
+        get_device.return_value = add_device(self.dbsession)
         request = self._make_request()
         self._call(request)
         get_device.assert_called()
@@ -78,6 +84,7 @@ class TestRequestCard(TestCase):
         self.assertEqual("No USPS username is set", str(cm.exception))
 
     def test_usps_args(self, requests, get_device):
+        get_device.return_value = add_device(self.dbsession)
         usps_request_values = {
             'usps_username': 'my_usps_username',
             'line1': 'my_line1',
@@ -99,6 +106,7 @@ class TestRequestCard(TestCase):
             data=usps_request, headers={'Content-Type': 'application/xml'})
 
     def test_malicious_input(self, requests, get_device):
+        get_device.return_value = add_device(self.dbsession)
         usps_request_values = {
             'usps_username': 'my_usps_username',
             'line1': '<script>',
@@ -189,6 +197,7 @@ class TestRequestCard(TestCase):
         self.assertEqual('TX', cr.state)
 
     def test_return_values(self, requests, get_device):
+        get_device.return_value = add_device(self.dbsession)
         address_values = {
             'line1': 'my_line1',
             'line2': 'my_line2',
@@ -207,7 +216,7 @@ class TestRequestCard(TestCase):
 
 
 @patch('backend.appapi.views.customer_views.wc_contact')
-class TestSignUp(TestCase):
+class Test_add_individual(TestCase):
 
     def setUp(self):
         self.dbsession, self.close_session = dbfixture.begin_session()
@@ -216,20 +225,24 @@ class TestSignUp(TestCase):
         self.close_session()
 
     def _call(self, *args, **kw):
-        from backend.appapi.views.customer_views import signup
-        return signup(*args, **kw)
+        from backend.appapi.views.customer_views import add_individual
+        return add_individual(*args, **kw)
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'first_name': 'defaultfirstname',
             'last_name': 'defaultlastname',
             'username': 'defaultusername',
+            'profile_id': 'myprofileid',
             'expo_token': 'defaulttoken',
             'os': 'defaultos:android'
         }
         request_params.update(**kw)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        request.ferlysettings = MagicMock()
+        request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.RegisterSchema().bind(
@@ -259,8 +272,7 @@ class TestSignUp(TestCase):
 
     def test_add_customer_and_device(self, wc_contact):
         wc_contact.return_value = self._make_response({'id': '12345678901'})
-        device_id = '1234' * 8
-        request = self._make_request(device_id=device_id)
+        request = self._make_request()
         self._call(request)
         devices = self.dbsession.query(Device).all()
         self.assertEqual(1, len(devices))
@@ -296,11 +308,254 @@ class TestSignUp(TestCase):
 
     def test_deny_existing_username(self, wc_contact):
         add_device(self.dbsession)
-        request = self._make_request(
-            device_id='other' * 8, username='defaultusername')
+        request = self._make_request(username='defaultusername')
+        request.headers = {
+            'Authorization': 'Bearer otherotherotherotherotherotherotherother',
+        }
         response = self._call(request)
         self.assertEqual(response, {'error': 'existing_username'})
 
+
+@patch('backend.appapi.views.customer_views.wc_contact')
+@patch('backend.appapi.views.customer_views.get_device')
+class Test_Signup(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import signup
+        return signup(*args, **kw)
+
+    def _make_request(self, **kw):
+        request_params = {
+            'login': 'test@test.com',
+            'username': 'defaultusername',
+        }
+        request_params.update(**kw)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        request.ferlysettings = MagicMock()
+        request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.SignupSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def _make_response(self, json_content):
+        class MockJSONResponse:
+            def json(self):
+                return json_content
+
+        return MockJSONResponse()
+
+    def test_correct_schema_used(self, get_device, wc_contact):
+        wc_contact.return_value = self._make_response({
+            "attempt_path":"/aa/5618911532/",
+            "captcha_required": False,
+            "code_length":9,
+            "factor_id":"fb546e07",
+            "revealed_codes": ["073467126 => email:ex3@example.com"],
+            "secret":"q9ieEMNt0G3RbgTBjlOWy5C7vhY",
+            "trust30":False,
+            "unauthenticated": {
+                "email:ex3@example.com": {
+                    "country":None,
+                    "original":"ex3@example.com"
+                }
+            }
+        })
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.SignupSchema))
+
+    def test_already_registered(self, get_device, wc_contact):
+        get_device.return_value = add_device(self.dbsession)
+        request = self._make_request()
+        response = self._call(request)
+        expected_response = {'error': 'device_already_registered'}
+        self.assertEqual(response, expected_response)
+
+    def test_deny_existing_username(self, get_device, wc_contact):
+        add_device(self.dbsession)
+        request = self._make_request(username='defaultusername')
+        request.headers = {
+            'Authorization': 'Bearer otherotherotherotherotherotherotherother',
+        }
+        response = self._call(request)
+        self.assertEqual(response, {'error': 'existing_username'})
+
+@patch('backend.appapi.views.customer_views.wc_contact')
+class Test_set_signup_data(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import set_signup_data
+        return set_signup_data(*args, **kw)
+
+    def _make_request(self, **kw):
+        request_params = {
+            'attempt_path': 'aa/123456789/',
+            'first_name': 'defaultfirstname',
+            'last_name': 'defaultlastname',
+            'secret': 'secret',
+        }
+        request_params.update(**kw)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        request.ferlysettings = MagicMock()
+        request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.SetSignupDataSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def _make_response(self, json_content):
+        class MockJSONResponse:
+            def json(self):
+                return json_content
+
+        return MockJSONResponse()
+
+    def test_correct_schema_used(self, wc_contact):
+        wc_contact.return_value = self._make_response({
+            "authenticated":{
+                "email:ex3@example.com":{
+                    "country":None,
+                    "original":"ex3@example.com",
+                    "strong":False,
+                    "used_password":False
+                },
+            },
+            "captcha_required":False,
+            "completed_mfa":True,
+            "invite_id":None,
+            "profile_id":None,
+            "profile_title":None,
+            "signup":{
+                "first_name":"Jacques",
+                "has_password":False,
+                "last_name":"Black",
+                "name_checked":True
+            },"trust30":False
+        })
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.SetSignupDataSchema))
+
+@patch('backend.appapi.views.customer_views.wc_contact')
+class Test_set_signup_finish(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import signup_finish
+        return signup_finish(*args, **kw)
+
+    def _make_request(self, **kw):
+        request_params = {
+            'agreed': True,
+            'attempt_path': 'aa/123456789/',
+            'secret': 'secret',
+        }
+        request_params.update(**kw)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        request.ferlysettings = MagicMock()
+        request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.SignupFinishSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def _make_response(self, json_content):
+        class MockJSONResponse:
+            def json(self):
+                return json_content
+
+        return MockJSONResponse()
+
+    def test_correct_schema_used(self, wc_contact):
+        wc_contact.return_value = self._make_response({
+            "authenticated":{
+                "email:ex3@example.com":{
+                    "country":None,
+                    "original":"ex3@example.com",
+                    "strong":False,
+                    "used_password":False
+                },
+            },
+            "captcha_required":False,
+            "completed_mfa":True,
+            "invite_id":None,
+            "profile":{
+                "accepted_national_currencies":[],
+                "address":"",
+                "address_data":None,
+                "chain_id":None,
+                "first_name":"Jacques",
+                "id":"4356518574",
+                "image125":None,
+                "image24":None,
+                "image25":None,
+                "image250w":None,
+                "image48":None,
+                "image50":None,
+                "image73":None,
+                "is_individual":True,
+                "last_name":"Black",
+                "latitude":"",
+                "longitude":"",
+                "phone":"",
+                "preferred_currency":"",
+                "support_paycode":False,
+                "title":"Jacques Black",
+                "unsupported_national_currencies":[],
+                "url":"https://wingcash.com/p/4356518574/",
+                "username":None,
+                "wingcash_uid":"wingcash:4356518574"
+            },
+            "profile_id":"4356518574",
+            "profile_title":"Jacques Black",
+            "signup":{
+                "first_name":"Jacques",
+                "has_password":False,
+                "last_name":"Black",
+                "name_checked":True
+            },
+            "token":{
+                "access_token":"t4954253560-7284763818-kaW6ppOwOHcKZ-Q-25GPneef2Mk",
+                "expires_in":899,
+                "hard_expires_in":316223999,
+                "scope":"accept_offer change_settings edit_account list_friends manage_account manage_sent mobile_device send_cash send_to_account view view_full_history view_history view_wallet",
+                "token_type":"bearer"
+            },
+            "trust30":False
+        })
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.SignupFinishSchema))
 
 @patch('backend.appapi.views.customer_views.wc_contact')
 @patch('backend.appapi.views.customer_views.get_wc_token')
@@ -319,7 +574,6 @@ class TestEditProfile(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'first_name': 'defaultfirstname',
             'last_name': 'defaultlastname',
             'username': 'defaultusername'
@@ -461,11 +715,12 @@ class TestIsCustomer(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'expected_env': 'staging',
         }
         request_params.update(kw)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
         settings = request.ferlysettings = MagicMock()
         settings.environment = kw.get('environment', 'staging')
         request.dbsession = self.dbsession
@@ -496,7 +751,10 @@ class TestIsCustomer(TestCase):
 
     def test_dont_find_wrong_device(self):
         add_device(self.dbsession)
-        request = self._make_request(device_id='1234' * 8)
+        request = self._make_request()
+        request.headers = {
+            'Authorization': 'Bearer 12341234123412341234123412341234',
+        }
         response = self._call(request)
         self.assertFalse(response.get('is_customer'))
 
@@ -520,7 +778,6 @@ class TestSend(TestCase):
     def _make_request(self, **kw):
         request_params = {
             'expected_env': 'staging',
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'recipient_id': '01',
             'amount': '2.53',
             'design_id': '00',
@@ -941,7 +1198,6 @@ class TestTransfer(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'transfer_id': 'defaulttransferid'
         }
         request_params.update(**kw)

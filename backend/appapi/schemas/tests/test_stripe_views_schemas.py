@@ -20,7 +20,6 @@ class TestPurchaseSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'design_id': 'default_design_id',
             'source_id': 'default_source_id',
             'amount': 0.51,

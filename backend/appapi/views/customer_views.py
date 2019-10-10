@@ -3,6 +3,7 @@ from backend.appapi.utils import get_device
 from backend.appapi.utils import get_device_token
 from backend.appapi.utils import get_wc_token
 from backend.appapi.utils import notify_customer
+from backend.appapi.views.recovery_views import recovery_error
 from backend.database.models import CardRequest
 from backend.database.models import Customer
 from backend.database.models import Design
@@ -10,6 +11,7 @@ from backend.database.models import Device
 from backend.database.serialize import serialize_customer
 from backend.database.serialize import serialize_design
 from backend.wccontact import wc_contact
+from colander import Invalid
 from markupsafe import escape
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.view import view_config
@@ -26,14 +28,12 @@ import uuid
 
 log = logging.getLogger(__name__)
 
-
 @view_config(name='request-card', renderer='json')
 def request_card(request):
     """Save the address a customer requested a new Ferly Card be mailed to."""
     params = request.get_params(schemas.AddressSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
-
     usps_address_info_url = request.ferlysettings.usps_address_info_url
     usps_username = request.ferlysettings.usps_username
     if not usps_username:
@@ -62,7 +62,6 @@ def request_card(request):
         response.raise_for_status()
     except Exception:
         raise HTTPServiceUnavailable
-
     root = ElementTree.fromstring(response.content)
     if root.tag == 'AddressValidateResponse':
         address = root.find('Address')
@@ -79,15 +78,30 @@ def request_card(request):
             zip5 = getattr(address.find('Zip5'), 'text', '')
             zip4 = getattr(address.find('Zip4'), 'text', '')
             zip_code = '{}-{}'.format(zip5, zip4)
-
-            new_card_request = CardRequest(
-                customer_id=customer.id, name=params['name'],
-                original_line1=params['line1'], original_line2=params['line2'],
-                original_city=params['city'], original_state=params['state'],
-                original_zip_code=params['zip_code'], line1=line1, line2=line2,
-                city=city, state=state, zip_code=zip_code
-            )
-            request.dbsession.add(new_card_request)
+            card_request = request.dbsession.query(CardRequest).filter(customer.id == CardRequest.customer_id).first()
+            if card_request == None:
+                new_card_request = CardRequest(
+                    customer_id=customer.id, name=params['name'],
+                    original_line1=params['line1'], original_line2=params['line2'],
+                    original_city=params['city'], original_state=params['state'],
+                    original_zip_code=params['zip_code'], line1=line1, line2=line2,
+                    city=city, state=state, zip_code=zip_code, verified=params['verified']
+                )
+                request.dbsession.add(new_card_request)
+            else:
+                card_request.name=params['name']
+                card_request.original_line1=params['line1']
+                card_request.original_line2=params['line2']
+                card_request.original_city=params['city']
+                card_request.original_state=params['state']
+                card_request.original_zip_code=params['zip_code']
+                card_request.line1=line1
+                card_request.line2=line2
+                card_request.city=city
+                card_request.state=state
+                card_request.zip_code=zip_code
+                card_request.verified=params['verified']
+                card_request.downloaded=None
             return {
                 'name': params['name'],
                 'line1': line1,
@@ -100,11 +114,12 @@ def request_card(request):
         raise HTTPServiceUnavailable
 
 
-@view_config(name='signup', renderer='json')
-def signup(request):
+
+@view_config(name='add-individual', renderer='json')
+def add_individual(request):
     """Associate a device with a new customer and wallet."""
     params = request.get_params(schemas.RegisterSchema())
-    token = get_device_token(request, params, required=True)
+    token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
     os = params['os']
@@ -151,6 +166,134 @@ def signup(request):
         dbsession.add(device)
     return {}
 
+@view_config(name='register', renderer='json')
+def register(request):
+    """Associate a device with a new customer and wallet."""
+    params = request.get_params(schemas.RegisterSchema())
+    token = get_device_token(request, required=True)
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    expo_token = params['expo_token']
+    os = params['os']
+    dbsession = request.dbsession
+    username = params['username']
+    wc_id = params['profile_id']
+    first_name = params['first_name']
+    last_name = params['last_name']
+    new_customer = Customer(wc_id=wc_id, first_name=first_name,
+                            last_name=last_name, username=username)
+    new_customer.update_tsvector()
+    dbsession.add(new_customer)
+    dbsession.flush()
+
+    device = Device(
+        token_sha256=token_sha256,
+        customer_id=new_customer.id,
+        expo_token=expo_token,
+        os=os)
+    dbsession.add(device)
+    return {}
+
+@view_config(name='signup', renderer='json')
+def signup(request):
+    """Calls wingcash signup api."""
+    params = request.get_params(schemas.SignupSchema())
+    token = get_device_token(request, required=True)
+    token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    dbsession = request.dbsession
+    device = dbsession.query(Device).filter(
+        Device.token_sha256 == token_sha256).first()
+    if device is not None:
+        return {'error': 'device_already_registered'}
+    username = params['username']
+    existing_customer = dbsession.query(Customer).filter(
+        Customer.username == username).first()
+    if existing_customer is not None:
+        return {'error': 'existing_username'}
+    else:
+        postParams = {
+            'client_id': request.ferlysettings.wingcash_client_id,
+            'device_uuid': str(uuid.uuid5(uuid.NAMESPACE_URL, token)),
+            'login': params['login'],
+        }
+        return wc_contact(
+            request,
+            'POST',
+            'aa/signup-closed',
+            params=postParams,
+            auth=True).json()
+
+@view_config(name='add-factor', renderer='json')
+def add_factor(request):
+    """Calls wingcash add-factor api."""
+    params = request.get_params(schemas.AddFactorSchema())
+    postParams = {
+        'login': params['login'],
+    }
+
+    return wc_contact(
+        request,
+        'POST',
+        params['attempt_path'] + 'add-factor',
+        secret=params['secret'],
+        params=postParams).json()
+
+@view_config(name='auth-uid', renderer='json')
+def auth_uid(request):
+    """Calls wingcash auth-uid api."""
+    params = request.get_params(schemas.AuthUidSchema())
+    postParams = {
+        'factor_id': params['factor_id'],
+        'code': params['code'],
+        'g-recaptcha-response': params['recaptcha_response']
+    }
+    response = wc_contact(
+        request,
+        'POST',
+        params['attempt_path'] + 'auth-uid',
+        secret=params['secret'],
+        params=postParams, return_errors=True)
+    response_json = response.json()
+    if response.status_code != 200:
+        if 'invalid' in response.json():
+            raise Invalid(None, msg=response_json['invalid'])
+        else:
+            # Recaptcha required, or attempt expired
+            error = response_json.get('error')
+            if error == 'captcha_required':
+                return recovery_error(request, 'recaptcha_required')
+            else:
+                return recovery_error(request, 'code_expired')
+    return response.json()
+
+@view_config(name='signup-finish', renderer='json')
+def signup_finish(request):
+    """Calls wingcash auth-uid api."""
+    params = request.get_params(schemas.SignupFinishSchema())
+    postParams = {
+        'agreed': params['agreed'],
+    }
+
+    return wc_contact(
+        request,
+        'POST',
+        params['attempt_path'] + 'signup-finish',
+        secret=params['secret'],
+        params=postParams).json()
+
+@view_config(name='set-signup-data', renderer='json')
+def set_signup_data(request):
+    """Calls wingcash auth-uid api."""
+    params = request.get_params(schemas.SetSignupDataSchema())
+    postParams = {
+        'first_name': params['first_name'],
+        'last_name': params['last_name'],
+    }
+    return wc_contact(
+        request,
+        'POST',
+        params['attempt_path'] + 'set-signup-data',
+        secret=params['secret'],
+        params=postParams).json() 
 
 @view_config(name='is-customer', renderer='json')
 def is_customer(request):
@@ -158,7 +301,7 @@ def is_customer(request):
     params = request.get_params(schemas.IsCustomerSchema())
     if params['expected_env'] != request.ferlysettings.environment:
         return {'error': 'unexpected_environment'}
-    token = get_device_token(request, params, required=True)
+    token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
@@ -170,8 +313,7 @@ def is_customer(request):
 @view_config(name='profile', renderer='json')
 def profile(request):
     """Describe the profile currently associated with a device."""
-    params = request.get_params(schemas.CustomerDeviceSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -217,7 +359,7 @@ def profile(request):
 def send(request):
     """Send Closed Loop Cash to another Ferly customer."""
     params = request.get_params(schemas.SendSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
 
     recipient_id = params['recipient_id']
@@ -268,7 +410,7 @@ def send(request):
 def edit_profile(request):
     """Update a customer's profile information"""
     params = request.get_params(schemas.EditProfileSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -312,7 +454,7 @@ def get_loop_id_from_transfer(transfer):
 def history(request):
     """Request and return the customer's WingCash transfer history."""
     params = request.get_params(schemas.HistorySchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -394,7 +536,7 @@ def history(request):
 def transfer(request):
     """Request and return WingCash transfer details of a transfer."""
     params = request.get_params(schemas.TransferSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -441,7 +583,7 @@ def search_customers(request):
     """Search the list of customers"""
     params = request.get_params(schemas.SearchCustomersSchema())
     dbsession = request.dbsession
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -462,7 +604,7 @@ def search_customers(request):
 def upload_profile_image(request):
     """Allow a customer to upload an image for their profile picture"""
     params = request.get_params(schemas.UploadProfileImageSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     image = params['image']
     content_type = image.type

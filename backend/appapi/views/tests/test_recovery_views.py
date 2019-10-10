@@ -25,11 +25,12 @@ class TestRecover(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'login': 'email@example.com'
         }
         request_params.update(**params)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params,headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
         request.get_params = params = MagicMock()
         params.return_value = schemas.RecoverySchema().bind(
             request=request).deserialize(request_params)
@@ -47,9 +48,8 @@ class TestRecover(TestCase):
     def test_wc_params(self, wc_contact):
         import uuid
         login = 'email@example.com'
-        device_id = 'mydeviceid' * 4
-        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, device_id))
-        request = self._make_request(login=login, device_id=device_id)
+        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "defaultdeviceid0defaultdeviceid0"))
+        request = self._make_request(login=login)
         self._call(request)
         wc_contact.assert_called_with(
             request, 'POST', 'aa/signin-closed', auth=True, return_errors=True,
@@ -130,7 +130,6 @@ class TestRecoverCode(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'code': '123456789',
             'secret': 'defaultsecret',
             'factor_id': 'defaultfactor_id',
@@ -139,7 +138,9 @@ class TestRecoverCode(TestCase):
             'os': 'android'
         }
         request_params.update(**params)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.RecoveryCodeSchema().bind(
@@ -205,11 +206,13 @@ class TestRecoverCode(TestCase):
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_device_added(self, wc_contact):
         customer = add_device(self.dbsession).customer
-        device_id = 'newdevice' * 4
         os = 'android:28'
         expo_token = 'myexpo_token'
         request = self._make_request(
-            device_id=device_id, os=os, expo_token=expo_token)
+            os=os, expo_token=expo_token)
+        request.headers = {
+            'Authorization': 'Bearer newdevicenewdevicenewdevicenewdevice',
+        }
         wc_contact.return_value.json.return_value = {
             'completed_mfa': True,
             'profile_id': customer.wc_id,
@@ -233,7 +236,6 @@ class TestAddUid(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'uid_type': 'email',
             'login': 'email@example.com'
         }
@@ -303,7 +305,6 @@ class TestConfirmUid(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'code': 'defaultcode',
             'secret': 'defaultsecret',
             'attempt_id': 'defaultattemptid'
@@ -369,3 +370,42 @@ class TestConfirmUid(TestCase):
         wc_contact().status_code = 410
         response = self._call(self._make_request())
         self.assertEqual(response, {'error': 'code_expired'})
+
+class TestLogin(TestCase):
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.recovery_views import login
+        return login(*args, **kw)
+
+    def _make_request(self, **params):
+        request_params = {
+            'profile_id': 'defaultcode',
+            'expo_token': 'my_expo_token',
+            'os': 'nt'
+        }
+        request_params.update(**params)
+        request = pyramid.testing.DummyRequest(params=request_params,headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.LoginSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def test_correct_schema_used(self):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.LoginSchema))
+    
+    def test_existing_device(self):
+        add_device(self.dbsession)
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})

@@ -29,3 +29,16 @@ def serialize_design(request, design):
         'field_color': design.field_color,
         'field_dark': design.field_dark,
     }
+
+def serialize_card_request(request, card_request):
+    return {
+        'id': card_request.id,
+        'customer_id': card_request.customer_id,
+        'name': card_request.name,
+        'address_line1': card_request.line1,
+        'address_line2': card_request.line2,
+        'city': card_request.city,
+        'state': card_request.state,
+        'zip':  card_request.zip_code,
+        'verified': card_request.verified,
+    }

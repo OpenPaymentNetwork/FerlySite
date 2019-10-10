@@ -1,15 +1,28 @@
 from backend.appapi.schemas import card_views_schemas as schemas
 from backend.appapi.utils import get_device
+from backend.database.serialize import serialize_card_request
+from backend.database.models import CardRequest
 from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
 
-
+@view_config(name='verify-address',renderer='json')
+def verifyAddress(request):
+    device = get_device(request)
+    customer = device.customer
+    print("here")
+    card_request  = request.dbsession.query(CardRequest).filter(CardRequest.customer_id == customer.id).first()
+    if (card_request == None):
+        print("here2")
+        return { 'error': 'No address on file'}
+    print("here3")
+    return serialize_card_request(request, card_request)
+    
 @view_config(name='add-card', renderer='json')
 def add_card(request):
     """Associate a card with the customer."""
     params = request.get_params(schemas.AddCardSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     access_token = get_wc_token(request, customer,
                                 permissions=['link_paycard'])
@@ -23,7 +36,7 @@ def add_card(request):
 def delete_card(request):
     """Disassociate the card and the customer."""
     params = request.get_params(schemas.CardSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     access_token = get_wc_token(request, customer,
                                 permissions=['link_paycard'])
@@ -37,7 +50,7 @@ def delete_card(request):
 def change_pin(request):
     """Replace the card's pin with a new one."""
     params = request.get_params(schemas.ChangePinSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     access_token = get_wc_token(request, customer,
                                 permissions=['link_paycard'])
@@ -51,7 +64,7 @@ def change_pin(request):
 def suspend_card(request):
     """Disable the card's ability to spend cash without deleting it."""
     params = request.get_params(schemas.CardSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     access_token = get_wc_token(request, customer,
                                 permissions=['link_paycard'])
@@ -65,7 +78,7 @@ def suspend_card(request):
 def unsuspend_card(request):
     """Reenable the card's ability to spend cash."""
     params = request.get_params(schemas.CardSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     access_token = get_wc_token(request, customer,
                                 permissions=['link_paycard'])

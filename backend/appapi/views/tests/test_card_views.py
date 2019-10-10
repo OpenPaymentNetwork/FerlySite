@@ -20,12 +20,13 @@ class TestAddCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'pin': '1234',
             'pan': '4747474747474747'
         }
         request_params.update(**params)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params,headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
         request.get_params = params = MagicMock()
         params.return_value = schemas.AddCardSchema().bind(
             request=request).deserialize(request_params)
@@ -36,15 +37,6 @@ class TestAddCard(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.AddCardSchema))
-
-    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
-        request = self._make_request()
-        self._call(request)
-        get_device.assert_called_with(request, {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-            'pan': '4747474747474747',
-            'pin': '1234',
-        })
 
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
@@ -84,7 +76,6 @@ class TestDeleteCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
@@ -99,14 +90,6 @@ class TestDeleteCard(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.CardSchema))
-
-    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
-        request = self._make_request()
-        self._call(request)
-        get_device.assert_called_with(request, {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-            'card_id': 'default_card_id',
-        })
 
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
@@ -135,7 +118,6 @@ class TestChangePin(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'pin': '1234',
             'card_id': 'default_card_id'
         }
@@ -151,15 +133,6 @@ class TestChangePin(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.ChangePinSchema))
-
-    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
-        request = self._make_request()
-        self._call(request)
-        get_device.assert_called_with(request, {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-            'card_id': 'default_card_id',
-            'pin': '1234',
-        })
 
     def test_get_wc_token_args(self, get_device, wc_contact, get_wc_token):
         customer = get_device.return_value.customer
@@ -188,7 +161,6 @@ class TestSuspendCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
@@ -210,14 +182,6 @@ class TestSuspendCard(TestCase):
         self._call(request)
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
-
-    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
-        request = self._make_request()
-        self._call(request)
-        get_device.assert_called_with(request, {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-            'card_id': 'default_card_id',
-        })
 
     def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value
@@ -239,7 +203,6 @@ class TestUnsuspendCard(TestCase):
 
     def _make_request(self, **params):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'card_id': 'default_card_id'
         }
         request_params.update(**params)
@@ -261,14 +224,6 @@ class TestUnsuspendCard(TestCase):
         self._call(request)
         get_wc_token.assert_called_with(
             request, customer, permissions=['link_paycard'])
-
-    def test_get_device_args(self, get_device, wc_contact, get_wc_token):
-        request = self._make_request()
-        self._call(request)
-        get_device.assert_called_with(request, {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-            'card_id': 'default_card_id',
-        })
 
     def test_wc_contact_args(self, get_device, wc_contact, get_wc_token):
         access_token = get_wc_token.return_value

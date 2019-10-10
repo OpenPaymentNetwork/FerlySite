@@ -32,8 +32,7 @@ def get_stripe_customer(request, stripe_id):
 
 @view_config(name='list-stripe-sources', renderer='json')
 def list_stripe_sources(request):
-    params = request.get_params(schemas.CustomerDeviceSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
 
     stripe_customer = get_stripe_customer(request, customer.stripe_id)
@@ -45,7 +44,7 @@ def list_stripe_sources(request):
 @view_config(name='delete-stripe-source', renderer='json')
 def delete_stripe_source(request):
     params = request.get_params(schemas.DeleteSourceSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
 
     stripe_customer = get_stripe_customer(request, customer.stripe_id)
@@ -85,7 +84,7 @@ def get_distributor_token(request):
 @view_config(name='purchase', renderer='json')
 def purchase(request):
     params = request.get_params(schemas.PurchaseSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
 
     design = request.dbsession.query(Design).get(params['design_id'])

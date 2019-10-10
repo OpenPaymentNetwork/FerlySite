@@ -97,7 +97,6 @@ class TestAddressSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
             'name': 'default_name',
             'line1': 'default_line1',
             'city': 'default_city',
@@ -186,10 +185,10 @@ class TestRegisterSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'first_name': 'default_first_name',
             'last_name': 'default_last_name',
-            'username': 'defaultusername'
+            'username': 'blahblah',
+            'profile_id': 'myprofileid',
         }
         obj.update(**kw)
         return obj
@@ -235,7 +234,6 @@ class TestSendSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'design_id': 'default_first_name',
             'recipient_id': 'default_recipient_name',
             'amount': 0.01
@@ -281,7 +279,6 @@ class TestEditProfileSchema(TestCase):
 
     def _make(self, *args, **kw):
         obj = {
-            'device_id': 'default_device_id',
             'first_name': 'default_first_name',
             'last_name': 'default_last_name',
             'username': 'defaultusername'

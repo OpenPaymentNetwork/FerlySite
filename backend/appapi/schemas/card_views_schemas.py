@@ -1,9 +1,9 @@
 from colander import Invalid
 from colander import Length
+from colander import Schema
 from colander import SchemaNode
 from colander import String
 from backend.api_schemas import StrippedString
-from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
 
 def validate_pan(node, value):
@@ -36,15 +36,15 @@ def pin():
     return SchemaNode(StrippedString(), name='pin', validator=validate_pin)
 
 
-class AddCardSchema(CustomerDeviceSchema):
+class AddCardSchema(Schema):
     pan = SchemaNode(StrippedString(), validator=validate_pan)
     pin = pin()
 
 
-class ChangePinSchema(CustomerDeviceSchema):
+class ChangePinSchema(Schema):
     card_id = SchemaNode(String(), validator=Length(max=200))
     pin = pin()
 
 
-class CardSchema(CustomerDeviceSchema):
+class CardSchema(Schema):
     card_id = SchemaNode(String(), validator=Length(max=200))

@@ -58,25 +58,12 @@ class TestGetStripeCustomer(TestCase):
 class TestListStripeSources(TestCase):
 
     def _make_request(self, **kw):
-        request_params = {'device_id': 'defaultdeviceid0defaultdeviceid0'}
-        request_params.update(**kw)
-        request = pyramid.testing.DummyRequest(params=request_params)
-        request.get_params = params = MagicMock()
-        params.return_value = schemas.CustomerDeviceSchema().bind(
-            request=request).deserialize(request_params)
+        request = pyramid.testing.DummyRequest()
         return request
 
     def _call(self, *args, **kw):
         from backend.appapi.views.stripe_views import list_stripe_sources
         return list_stripe_sources(*args, **kw)
-
-    @patch('backend.appapi.views.stripe_views.get_device')
-    @patch('backend.appapi.views.stripe_views.get_stripe_customer')
-    def test_correct_schema_used(self, get_stripe_customer, get_device):
-        request = self._make_request()
-        self._call(request)
-        schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, schemas.CustomerDeviceSchema))
 
     @patch('backend.appapi.views.stripe_views.get_device')
     @patch('backend.appapi.views.stripe_views.get_stripe_customer')
@@ -125,7 +112,6 @@ class TestDeleteStripeSource(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'source_id': 'default_source_id'
         }
         request_params.update(**kw)
@@ -226,7 +212,6 @@ class TestPurchase(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
             'source_id': 'card_source',
             'design_id': 'default_design_id',
             'amount': 1.00,

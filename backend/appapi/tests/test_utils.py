@@ -29,7 +29,7 @@ class Test_get_device_token(TestCase):
 
     def test_missing_token_when_not_required(self):
         request = pyramid.testing.DummyRequest()
-        self.assertIsNone(self._call(request, params={}))
+        self.assertIsNone(self._call(request))
 
     def test_valid_token_with_authorization_header(self):
         request = pyramid.testing.DummyRequest(headers={
@@ -38,17 +38,10 @@ class Test_get_device_token(TestCase):
         result = self._call(request, {})
         self.assertEqual('defaultdeviceid0defaultdeviceid0', result)
 
-    def test_valid_token_with_param(self):
-        request = pyramid.testing.DummyRequest()
-        result = self._call(request, params={
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-        })
-        self.assertEqual('defaultdeviceid0defaultdeviceid0', result)
-
     def test_token_required_but_missing(self):
         request = pyramid.testing.DummyRequest(headers={})
         with self.assertRaises(HTTPBadRequest) as cm:
-            self._call(request, {}, required=True)
+            self._call(request, required=True)
         self.assertRegexpMatches(
             str(cm.exception.json_body), r'device_token_required')
 
@@ -56,7 +49,7 @@ class Test_get_device_token(TestCase):
         request = pyramid.testing.DummyRequest(headers={
             'Authorization': 'Bearer id0',
         })
-        result = self._call(request, {})
+        result = self._call(request)
         self.assertIsNone(result)
 
     def test_token_too_short_when_required(self):
@@ -64,7 +57,7 @@ class Test_get_device_token(TestCase):
             'Authorization': 'Bearer id0',
         })
         with self.assertRaises(HTTPBadRequest) as cm:
-            self._call(request, {}, required=True)
+            self._call(request, required=True)
         self.assertRegexpMatches(
             str(cm.exception.json_body), r'device_token_too_short')
 
@@ -80,7 +73,7 @@ class Test_get_device_token(TestCase):
             'Authorization': 'Bearer ' + '1' * 201,
         })
         with self.assertRaises(HTTPBadRequest) as cm:
-            self._call(request, {}, required=True)
+            self._call(request, required=True)
         self.assertRegexpMatches(
             str(cm.exception.json_body), r'device_token_too_long')
 
@@ -95,7 +88,7 @@ class TestGetDevice(TestCase):
 
     def _call(self, *args, **kw):
         from backend.appapi.utils import get_device
-        return get_device(*args, **kw)
+        return get_device(*args)
 
     def test_invalid_device_id(self):
         request = pyramid.testing.DummyRequest()
@@ -109,16 +102,7 @@ class TestGetDevice(TestCase):
         })
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)
-        result = self._call(request, {})
-        self.assertEqual(device, result)
-
-    def test_valid_device_with_param(self):
-        request = pyramid.testing.DummyRequest()
-        dbsession = request.dbsession = self.dbsession
-        device = add_device(dbsession)
-        result = self._call(request, params={
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-        })
+        result = self._call(request)
         self.assertEqual(device, result)
 
     def test_device_not_found(self):
@@ -132,26 +116,26 @@ class TestGetDevice(TestCase):
 
     def test_update_device_used_yesterday(self):
         from backend.database.models import now_utc
-        request = pyramid.testing.DummyRequest()
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)
         device.last_used = (
             datetime.datetime.utcnow() - datetime.timedelta(days=1))
-        result = self._call(request, params={
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-        })
+        result = self._call(request)
         self.assertEqual(device, result)
         self.assertIs(now_utc, device.last_used)
 
     def test_no_update_device_used_2_seconds_ago(self):
-        request = pyramid.testing.DummyRequest()
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)
         last_used = datetime.datetime.utcnow() - datetime.timedelta(seconds=2)
         device.last_used = last_used
-        result = self._call(request, params={
-            'device_id': 'defaultdeviceid0defaultdeviceid0',
-        })
+        result = self._call(request)
         self.assertEqual(device, result)
         self.assertEqual(last_used, device.last_used)
 

@@ -4,13 +4,14 @@ from backend.communications import send_sms
 from backend.database.models import Invitation
 from backend.database.serialize import serialize_invitation
 from backend.appapi.utils import get_device
+from backend.wccontact import wc_contact
 from pyramid.view import view_config
 
 
 @view_config(name='delete-invitation', renderer='json')
 def delete_invitation(request):
     params = request.get_params(schemas.DeleteInvitationSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -25,7 +26,7 @@ def delete_invitation(request):
 @view_config(name='existing-invitations', renderer='json')
 def existing_invitations(request):
     params = request.get_params(schemas.ExistingInvitationsSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 
@@ -40,7 +41,7 @@ def existing_invitations(request):
 @view_config(name='invite', renderer='json')
 def invite(request):
     params = request.get_params(schemas.InviteSchema())
-    device = get_device(request, params)
+    device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
 

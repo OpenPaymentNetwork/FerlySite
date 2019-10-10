@@ -1,21 +1,22 @@
 from colander import Length
 from colander import OneOf
+from colander import Schema
 from colander import SchemaNode
 from colander import String
+from colander import Decimal
 from backend.api_schemas import Recipient
-from backend.appapi.schemas.app_schemas import CustomerDeviceSchema
 
 
-class DeleteInvitationSchema(CustomerDeviceSchema):
+class DeleteInvitationSchema(Schema):
     invite_id = SchemaNode(String(), validator=Length(max=100))
 
 
-class ExistingInvitationsSchema(CustomerDeviceSchema):
+class ExistingInvitationsSchema(Schema):
     status = SchemaNode(
         String(),
         missing=None,
         validator=OneOf(['pending', 'deleted', 'accepted']))
 
 
-class InviteSchema(CustomerDeviceSchema):
+class InviteSchema(Schema):
     recipient = SchemaNode(Recipient())
