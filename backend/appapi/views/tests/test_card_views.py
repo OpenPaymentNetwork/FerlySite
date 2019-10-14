@@ -4,11 +4,22 @@ from backend.appapi.views.card_views import change_pin
 from backend.appapi.views.card_views import delete_card
 from backend.appapi.views.card_views import suspend_card
 from backend.appapi.views.card_views import unsuspend_card
+from backend.database.serialize import serialize_card_request
+from backend.testing import add_card_request
+from backend.testing import add_device
+from backend.testing import DBFixture
 from unittest import TestCase
 from unittest.mock import MagicMock
 from unittest.mock import patch
 import pyramid.testing
 
+def setup_module():
+    global dbfixture
+    dbfixture = DBFixture()
+
+
+def teardown_module():
+    dbfixture.close_fixture()
 
 @patch('backend.appapi.views.card_views.get_wc_token')
 @patch('backend.appapi.views.card_views.wc_contact')
@@ -233,3 +244,41 @@ class TestUnsuspendCard(TestCase):
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/paycard/unsuspend', params=card_params,
             access_token=access_token)
+
+@patch('backend.appapi.views.card_views.wc_contact')
+@patch('backend.appapi.views.card_views.get_device')
+class TestVerifyAddress(TestCase):
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.card_views import verifyAddress
+        return verifyAddress(*args, **kw)
+
+    def _make_request(self, **params):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+        })
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        return request
+
+    def test_no_address_on_file(self, get_device, wc_contact):
+        print("here")
+        get_device.return_value = add_device(self.dbsession)
+        request = self._make_request()
+        response = self._call(request)
+        expected_response = {'error': 'No address on file'}
+        self.assertEqual(response, expected_response)
+
+    def test_address_on_file(self, get_device, wc_contact):
+        print("here2")
+        get_device.return_value = add_device(self.dbsession)
+        add_card_request(self.dbsession)
+        request = self._make_request()
+        response = self._call(request)
+        print(response)
+        self.assertEqual(response, "expected_response")

@@ -13,6 +13,11 @@ log = logging.getLogger(__name__)
 min_device_token_length = 32
 max_device_token_length = 200
 
+def recovery_error(request, msg):
+    log.warning(
+        "Recovery error %s for IP address %s",
+        repr(msg), getattr(request, 'remote_addr', None))
+    return {'error': msg}
 
 def get_device_token(request, required=False):
     # First try the preferred method of getting the device token: the

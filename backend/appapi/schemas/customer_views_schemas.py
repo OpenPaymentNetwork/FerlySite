@@ -10,6 +10,7 @@ from colander import String
 from backend.appapi.schemas.recovery_views_schemas import recaptcha_response
 from backend.api_schemas import amount
 from backend.api_schemas import FieldStorage
+from backend.api_schemas import Recipient
 from backend.api_schemas import StrippedString
 import re
 
@@ -45,7 +46,7 @@ class AddressSchema(Schema):
     verified = SchemaNode(String(), missing='')
 
 class SignupSchema(Schema):
-    login = SchemaNode(String())
+    login = SchemaNode(Recipient())
     username = username()
 
 class AddFactorSchema(SignupSchema):

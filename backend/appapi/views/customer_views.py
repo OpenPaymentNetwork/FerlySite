@@ -3,7 +3,7 @@ from backend.appapi.utils import get_device
 from backend.appapi.utils import get_device_token
 from backend.appapi.utils import get_wc_token
 from backend.appapi.utils import notify_customer
-from backend.appapi.views.recovery_views import recovery_error
+from backend.appapi.utils import recovery_error
 from backend.database.models import CardRequest
 from backend.database.models import Customer
 from backend.database.models import Design

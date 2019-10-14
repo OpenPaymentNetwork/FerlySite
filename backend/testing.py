@@ -120,3 +120,20 @@ def add_device(
     dbsession.flush()  # Assign device.id
 
     return device
+
+def add_card_request(
+        dbsession,
+        customer_id='11',
+        name='defaultname'):
+    """Add a CardRequest to the database."""
+    from backend.database.models import CardRequest
+    import hashlib
+
+    CardRequest = CardRequest(
+        customer_id=customer_id,
+        name=name,
+    )
+    dbsession.add(CardRequest)
+    dbsession.flush() 
+
+    return CardRequest

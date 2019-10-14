@@ -1,6 +1,7 @@
 
 from backend.appapi.schemas import recovery_views_schemas as schemas
 from backend.appapi.utils import get_device_token
+from backend.appapi.utils import recovery_error
 from backend.database.models import Device
 from backend.database.models import Customer
 from backend.appapi.utils import get_device
@@ -13,14 +14,6 @@ import logging
 import uuid
 
 log = logging.getLogger(__name__)
-
-
-def recovery_error(request, msg):
-    log.warning(
-        "Recovery error %s for IP address %s",
-        repr(msg), getattr(request, 'remote_addr', None))
-    return {'error': msg}
-
 
 @view_config(name='recover', renderer='json')
 def recover(request):
