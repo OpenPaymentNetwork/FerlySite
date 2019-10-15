@@ -45,7 +45,7 @@ class TestInvite(TestCase):
     @patch('backend.appapi.views.invitation_views.send_email')
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_correct_schema_used(self, get_device, send_email):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
@@ -54,7 +54,7 @@ class TestInvite(TestCase):
     @patch('backend.appapi.views.invitation_views.send_email')
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_get_device_called(self, get_device, send_email):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         get_device.assert_called_once()
@@ -62,7 +62,7 @@ class TestInvite(TestCase):
     @patch('backend.appapi.views.invitation_views.send_email')
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_invitation_added(self, get_device, send_email):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         request = self._make_request()
         self._call(request)
@@ -72,7 +72,7 @@ class TestInvite(TestCase):
     @patch('backend.appapi.views.invitation_views.send_email')
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_email_invitation(self, get_device, send_email):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         recipient = 'friendsemail@example.com'
         sendgrid_response = send_email.return_value = '202'
@@ -93,7 +93,7 @@ class TestInvite(TestCase):
     @patch('backend.appapi.views.invitation_views.send_sms')
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_sms_invitation(self, get_device, send_sms):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         recipient = '+12025551234'
         twilio_response = send_sms.return_value = 'queued'
@@ -124,7 +124,7 @@ class TestExistingInvitations(TestCase):
         return existing_invitations(*args, **kw)
 
     def _make_request(self, **params):
-        request_params = {'device_id': 'defaultdeviceid0defaultdeviceid0'}
+        request_params = {'password': 'defaultpassword0defaultpassword0'}
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = self.dbsession
@@ -145,7 +145,7 @@ class TestExistingInvitations(TestCase):
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_correct_schema_used(self, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
@@ -154,19 +154,19 @@ class TestExistingInvitations(TestCase):
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_get_device_called(self, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         get_device.assert_called_once()
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_invitations_by_this_customer_only(self, get_device):
-        get_device.return_value = device = add_device(self.dbsession)
+        get_device.return_value = device = add_device(self.dbsession)[0]
         other_device = add_device(
             self.dbsession,
             username='other',
             wc_id='12',
-            device_id='other-user-device')
+            password='other-user-device')[0]
         inv = self._add_invitation(customer_id=device.customer_id)
         self._add_invitation(customer_id=other_device.customer_id)
         request = self._make_request()
@@ -182,7 +182,7 @@ class TestExistingInvitations(TestCase):
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_no_status_returns_all(self, get_device):
-        get_device.return_value = device = add_device(self.dbsession)
+        get_device.return_value = device = add_device(self.dbsession)[0]
         self._add_invitation(customer_id=device.customer_id)
         request = self._make_request()
         response = self._call(request)
@@ -190,7 +190,7 @@ class TestExistingInvitations(TestCase):
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_status_match(self, get_device):
-        get_device.return_value = device = add_device(self.dbsession)
+        get_device.return_value = device = add_device(self.dbsession)[0]
         self._add_invitation(customer_id=device.customer_id)
         request = self._make_request(status='pending')
         response = self._call(request)
@@ -198,7 +198,7 @@ class TestExistingInvitations(TestCase):
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_status_mismatch(self, get_device):
-        get_device.return_value = device = add_device(self.dbsession)
+        get_device.return_value = device = add_device(self.dbsession)[0]
         self._add_invitation(customer_id=device.customer_id)
         request = self._make_request(status='accepted')
         response = self._call(request)
@@ -249,27 +249,27 @@ class TestDeleteInvitation(TestCase):
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_get_device_called(self, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         get_device.assert_called_once()
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_invite_not_owned(self, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         response = self._call(self._make_request())
         self.assertEqual(response, {'error': 'cannot_be_deleted'})
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_non_existing_invite(self, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         response = self._call(request)
         self.assertEqual(response, {'error': 'cannot_be_deleted'})
 
     @patch('backend.appapi.views.invitation_views.get_device')
     def test_status_updated(self, get_device):
-        get_device.return_value = device = add_device(self.dbsession)
+        get_device.return_value = device = add_device(self.dbsession)[0]
         invitation = self._add_invitation(customer_id=device.customer.id)
         request = self._make_request(invite_id=invitation.id)
         response = self._call(request)

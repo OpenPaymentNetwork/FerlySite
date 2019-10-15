@@ -96,11 +96,10 @@ def add_device(
         first_name='defaultfirstname',
         last_name='defaultlastname',
         wc_id='11',
-        device_id=b'defaultdeviceid0defaultdeviceid0'):
+        password=b'defaultpassword0defaultpassword0'):
     """Add a Customer and Device to the database."""
     from backend.database.models import Customer, Device
     import hashlib
-
     customer = Customer(
         wc_id=wc_id,
         first_name=first_name,
@@ -110,16 +109,16 @@ def add_device(
     dbsession.add(customer)
     dbsession.flush()  # Assign customer.id
 
-    if not isinstance(device_id, bytes):
-        device_id = device_id.encode('utf-8')
+    if not isinstance(password, bytes):
+        password = password.encode('utf-8')
     device = Device(
-        token_sha256=hashlib.sha256(device_id).hexdigest(),
+        token_sha256=hashlib.sha256(password).hexdigest(),
         customer_id=customer.id,
     )
     dbsession.add(device)
     dbsession.flush()  # Assign device.id
 
-    return device
+    return [device, customer]
 
 def add_card_request(
         dbsession,
@@ -132,8 +131,50 @@ def add_card_request(
     CardRequest = CardRequest(
         customer_id=customer_id,
         name=name,
+        original_line1 = "test",
+        original_city = "test",
+        original_state = "test",
+        original_zip_code = "84321",
+        # line1, line2, city, state, and zip_code are normalized by the USPS
+        # address info service.
+        line1 = "test",
+        city = "test",
+        state = "test",
+        zip_code = "84321",
     )
     dbsession.add(CardRequest)
     dbsession.flush() 
 
     return CardRequest
+
+def add_deviceForCustomer11(
+        dbsession,
+        username='defaultusername',
+        first_name='defaultfirstname',
+        last_name='defaultlastname',
+        wc_id='11',
+        password=b'defaultpassword0defaultpassword0'):
+    """Add a Customer and Device to the database."""
+    from backend.database.models import Customer, Device
+    import hashlib
+
+    customer = Customer(
+        id = '32',
+        wc_id=wc_id,
+        first_name=first_name,
+        last_name=last_name,
+        username=username,
+    )
+    dbsession.add(customer)
+    dbsession.flush()  # Assign customer.id
+
+    if not isinstance(password, bytes):
+        password = password.encode('utf-8')
+    device = Device(
+        token_sha256=hashlib.sha256(password).hexdigest(),
+        customer_id=customer.id,
+    )
+    dbsession.add(device)
+    dbsession.flush()  # Assign device.id
+
+    return [device, customer]

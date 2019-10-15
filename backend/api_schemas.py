@@ -82,7 +82,7 @@ class Recipient(StrippedString):
                 else:
                     raise Invalid(node, msg='Invalid phone number')
         else:
-            raise Invalid(node, msg='Must be a valid email or phone number')
+            raise Invalid(node, msg='Must be a valid email or phone number.')
 
 
 class FieldStorage(SchemaType):

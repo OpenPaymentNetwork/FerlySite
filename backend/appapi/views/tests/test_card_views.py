@@ -36,7 +36,7 @@ class TestAddCard(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params,headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.get_params = params = MagicMock()
         params.return_value = schemas.AddCardSchema().bind(
@@ -260,25 +260,33 @@ class TestVerifyAddress(TestCase):
 
     def _make_request(self, **params):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         return request
 
     def test_no_address_on_file(self, get_device, wc_contact):
-        print("here")
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         response = self._call(request)
         expected_response = {'error': 'No address on file'}
         self.assertEqual(response, expected_response)
 
     def test_address_on_file(self, get_device, wc_contact):
-        print("here2")
-        get_device.return_value = add_device(self.dbsession)
-        add_card_request(self.dbsession)
+        deviceAndCustomer = add_device(self.dbsession)
+        get_device.return_value = deviceAndCustomer[0]
+        add_card_request(self.dbsession,deviceAndCustomer[1].id)
         request = self._make_request()
         response = self._call(request)
-        print(response)
-        self.assertEqual(response, "expected_response")
+        expected_response = {
+            'id': response['id'], 
+            'customer_id': deviceAndCustomer[1].id, 
+            'name': 'defaultname', 
+            'address_line1': 'test', 
+            'address_line2': None, 
+            'city': 'test', 
+            'state': 'test', 
+            'zip': '84321', 
+            'verified': ''}
+        self.assertEqual(response, expected_response)

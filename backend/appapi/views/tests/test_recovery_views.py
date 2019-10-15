@@ -29,7 +29,7 @@ class TestRecover(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params,headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.get_params = params = MagicMock()
         params.return_value = schemas.RecoverySchema().bind(
@@ -48,7 +48,7 @@ class TestRecover(TestCase):
     def test_wc_params(self, wc_contact):
         import uuid
         login = 'email@example.com'
-        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "defaultdeviceid0defaultdeviceid0"))
+        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "defaultpassword0defaultpassword0"))
         request = self._make_request(login=login)
         self._call(request)
         wc_contact.assert_called_with(
@@ -139,7 +139,7 @@ class TestRecoverCode(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
             })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
@@ -205,7 +205,7 @@ class TestRecoverCode(TestCase):
 
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_device_added(self, wc_contact):
-        customer = add_device(self.dbsession).customer
+        customer = add_device(self.dbsession)[0].customer
         os = 'android:28'
         expo_token = 'myexpo_token'
         request = self._make_request(
@@ -222,7 +222,7 @@ class TestRecoverCode(TestCase):
         from backend.database.models import Device
         devices = self.dbsession.query(Device).all()
         self.assertEqual(2, len(devices))
-        # mock_device.assert_called_with(device_id=device_id,
+        # mock_device.assert_called_with(password=password,
         #                                customer_id=customer.id,
         #                                expo_token=expo_token, os=os)
         # request.dbsession.add.assert_called_with(mock_device.return_value)
@@ -390,7 +390,7 @@ class TestLogin(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params,headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()

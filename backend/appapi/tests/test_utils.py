@@ -33,10 +33,10 @@ class Test_get_device_token(TestCase):
 
     def test_valid_token_with_authorization_header(self):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         result = self._call(request, {})
-        self.assertEqual('defaultdeviceid0defaultdeviceid0', result)
+        self.assertEqual('defaultpassword0defaultpassword0', result)
 
     def test_token_required_but_missing(self):
         request = pyramid.testing.DummyRequest(headers={})
@@ -90,7 +90,7 @@ class TestGetDevice(TestCase):
         from backend.appapi.utils import get_device
         return get_device(*args)
 
-    def test_invalid_device_id(self):
+    def test_invalid_password(self):
         request = pyramid.testing.DummyRequest()
         request.dbsession = self.dbsession
         with self.assertRaises(HTTPUnauthorized):
@@ -98,29 +98,29 @@ class TestGetDevice(TestCase):
 
     def test_valid_device_with_authorization_header(self):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         dbsession = request.dbsession = self.dbsession
-        device = add_device(dbsession)
+        device = add_device(dbsession)[0]
         result = self._call(request)
         self.assertEqual(device, result)
 
     def test_device_not_found(self):
         request = pyramid.testing.DummyRequest()
         dbsession = request.dbsession = self.dbsession
-        add_device(dbsession)
+        add_device(dbsession)[0]
         with self.assertRaises(HTTPUnauthorized):
             self._call(request, params={
-                'device_id': 'fakedeviceid' * 4,
+                'password': 'fakepassword' * 4,
             })
 
     def test_update_device_used_yesterday(self):
         from backend.database.models import now_utc
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         dbsession = request.dbsession = self.dbsession
-        device = add_device(dbsession)
+        device = add_device(dbsession)[0]
         device.last_used = (
             datetime.datetime.utcnow() - datetime.timedelta(days=1))
         result = self._call(request)
@@ -129,10 +129,10 @@ class TestGetDevice(TestCase):
 
     def test_no_update_device_used_2_seconds_ago(self):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         dbsession = request.dbsession = self.dbsession
-        device = add_device(dbsession)
+        device = add_device(dbsession)[0]
         last_used = datetime.datetime.utcnow() - datetime.timedelta(seconds=2)
         device.last_used = last_used
         result = self._call(request)
@@ -167,7 +167,7 @@ class TestNotifyCustomer(TestCase):
         post.assert_not_called()
 
     def test_device_without_expo_token(self, post):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         request = Mock()
         request.dbsession = self.dbsession
         device.expo_token = None
@@ -175,7 +175,7 @@ class TestNotifyCustomer(TestCase):
         post.assert_not_called()
 
     def test_post_args(self, post):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         request = Mock()
         request.dbsession = self.dbsession
         device.expo_token = 'my_expo_token'
@@ -203,7 +203,7 @@ class TestNotifyCustomer(TestCase):
         }, call_kw['headers'])
 
     def test_channel_id(self, post):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         request = Mock()
         request.dbsession = self.dbsession
         device.expo_token = 'my_expo_token'
@@ -225,7 +225,7 @@ class TestNotifyCustomer(TestCase):
         self.assertEqual([expected_notification], call_kw['json'])
 
     def test_log_exception(self, post):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         request = Mock()
         request.dbsession = self.dbsession
         device.expo_token = 'my_expo_token'

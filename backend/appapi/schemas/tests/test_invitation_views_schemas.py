@@ -10,7 +10,7 @@ class TestExistingInvitationSchema(TestCase):
         return schemas.ExistingInvitationsSchema().deserialize(obj)
 
     def _make(self, *args, **kw):
-        obj = {'device_id': 'defaultdeviceid0defaultdeviceid0'}
+        obj = {'password': 'defaultpassword0defaultpassword0'}
         obj.update(**kw)
         return obj
 

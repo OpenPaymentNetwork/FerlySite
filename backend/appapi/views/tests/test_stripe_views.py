@@ -250,14 +250,14 @@ class TestPurchase(TestCase):
         self.assertTrue(isinstance(schema_used, schemas.PurchaseSchema))
 
     def test_invalid_design(self, get_device, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request(design_id='my_design_id')
         response = self._call(request)
         self.assertEqual(response, {'error': 'invalid_design'})
 
     def test_get_stripe_customer_params(
             self, get_device, get_stripe_customer, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         request = self._make_request()
         customer = get_device.return_value.customer
@@ -267,7 +267,7 @@ class TestPurchase(TestCase):
 
     def test_create_new_stripe_customer(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         get_stripe_customer.return_value = None
         request = self._make_request()
@@ -277,7 +277,7 @@ class TestPurchase(TestCase):
 
     def test_new_stripe_customer_sets_customer_stripe_id(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         get_stripe_customer.return_value = None
         customer = get_device.return_value.customer
@@ -286,7 +286,7 @@ class TestPurchase(TestCase):
         self.assertEqual(customer.stripe_id, stripe_customer.id)
 
     def test_new_source(self, get_device, get_stripe_customer, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         customer = get_stripe_customer.return_value
         request = self._make_request(source_id='tok_source')
@@ -295,7 +295,7 @@ class TestPurchase(TestCase):
 
     def test_create_source_error(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         customer = get_stripe_customer.return_value
         customer.sources.create.side_effect = CardError(
@@ -306,7 +306,7 @@ class TestPurchase(TestCase):
         self.assertFalse(stripe.Charge.create.called)
 
     def test_invalid_source(self, get_device, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         request = self._make_request(source_id='bad_source')
         with self.assertRaises(Invalid):
@@ -314,7 +314,7 @@ class TestPurchase(TestCase):
 
     def test_new_charge_card_id(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         card = get_stripe_customer.return_value.sources.create.return_value
         self._call(self._make_request(source_id='tok_source'))
@@ -322,7 +322,7 @@ class TestPurchase(TestCase):
 
     def test_existing_charge_card_id(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         source = 'card_source'
         self._call(self._make_request(source_id=source))
@@ -330,7 +330,7 @@ class TestPurchase(TestCase):
 
     def test_amount_conversion(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design(fee=0)
         # A float SchemaNode would convert $18.90 to 1889
         self._call(self._make_request(amount=18.90, fee=0))
@@ -338,7 +338,7 @@ class TestPurchase(TestCase):
 
     def test_amount_type(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         self._call(self._make_request())
         amount_arg = stripe.Charge.create.call_args[1]['amount']
@@ -346,7 +346,7 @@ class TestPurchase(TestCase):
 
     def test_charge_customer(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         customer = get_stripe_customer.return_value
         self._call(self._make_request())
@@ -355,7 +355,7 @@ class TestPurchase(TestCase):
 
     def test_charge_args(
             self, get_device, get_stripe_customer, stripe, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         request = self._make_request()
         self._call(request)
@@ -372,7 +372,7 @@ class TestPurchase(TestCase):
 
     def test_charge_card_error(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         stripe.Charge.create.side_effect = CardError(
             'message', 'param', 'code')
@@ -382,7 +382,7 @@ class TestPurchase(TestCase):
 
     def test_charge_not_paid(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         stripe.Charge.create.return_value.paid = False
         response = self._call(self._make_request())
@@ -391,7 +391,7 @@ class TestPurchase(TestCase):
 
     def test_wc_contact_args(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         design = self._add_design(fee=Decimal('1.44'))
         amount = Decimal('10.85')
         fee = Decimal('1.44')
@@ -416,7 +416,7 @@ class TestPurchase(TestCase):
 
     def test_wc_contact_error(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         wc_contact.return_value.status_code = 500
         charge = stripe.Charge.create.return_value
@@ -426,7 +426,7 @@ class TestPurchase(TestCase):
 
     def test_capture(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         wc_contact.return_value.status_code = 200
         capture = stripe.Charge.create.return_value.capture
@@ -437,7 +437,7 @@ class TestPurchase(TestCase):
 
     def test_failed_capture(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         wc_contact.return_value.status_code = 200
         capture = stripe.Charge.create.return_value.capture
@@ -447,14 +447,14 @@ class TestPurchase(TestCase):
 
     def test_fee_mismatch(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design()
         response = self._call(self._make_request(amount=18.90, fee=2.21))
         self.assertEqual(response, {'error': 'fee_mismatch'})
 
     def test_charge_amount(
             self, get_device, get_stripe_customer, stripe, wc_contact, *args):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         self._add_design(fee=3)
         self._call(self._make_request(amount=18.90, fee=3.00))
         self.assertEqual(stripe.Charge.create.call_args[1]['amount'], 2190)

@@ -50,7 +50,7 @@ class TestRequestCard(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
@@ -64,14 +64,14 @@ class TestRequestCard(TestCase):
         return request
 
     def test_correct_schema_used(self, requests, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.AddressSchema))
 
     def test_get_device_called(self, requests, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         get_device.assert_called()
@@ -84,7 +84,7 @@ class TestRequestCard(TestCase):
         self.assertEqual("No USPS username is set", str(cm.exception))
 
     def test_usps_args(self, requests, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         usps_request_values = {
             'usps_username': 'my_usps_username',
             'line1': 'my_line1',
@@ -106,7 +106,7 @@ class TestRequestCard(TestCase):
             data=usps_request, headers={'Content-Type': 'application/xml'})
 
     def test_malicious_input(self, requests, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         usps_request_values = {
             'usps_username': 'my_usps_username',
             'line1': '<script>',
@@ -158,7 +158,7 @@ class TestRequestCard(TestCase):
         self.assertEqual(response, expected_response)
 
     def test_card_request_added(self, requests, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         address_values = {
             'line1': 'my_line1',
             'line2': 'my_line2',
@@ -197,7 +197,7 @@ class TestRequestCard(TestCase):
         self.assertEqual('TX', cr.state)
 
     def test_return_values(self, requests, get_device):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         address_values = {
             'line1': 'my_line1',
             'line2': 'my_line2',
@@ -239,7 +239,7 @@ class Test_add_individual(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.ferlysettings = MagicMock()
         request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
@@ -337,7 +337,7 @@ class Test_Signup(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.ferlysettings = MagicMock()
         request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
@@ -376,7 +376,7 @@ class Test_Signup(TestCase):
         self.assertTrue(isinstance(schema_used, schemas.SignupSchema))
 
     def test_already_registered(self, get_device, wc_contact):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         response = self._call(request)
         expected_response = {'error': 'device_already_registered'}
@@ -413,7 +413,7 @@ class Test_set_signup_data(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.ferlysettings = MagicMock()
         request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
@@ -478,7 +478,7 @@ class Test_set_signup_finish(TestCase):
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         request.ferlysettings = MagicMock()
         request.ferlysettings.wingcash_client_id = kw.get('WINGCASH_CLIENT_ID', '123456789')
@@ -598,7 +598,7 @@ class TestEditProfile(TestCase):
         get_device.assert_called()
 
     def test_unchanged_username(self, get_device, get_wc_token, wc_contact):
-        get_device.return_value = add_device(self.dbsession)
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         response = self._call(request)
         self.assertEqual(response, {})
@@ -609,14 +609,14 @@ class TestEditProfile(TestCase):
             self.dbsession,
             username='greatusername',
             wc_id='12',
-            device_id=b'otherdeviceid')
-        get_device.return_value = add_device(self.dbsession)
+            password=b'otherpassword')
+        get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request(username='greatusername')
         response = self._call(request)
         self.assertEqual(response, {'error': 'existing_username'})
 
     def test_edit_username_only(self, get_device, get_wc_token, wc_contact):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         customer = device.customer
         customer.first_name = current_first_name = 'firstname'
@@ -636,7 +636,7 @@ class TestEditProfile(TestCase):
         self.assertEqual(customer.username, newusername)
 
     def test_edit_first_name_only(self, get_device, get_wc_token, wc_contact):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         customer = device.customer
         customer.first_name = 'firstname'
@@ -664,7 +664,7 @@ class TestEditProfile(TestCase):
         self.assertEqual(customer.username, current_username)
 
     def test_edit_last_name_only(self, get_device, get_wc_token, wc_contact):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         customer = device.customer
         customer.first_name = current_first_name = 'firstname'
@@ -692,7 +692,7 @@ class TestEditProfile(TestCase):
         self.assertEqual(customer.username, current_username)
 
     def test_update_tsvector(self, get_device, get_wc_token, wc_contact):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         customer = device.customer
         customer.update_tsvector = MagicMock()
@@ -719,7 +719,7 @@ class TestIsCustomer(TestCase):
         }
         request_params.update(kw)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultdeviceid0defaultdeviceid0',
+            'Authorization': 'Bearer defaultpassword0defaultpassword0',
         })
         settings = request.ferlysettings = MagicMock()
         settings.environment = kw.get('environment', 'staging')
@@ -739,12 +739,12 @@ class TestIsCustomer(TestCase):
         response = self._call(self._make_request(environment='production'))
         self.assertEqual(response, {'error': 'unexpected_environment'})
 
-    def test_invalid_device_id(self):
+    def test_invalid_password(self):
         request = self._make_request()
         response = self._call(request)
         self.assertFalse(response.get('is_customer'))
 
-    def test_valid_device_id(self):
+    def test_valid_password(self):
         add_device(self.dbsession)
         response = self._call(self._make_request())
         self.assertTrue(response.get('is_customer'))
@@ -836,7 +836,7 @@ class TestSend(TestCase):
 
     def test_success_without_message(
             self, get_device, wc_contact, get_wc_token, notify_customer):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         customer = device.customer
         get_device.return_value = device
 
@@ -877,7 +877,7 @@ class TestSend(TestCase):
 
     def test_with_message(
             self, get_device, wc_contact, get_wc_token, notify_customer):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         customer = device.customer
         get_device.return_value = device
 
@@ -936,7 +936,7 @@ class TestHistory(TestCase):
 
     def _make_request(self, **kw):
         request_params = {
-            'device_id': 'defaultdeviceid0defaultdeviceid0'
+            'password': 'defaultpassword0defaultpassword0'
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
@@ -1253,7 +1253,7 @@ class TestTransfer(TestCase):
             access_token=access_token)
 
     def test_message_is_returned(self, get_device, wc_contact, get_wc_token):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         customer = device.customer
         get_device.return_value = device
 
@@ -1269,12 +1269,12 @@ class TestTransfer(TestCase):
             self.dbsession,
             username='senderuser',
             wc_id='11',
-            device_id='senderdev')
+            password='senderdev')[0]
         recipient_device = add_device(
             self.dbsession,
             username='recipientuser',
             wc_id='12',
-            device_id='recipientdev')
+            password='recipientdev')[0]
 
         get_device.return_value = sender_device
         recipient_device.customer.profile_image_url = (
@@ -1296,12 +1296,12 @@ class TestTransfer(TestCase):
             self.dbsession,
             username='senderuser',
             wc_id='11',
-            device_id='senderdev')
+            password='senderdev')[0]
         recipient_device = add_device(
             self.dbsession,
             username='recipientuser',
             wc_id='12',
-            device_id='recipientdev')
+            password='recipientdev')[0]
 
         get_device.return_value = recipient_device
         sender_device.customer.profile_image_url = (
@@ -1318,7 +1318,7 @@ class TestTransfer(TestCase):
             response['counter_party_profile_image_url'])
 
     def test_permission_denied(self, get_device, wc_contact, get_wc_token):
-        device = add_device(self.dbsession)
+        device = add_device(self.dbsession)[0]
         get_device.return_value = device
         transfer = self._make_transfer(
             recipient_id='otherrecipientid', sender_id='othersenderid')
@@ -1332,12 +1332,12 @@ class TestTransfer(TestCase):
             self.dbsession,
             username='senderuser',
             wc_id='11',
-            device_id='senderdev')
+            password='senderdev')[0]
         recipient_device = add_device(
             self.dbsession,
             username='recipientuser',
             wc_id='12',
-            device_id='recipientdev')
+            password='recipientdev')[0]
 
         get_device.return_value = sender_device
         recipient_device.customer.profile_image_url = (
@@ -1359,7 +1359,7 @@ class TestTransfer(TestCase):
             self.dbsession,
             username='senderuser',
             wc_id='11',
-            device_id='senderdev')
+            password='senderdev')[0]
 
         get_device.return_value = sender_device
 

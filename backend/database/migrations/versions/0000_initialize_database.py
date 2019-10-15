@@ -91,7 +91,7 @@ def upgrade():
     op.create_index(op.f('ix_user_wc_id'), 'user', ['wc_id'], unique=True)
     op.create_table('device',
     sa.Column('id', sa.String(), server_default=sa.text("skip32_hex_seq(nextval('device_seq'), 'device_seq')"), nullable=False),
-    sa.Column('device_id', sa.String(), nullable=False),
+    sa.Column('password', sa.String(), nullable=False),
     sa.Column('user_id', sa.String(), nullable=False),
     sa.Column('expo_token', sa.String(), nullable=True),
     sa.Column('last_used', sa.DateTime(), server_default=sa.text("timezone('UTC', CURRENT_TIMESTAMP)"), nullable=False),
@@ -99,7 +99,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], name=op.f('fk_device_user_id_user')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_device'))
     )
-    op.create_index(op.f('ix_device_device_id'), 'device', ['device_id'], unique=True)
+    op.create_index(op.f('ix_device_password'), 'device', ['password'], unique=True)
     op.create_table('invitation',
     sa.Column('id', sa.String(), server_default=sa.text("skip32_hex_seq(nextval('invitation_seq'), 'invitation_seq')"), nullable=False),
     sa.Column('user_id', sa.String(), nullable=False),
@@ -116,7 +116,7 @@ def upgrade():
 def downgrade():
     op.drop_index(op.f('ix_invitation_user_id'), table_name='invitation')
     op.drop_table('invitation')
-    op.drop_index(op.f('ix_device_device_id'), table_name='device')
+    op.drop_index(op.f('ix_device_password'), table_name='device')
     op.drop_table('device')
     op.drop_index(op.f('ix_user_wc_id'), table_name='user')
     op.drop_table('user')
