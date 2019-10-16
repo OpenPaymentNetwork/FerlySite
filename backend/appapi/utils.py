@@ -28,6 +28,16 @@ def get_device_token(request, required=False):
         header = header.strip()
         if header.startswith('Bearer '):
             token = header[7:].lstrip()
+    if not token:
+        token = request.params.get('device_id')
+        if token == None:
+            if getattr(request, 'content_type', None) == 'application/json':
+                try:
+                    json_body = request.json_body
+                    if isinstance(json_body, dict):
+                        token = request.json_body.get('device_id')
+                except ValueError:
+                    token = None
 
     if (token and
             len(token) >= min_device_token_length and

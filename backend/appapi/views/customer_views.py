@@ -115,10 +115,10 @@ def request_card(request):
 
 
 
-@view_config(name='add-individual', renderer='json')
+@view_config(name='signup', renderer='json')
 def add_individual(request):
     """Associate a device with a new customer and wallet."""
-    params = request.get_params(schemas.RegisterSchema())
+    params = request.get_params(schemas.OldSignupSchema())
     token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     expo_token = params['expo_token']
@@ -193,7 +193,7 @@ def register(request):
     dbsession.add(device)
     return {}
 
-@view_config(name='signup', renderer='json')
+@view_config(name='newSignup', renderer='json')
 def signup(request):
     """Calls wingcash signup api."""
     params = request.get_params(schemas.SignupSchema())

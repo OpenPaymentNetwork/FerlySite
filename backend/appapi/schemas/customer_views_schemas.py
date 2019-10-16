@@ -79,6 +79,14 @@ class RegisterSchema(Schema):
     expo_token = SchemaNode(String(), missing='', validator=Length(max=1000))
     os = SchemaNode(String(), missing='', validator=Length(max=100))
 
+class OldSignupSchema(Schema):
+    first_name = name(name='first_name')
+    last_name = name(name='last_name')
+    username = username()
+    profile_id = SchemaNode(String(), missing = '')
+    expo_token = SchemaNode(String(), missing='', validator=Length(max=1000))
+    os = SchemaNode(String(), missing='', validator=Length(max=100))
+
 class IsCustomerSchema(Schema):
     expected_env = SchemaNode(String())
 

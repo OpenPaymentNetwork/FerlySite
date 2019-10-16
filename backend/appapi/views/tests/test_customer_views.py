@@ -261,7 +261,7 @@ class Test_add_individual(TestCase):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
-        self.assertTrue(isinstance(schema_used, schemas.RegisterSchema))
+        self.assertTrue(isinstance(schema_used, schemas.OldSignupSchema))
 
     def test_already_registered(self, wc_contact):
         add_device(self.dbsession)
