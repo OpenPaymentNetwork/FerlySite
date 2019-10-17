@@ -1,6 +1,7 @@
 from sendgrid.helpers.mail import Mail
 from twilio.rest import Client
 import sendgrid
+from backend.appapi.templates.email import getTemplate
 
 
 def send_email(request, to_email, subject, text,
@@ -14,6 +15,20 @@ def send_email(request, to_email, subject, text,
         to_emails=to_email,
         subject=subject,
         plain_text_content=text)
+    response = sg.send(mail)
+    return response.status_code
+
+def send_invite_email(request, to_email, subject,
+               from_email='no-reply@ferly.com'):
+    sendgrid_api_key = request.ferlysettings.sendgrid_api_key
+    if sendgrid_api_key is None:
+        return 'no-credentials'
+    sg = sendgrid.SendGridAPIClient(sendgrid_api_key)
+    mail = Mail(
+        from_email=from_email,
+        to_emails=to_email,
+        subject=subject,
+        html_content=getTemplate())
     response = sg.send(mail)
     return response.status_code
 

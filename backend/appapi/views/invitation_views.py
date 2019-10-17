@@ -1,5 +1,5 @@
 from backend.appapi.schemas import invitation_views_schemas as schemas
-from backend.communications import send_email
+from backend.communications import send_invite_email
 from backend.communications import send_sms
 from backend.database.models import Invitation
 from backend.database.serialize import serialize_invitation
@@ -48,11 +48,10 @@ def invite(request):
     recipient = params['recipient']
     message = 'You have been invited to join Ferly.'
     if '@' in recipient:
-        response = send_email(
+        response = send_invite_email(
             request,
             recipient,
             'Ferly Invitation',
-            message
         )
         status = 'sendgrid:{0}'.format(response)
     else:

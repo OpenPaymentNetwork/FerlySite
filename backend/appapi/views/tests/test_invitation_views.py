@@ -42,26 +42,26 @@ class TestInvite(TestCase):
             request=request).deserialize(request_params)
         return request
 
-    @patch('backend.appapi.views.invitation_views.send_email')
+    @patch('backend.appapi.views.invitation_views.send_invite_email')
     @patch('backend.appapi.views.invitation_views.get_device')
-    def test_correct_schema_used(self, get_device, send_email):
+    def test_correct_schema_used(self, get_device, send_invite_email):
         get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.InviteSchema))
 
-    @patch('backend.appapi.views.invitation_views.send_email')
+    @patch('backend.appapi.views.invitation_views.send_invite_email')
     @patch('backend.appapi.views.invitation_views.get_device')
-    def test_get_device_called(self, get_device, send_email):
+    def test_get_device_called(self, get_device, send_invite_email):
         get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         get_device.assert_called_once()
 
-    @patch('backend.appapi.views.invitation_views.send_email')
+    @patch('backend.appapi.views.invitation_views.send_invite_email')
     @patch('backend.appapi.views.invitation_views.get_device')
-    def test_invitation_added(self, get_device, send_email):
+    def test_invitation_added(self, get_device, send_invite_email):
         device = add_device(self.dbsession)[0]
         get_device.return_value = device
         request = self._make_request()
@@ -69,21 +69,20 @@ class TestInvite(TestCase):
         inv = self.dbsession.query(Invitation).one()
         self.assertEqual(device.customer.id, inv.customer_id)
 
-    @patch('backend.appapi.views.invitation_views.send_email')
+    @patch('backend.appapi.views.invitation_views.send_invite_email')
     @patch('backend.appapi.views.invitation_views.get_device')
-    def test_email_invitation(self, get_device, send_email):
+    def test_email_invitation(self, get_device, send_invite_email):
         device = add_device(self.dbsession)[0]
         get_device.return_value = device
         recipient = 'friendsemail@example.com'
-        sendgrid_response = send_email.return_value = '202'
+        sendgrid_response = send_invite_email.return_value = '202'
         expected_response = 'sendgrid:{0}'.format(sendgrid_response)
         request = self._make_request(recipient=recipient)
         self._call(request)
-        send_email.assert_called_with(
+        send_invite_email.assert_called_with(
             request,
             recipient,
             'Ferly Invitation',
-            'You have been invited to join Ferly.'
         )
         inv = self.dbsession.query(Invitation).one()
         self.assertEqual(device.customer.id, inv.customer_id)
