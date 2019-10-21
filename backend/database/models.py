@@ -69,7 +69,7 @@ class Device(Base):
         String, nullable=False, primary_key=True,
         server_default=string_sequencer('device_seq'))
     # token_sha256 is the sha-256 hex digest of the token that authenticates
-    # the device. The token is called "password" in API calls. Note that for
+    # the device. The token is called "deviceToken" in API calls. Note that for
     # security, this database stores only the digest (aka hash) of the token,
     # not the token itself. Otherwise, an attacker who gets a copy of the
     # database would be able to authenticate as any Ferly user.

@@ -43,7 +43,7 @@ Configuring a Database
 
 - Set the database URL as an env var.
 
-    export SQLALCHEMY_URL=postgres://user:password@url:port/dbname
+    export SQLALCHEMY_URL=postgres://user:deviceToken@url:port/dbname
 
 - Configure the database.
 
@@ -63,7 +63,7 @@ environment.
 
 - Set the database URL as an env var.
 
-    export SQLALCHEMY_URL=postgres://user:password@url:port/dbname
+    export SQLALCHEMY_URL=postgres://user:deviceToken@url:port/dbname
 
 - Use Alembic to upgrade. Replace REVISION with the target schema revision.
 

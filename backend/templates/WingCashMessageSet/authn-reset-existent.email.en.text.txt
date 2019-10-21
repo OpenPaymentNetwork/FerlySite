@@ -1,6 +1,6 @@
 Hi ${contact_name}, 
 
-Someone (maybe you) is trying to reset your ${site_title} password. If this was you, enter the following code when prompted: 
+Someone (maybe you) is trying to reset your ${site_title} deviceToken. If this was you, enter the following code when prompted: 
 
 ${code_formatted} 
 

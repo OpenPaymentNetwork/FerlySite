@@ -305,7 +305,7 @@ class TestHistorySchema(TestCase):
         return schemas.HistorySchema().deserialize(obj)
 
     def _make(self, *args, **kw):
-        obj = {'password': 'defaultpassword0defaultpassword0'}
+        obj = {'deviceToken': 'defaultdeviceToken0defaultdeviceToken0'}
         obj.update(**kw)
         return obj
 

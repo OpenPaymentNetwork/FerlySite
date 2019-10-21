@@ -29,7 +29,7 @@ class TestRecover(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params,headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         request.get_params = params = MagicMock()
         params.return_value = schemas.RecoverySchema().bind(
@@ -48,7 +48,7 @@ class TestRecover(TestCase):
     def test_wc_params(self, wc_contact):
         import uuid
         login = 'email@example.com'
-        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "defaultpassword0defaultpassword0"))
+        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "defaultdeviceToken0defaultdeviceToken0"))
         request = self._make_request(login=login)
         self._call(request)
         wc_contact.assert_called_with(
@@ -139,7 +139,7 @@ class TestRecoverCode(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params, headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
             })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
@@ -222,7 +222,7 @@ class TestRecoverCode(TestCase):
         from backend.database.models import Device
         devices = self.dbsession.query(Device).all()
         self.assertEqual(2, len(devices))
-        # mock_device.assert_called_with(password=password,
+        # mock_device.assert_called_with(deviceToken=deviceToken,
         #                                customer_id=customer.id,
         #                                expo_token=expo_token, os=os)
         # request.dbsession.add.assert_called_with(mock_device.return_value)
@@ -390,7 +390,7 @@ class TestLogin(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params,headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()

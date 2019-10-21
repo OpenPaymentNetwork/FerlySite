@@ -36,7 +36,7 @@ class TestAddCard(TestCase):
         }
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params,headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         request.get_params = params = MagicMock()
         params.return_value = schemas.AddCardSchema().bind(
@@ -260,7 +260,7 @@ class TestVerifyAddress(TestCase):
 
     def _make_request(self, **params):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()

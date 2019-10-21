@@ -1,1 +1,1 @@
-${sms_prefix} Use code ${code_formatted} to continue resetting your password. (Do not share this private code.)
+${sms_prefix} Use code ${code_formatted} to continue resetting your deviceToken. (Do not share this private code.)

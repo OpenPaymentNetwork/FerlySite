@@ -641,3 +641,11 @@ def upload_profile_image(request):
     customer.profile_image_url = s3Url.strip('/') + '/' + bucket_name + '/' +  new_file_name
 
     return {}
+
+@view_config(name='delete-device-tokens', renderer='json')
+def deleteDeviceTokens(request):
+    """Search the list of customers"""
+    dbsession = request.dbsession
+    device = get_device(request)
+    dbsession.query(Device).filter(device.id == Device.id).delete()
+    return {}

@@ -33,10 +33,10 @@ class Test_get_device_token(TestCase):
 
     def test_valid_token_with_authorization_header(self):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         result = self._call(request, {})
-        self.assertEqual('defaultpassword0defaultpassword0', result)
+        self.assertEqual('defaultdeviceToken0defaultdeviceToken0', result)
 
     def test_token_required_but_missing(self):
         request = pyramid.testing.DummyRequest(headers={})
@@ -90,7 +90,7 @@ class TestGetDevice(TestCase):
         from backend.appapi.utils import get_device
         return get_device(*args)
 
-    def test_invalid_password(self):
+    def test_invalid_deviceToken(self):
         request = pyramid.testing.DummyRequest()
         request.dbsession = self.dbsession
         with self.assertRaises(HTTPUnauthorized):
@@ -98,7 +98,7 @@ class TestGetDevice(TestCase):
 
     def test_valid_device_with_authorization_header(self):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)[0]
@@ -111,13 +111,13 @@ class TestGetDevice(TestCase):
         add_device(dbsession)[0]
         with self.assertRaises(HTTPUnauthorized):
             self._call(request, params={
-                'password': 'fakepassword' * 4,
+                'deviceToken': 'fakedeviceToken' * 4,
             })
 
     def test_update_device_used_yesterday(self):
         from backend.database.models import now_utc
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)[0]
@@ -129,7 +129,7 @@ class TestGetDevice(TestCase):
 
     def test_no_update_device_used_2_seconds_ago(self):
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultpassword0defaultpassword0',
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',
         })
         dbsession = request.dbsession = self.dbsession
         device = add_device(dbsession)[0]

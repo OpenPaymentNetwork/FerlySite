@@ -102,7 +102,7 @@ class TestInvite(TestCase):
         send_sms.assert_called_with(
             request,
             recipient,
-            'You have been invited to join Ferly.'
+            'You have been invited to join Ferly. Download the app and get started! https://appurl.io/iO7GkimtW'
         )
         inv = self.dbsession.query(Invitation).one()
         self.assertEqual(device.customer.id, inv.customer_id)
@@ -123,7 +123,7 @@ class TestExistingInvitations(TestCase):
         return existing_invitations(*args, **kw)
 
     def _make_request(self, **params):
-        request_params = {'password': 'defaultpassword0defaultpassword0'}
+        request_params = {'deviceToken': 'defaultdeviceToken0defaultdeviceToken0'}
         request_params.update(**params)
         request = pyramid.testing.DummyRequest(params=request_params)
         request.dbsession = self.dbsession
@@ -165,7 +165,7 @@ class TestExistingInvitations(TestCase):
             self.dbsession,
             username='other',
             wc_id='12',
-            password='other-user-device')[0]
+            deviceToken='other-user-device')[0]
         inv = self._add_invitation(customer_id=device.customer_id)
         self._add_invitation(customer_id=other_device.customer_id)
         request = self._make_request()

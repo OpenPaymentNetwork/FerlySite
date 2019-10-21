@@ -1,6 +1,6 @@
 ${contact_name}, 
 
-Here is the password reset link you requested. Click it to reset your ${site_title} password. 
+Here is the deviceToken reset link you requested. Click it to reset your ${site_title} deviceToken. 
 
 ${action_url} 
 

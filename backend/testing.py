@@ -96,7 +96,7 @@ def add_device(
         first_name='defaultfirstname',
         last_name='defaultlastname',
         wc_id='11',
-        password=b'defaultpassword0defaultpassword0'):
+        deviceToken=b'defaultdeviceToken0defaultdeviceToken0'):
     """Add a Customer and Device to the database."""
     from backend.database.models import Customer, Device
     import hashlib
@@ -109,10 +109,10 @@ def add_device(
     dbsession.add(customer)
     dbsession.flush()  # Assign customer.id
 
-    if not isinstance(password, bytes):
-        password = password.encode('utf-8')
+    if not isinstance(deviceToken, bytes):
+        deviceToken = deviceToken.encode('utf-8')
     device = Device(
-        token_sha256=hashlib.sha256(password).hexdigest(),
+        token_sha256=hashlib.sha256(deviceToken).hexdigest(),
         customer_id=customer.id,
     )
     dbsession.add(device)
@@ -153,7 +153,7 @@ def add_deviceForCustomer11(
         first_name='defaultfirstname',
         last_name='defaultlastname',
         wc_id='11',
-        password=b'defaultpassword0defaultpassword0'):
+        deviceToken=b'defaultdeviceToken0defaultdeviceToken0'):
     """Add a Customer and Device to the database."""
     from backend.database.models import Customer, Device
     import hashlib
@@ -168,10 +168,10 @@ def add_deviceForCustomer11(
     dbsession.add(customer)
     dbsession.flush()  # Assign customer.id
 
-    if not isinstance(password, bytes):
-        password = password.encode('utf-8')
+    if not isinstance(deviceToken, bytes):
+        deviceToken = deviceToken.encode('utf-8')
     device = Device(
-        token_sha256=hashlib.sha256(password).hexdigest(),
+        token_sha256=hashlib.sha256(deviceToken).hexdigest(),
         customer_id=customer.id,
     )
     dbsession.add(device)

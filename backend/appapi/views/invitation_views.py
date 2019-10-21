@@ -46,7 +46,7 @@ def invite(request):
     dbsession = request.dbsession
 
     recipient = params['recipient']
-    message = 'You have been invited to join Ferly.'
+    message = 'You have been invited to join Ferly. Download the app and get started! https://appurl.io/iO7GkimtW'
     if '@' in recipient:
         response = send_invite_email(
             request,
