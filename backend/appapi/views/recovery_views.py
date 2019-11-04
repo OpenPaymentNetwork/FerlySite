@@ -68,7 +68,8 @@ def login(request):
     if device:
         # Trying to recover a device in use
         return recovery_error(request, 'unexpected_auth_attempt')
-    expo_token = params['expo_token']
+    if params['expo_token']:
+        expo_token = params['expo_token']
     os = params['os']
     wc_id = params['profile_id']
     customer = request.dbsession.query(Customer).filter(
@@ -90,7 +91,8 @@ def recover_code(request):
     params = request.get_params(schemas.RecoveryCodeSchema())
     token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
-    expo_token = params['expo_token']
+    if params['expo_token']:
+        expo_token = params['expo_token']
     os = params['os']
 
     dbsession = request.dbsession
