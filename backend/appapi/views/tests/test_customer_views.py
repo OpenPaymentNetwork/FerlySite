@@ -859,6 +859,7 @@ class TestSend(TestCase):
             'amounts': '41-USD-2.53',
             'require_recipient_email': False,
             'accepted_policy': True,
+            'appdata.ferly.transactionType': 'gift',
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,
@@ -901,6 +902,7 @@ class TestSend(TestCase):
             'require_recipient_email': False,
             'accepted_policy': True,
             'message': 'hi sir',
+            'appdata.ferly.transactionType': 'gift',
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,
@@ -1370,3 +1372,140 @@ class TestTransfer(TestCase):
         request = self._make_request()
         response = self._call(request)
         self.assertEqual('', response['counter_party_profile_image_url'])
+
+@patch('backend.appapi.views.customer_views.get_device')
+class TestDeleteDeviceTokens(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import deleteDeviceTokens
+        return deleteDeviceTokens(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_token_deleted(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual({},response)
+
+@patch('backend.appapi.views.customer_views.get_device')
+class TestGetExpoToken(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import getExpoToken
+        return getExpoToken(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_expotoken_returned(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual('test1234',response['expo_token'])
+
+@patch('backend.appapi.views.customer_views.get_device')
+@patch('backend.appapi.views.customer_views.log.info')
+class TestLogInfo(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import logInfo
+        return logInfo(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_get_device_called(self, get_device, info):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_log_info_called(self, get_device, info):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        response = self._call(request)
+        info.assert_called()
+        self.assertEqual({},response)
+
+@patch('backend.appapi.views.customer_views.get_device_token')
+@patch('backend.appapi.views.customer_views.log.info')
+class TestLogInfoInitial(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import logInfoInitial
+        return logInfoInitial(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest()
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_get_device_called(self, get_device_token, info):
+        get_device_token.return_value = 'test1234'
+        request = self._make_request()
+        self._call(request)
+        get_device_token.assert_called()
+
+    def test_log_info_called(self, get_device_token, info):
+        get_device_token.return_value = 'test1234'
+        request = self._make_request()
+        response = self._call(request)
+        info.assert_called()
+        self.assertEqual({},response)
+
+
+
+
+
+    

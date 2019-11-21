@@ -23,7 +23,8 @@ class TestPurchaseSchema(TestCase):
             'design_id': 'default_design_id',
             'source_id': 'default_source_id',
             'amount': 0.51,
-            'fee': 0.01
+            'fee': 0.01,
+            'appdata.ferly.transactionType': 'purchase',
         }
         obj.update(**kw)
         return obj

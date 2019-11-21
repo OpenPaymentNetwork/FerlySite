@@ -215,7 +215,8 @@ class TestPurchase(TestCase):
             'source_id': 'card_source',
             'design_id': 'default_design_id',
             'amount': 1.00,
-            'fee': 2.00
+            'fee': 2.00,
+            'appdata.ferly.transactionType': 'purchase',
         }
         request_params.update(**kw)
         request = pyramid.testing.DummyRequest(params=request_params)
@@ -407,7 +408,8 @@ class TestPurchase(TestCase):
             'appdata.ferly.stripe_brand':
                 charge.payment_method_details.card.brand,
             'appdata.ferly.stripe_last4':
-                charge.payment_method_details.card.last4
+                charge.payment_method_details.card.last4,
+            'appdata.ferly.transactionType': 'purchase',
         }
         args = wc_contact.call_args
         self.assertEqual(

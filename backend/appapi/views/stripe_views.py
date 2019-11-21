@@ -80,20 +80,17 @@ def get_distributor_token(request):
         raise
     return response.json().get('access_token')
 
-
 @view_config(name='purchase', renderer='json')
 def purchase(request):
     params = request.get_params(schemas.PurchaseSchema())
     device = get_device(request)
     customer = device.customer
-
     design = request.dbsession.query(Design).get(params['design_id'])
     if design is None:
         log.warning(
             "purchase() returning 'invalid_design' with design_id=%s",
             params['design_id'])
         return {'error': 'invalid_design'}
-
     amount = params['amount']
     amount_in_cents = int(amount * 100)
     fee = params['fee']
@@ -162,7 +159,8 @@ def purchase(request):
         'amount': str(amount),
         'appdata.ferly.convenience_fee': str(fee),
         'appdata.ferly.stripe_brand': charge.payment_method_details.card.brand,
-        'appdata.ferly.stripe_last4': charge.payment_method_details.card.last4
+        'appdata.ferly.stripe_last4': charge.payment_method_details.card.last4,
+        'appdata.ferly.transactionType': 'purchase',
     }
     wc_response = wc_contact(
         request, 'POST',

@@ -379,7 +379,8 @@ def send(request):
         'recipient_uid': 'wingcash:{0}'.format(recipient.wc_id),
         'amounts': amount_row,
         'require_recipient_email': False,
-        'accepted_policy': True
+        'accepted_policy': True,
+        'appdata.ferly.transactionType': 'gift',
     }
 
     if message:
@@ -644,8 +645,30 @@ def upload_profile_image(request):
 
 @view_config(name='delete-device-tokens', renderer='json')
 def deleteDeviceTokens(request):
-    """Search the list of customers"""
+    """Delete old device"""
     dbsession = request.dbsession
     device = get_device(request)
     dbsession.query(Device).filter(device.id == Device.id).delete()
+    return {}
+
+@view_config(name='get-expo-token', renderer='json')
+def getExpoToken(request):
+    """Get current expo token"""
+    device = get_device(request)
+    return {'expo_token': device.expo_token}
+
+
+@view_config(name='log-info', renderer='json')
+def logInfo(request):
+    """Log client info"""
+    params = request.get_params(schemas.LogInfoSchema())
+    device = get_device(request)
+    log.info("device" + ": " + device.id + ", " + device.customer.id + ": " + params['text'])
+    return {}
+
+@view_config(name='log-info-initial', renderer='json')
+def logInfoInitial(request):
+    """Log client info"""
+    params = request.get_params(schemas.LogInfoSchema())
+    log.info(get_device_token(request) + ": " + params['text'])
     return {}

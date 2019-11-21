@@ -15,6 +15,7 @@ import uuid
 
 log = logging.getLogger(__name__)
 
+
 @view_config(name='recover', renderer='json')
 def recover(request):
     params = request.get_params(schemas.RecoverySchema())
@@ -60,6 +61,7 @@ def recover(request):
 
 @view_config(name='login', renderer='json')
 def login(request):
+    found = False
     params = request.get_params(schemas.LoginSchema())
     token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
@@ -67,7 +69,7 @@ def login(request):
         Device.token_sha256 == token_sha256).first()
     if device:
         # Trying to recover a device in use
-        return recovery_error(request, 'unexpected_auth_attempt')
+        found = True
     expo_token = params['expo_token']
     os = params['os']
     wc_id = params['profile_id']
@@ -77,16 +79,18 @@ def login(request):
         # This user authenticated successfully to OPN, but the user
         # is not in the Ferly customer table.
         return recovery_error(request, 'not_a_customer')
-    new_device = Device(
-        token_sha256=token_sha256,
-        customer_id=customer.id,
-        expo_token=expo_token,
-        os=os)
-    request.dbsession.add(new_device)
+    if not found:
+        new_device = Device(
+            token_sha256=token_sha256,
+            customer_id=customer.id,
+            expo_token=expo_token,
+            os=os)
+        request.dbsession.add(new_device)
     return {}
 
 @view_config(name='recover-code', renderer='json')
 def recover_code(request):
+    found = False
     params = request.get_params(schemas.RecoveryCodeSchema())
     token = get_device_token(request, required=True)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
@@ -98,7 +102,7 @@ def recover_code(request):
         Device.token_sha256 == token_sha256).first()
     if device:
         # Trying to recover a device in use
-        return recovery_error(request, 'unexpected_auth_attempt')
+        found = True
     wc_params = {
         'code': params['code'],
         'factor_id': params['factor_id'],
@@ -132,13 +136,13 @@ def recover_code(request):
         # This user authenticated successfully to OPN, but the user
         # is not in the Ferly customer table.
         return recovery_error(request, 'not_a_customer')
-
-    new_device = Device(
-        token_sha256=token_sha256,
-        customer_id=customer.id,
-        expo_token=expo_token,
-        os=os)
-    dbsession.add(new_device)
+    if not found:
+        new_device = Device(
+            token_sha256=token_sha256,
+            customer_id=customer.id,
+            expo_token=expo_token,
+            os=os)
+        dbsession.add(new_device)
 
     return {}
 
@@ -199,3 +203,5 @@ def confirm_uid(request):
             else:
                 return recovery_error(request, 'unexpected_wc_response')
     return {}
+
+

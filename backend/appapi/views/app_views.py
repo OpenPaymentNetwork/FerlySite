@@ -6,13 +6,13 @@ from backend.appapi.utils import notify_customer
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
 from sqlalchemy import cast
+import json
 from sqlalchemy import func
 from sqlalchemy import Unicode
 import logging
 
 _last_transfer_notified = ''
 log = logging.getLogger(__name__)
-
 
 @view_config(name='redemption-notification', renderer='json')
 def redemption_notification(request):
@@ -25,6 +25,7 @@ def redemption_notification(request):
     else:
         param_map = request.params
     source_url = param_map.get('source_url', '')
+    transfers = param_map.get('transfers', '')
     ferly_id = request.ferlysettings.wingcash_profile_id
     expect_source = '/p/{0}/webhook'.format(ferly_id)
     if expect_source not in source_url:
@@ -35,6 +36,7 @@ def redemption_notification(request):
         return {}
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
+        transaction_type = transfer.get('appdata.ferly.transactionType','')
         try:
             amount = transfer['amount']
             completed = transfer['completed']
@@ -57,10 +59,21 @@ def redemption_notification(request):
             Design.wc_id == loop_id).first()
         if not customer or not design:
             continue
-        body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
-            amount, design.title)
-        notify_customer(request, customer, 'Redemption', body,
-                        channel_id='card-used')
+        if transaction_type == 'gift':
+            body = 'You gifted ${0} {1}.'.format(
+                amount, design.title)
+            notify_customer(request, customer, 'Gift', body,
+                    channel_id='card-used')
+        elif transaction_type == 'purchase':
+            body = 'Your purchased ${0} {1}.'.format(
+                amount, design.title)
+            notify_customer(request, customer, 'Purchase', body,
+                    channel_id='card-used')
+        else:
+            body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
+                amount, design.title)
+            notify_customer(request, customer, 'Redemption', body,
+                    channel_id='card-used')
     return {}
 
 

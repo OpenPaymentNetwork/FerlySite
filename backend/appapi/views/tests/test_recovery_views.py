@@ -156,12 +156,6 @@ class TestRecoverCode(TestCase):
         self.assertTrue(
             isinstance(schema_used, schemas.RecoveryCodeSchema))
 
-    def test_existing_device(self):
-        add_device(self.dbsession)
-        request = self._make_request()
-        response = self._call(request)
-        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})
-
     @patch('backend.appapi.views.recovery_views.wc_contact')
     def test_wc_params(self, wc_contact):
         code = 'mycode'
@@ -403,9 +397,3 @@ class TestLogin(TestCase):
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.LoginSchema))
-    
-    def test_existing_device(self):
-        add_device(self.dbsession)
-        request = self._make_request()
-        response = self._call(request)
-        self.assertEqual(response, {'error': 'unexpected_auth_attempt'})

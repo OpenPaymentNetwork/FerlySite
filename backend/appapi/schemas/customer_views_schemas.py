@@ -120,3 +120,6 @@ class SearchCustomersSchema(Schema):
 
 class UploadProfileImageSchema(Schema):
     image = SchemaNode(FieldStorage())
+
+class LogInfoSchema(Schema):
+    text = SchemaNode(String())
