@@ -4,8 +4,11 @@ from backend.communications import send_sms
 from backend.database.models import Invitation
 from backend.database.serialize import serialize_invitation
 from backend.appapi.utils import get_device
+from backend.appapi.utils import get_wc_token
 from backend.wccontact import wc_contact
+from datetime import datetime
 from pyramid.view import view_config
+from sqlalchemy import func
 
 
 @view_config(name='delete-invitation', renderer='json')
@@ -65,3 +68,71 @@ def invite(request):
     )
     dbsession.add(invitation)
     return {}
+
+@view_config(name='accept-code', renderer='json')
+def acceptCode(request):
+    params = request.get_params(schemas.AcceptCodeSchema())
+    device = get_device(request)
+    customer = device.customer
+    access_token = get_wc_token(request, customer)
+    postParams = {
+        'code': params['code']
+    }
+    return wc_contact(
+        request, 'POST', 'wallet/accept-code', params=postParams,
+        access_token=access_token).json()
+
+@view_config(name='get-invalid-code-count', renderer='json')
+def getInvalidCodeCount(request):
+    device = get_device(request)
+    customer = device.customer
+    return { 'count': customer.invalid_count}
+
+@view_config(name='update-invalid-code-count', renderer='json')
+def updateInvalidCodeCount(request):
+    invalid_result = request.get_params(schemas.updateInvalidCodeCountSchema())
+    device = get_device(request)
+    customer = device.customer
+    if invalid_result:
+        if customer.invalid_count == '' or customer.invalid_date.date() < datetime.now().date():
+            customer.invalid_count = '1'
+            customer.invalid_date = func.timezone('UTC', func.current_timestamp())
+        else:
+            customer.invalid_count = str(int(customer.invalid_count) + 1)
+    else:
+        customer.invalid_count = '0'
+    return {}
+
+@view_config(name='retract', renderer='json')
+def recover(request):
+    params = request.get_params(schemas.RetractSchema())
+    device = get_device(request)
+    customer = device.customer
+    access_token = get_wc_token(request, customer)
+    postParams = {
+        'reason': 'other'
+    }
+    return wc_contact(
+        request, 'POST', 't/' + params['transfer_id'] + '/retract', params=postParams,
+        access_token=access_token).json()
+
+@view_config(name='resend', renderer='json')
+def resend(request):
+    params = request.get_params(schemas.RetractSchema())
+    device = get_device(request)
+    customer = device.customer
+    access_token = get_wc_token(request, customer)
+    return wc_contact(
+        request, 'POST', 't/' + params['transfer_id'] + '/resend',
+        access_token=access_token).json()
+
+@view_config(name='get_transfer_details', renderer='json')
+def getTransferDetails(request):
+    params = request.get_params(schemas.RetractSchema())
+    device = get_device(request)
+    customer = device.customer
+    access_token = get_wc_token(request, customer)
+    return wc_contact(
+        request, 'GET', 't/' + params['transfer_id'],
+        access_token=access_token).json()
+        

@@ -33,6 +33,8 @@ def username():
 def name(name='name'):
     return SchemaNode(StrippedString(), name=name, validator=Length(1, 50))
 
+class ExpoTokenSchema(Schema):
+    expo_token = SchemaNode(String())
 
 class AddressSchema(Schema):
     name = SchemaNode(StrippedString(), validator=Length(max=50))
@@ -95,8 +97,11 @@ class SendSchema(Schema):
     amount = amount()
     design_id = SchemaNode(String())
     recipient_id = SchemaNode(String())
+    sender = SchemaNode(String(), missing = '')
     message = SchemaNode(
         StrippedString(), missing='', validator=Length(max=500))
+    invitation_type = SchemaNode(String(), missing = '')
+    invitation_code_length = SchemaNode(Integer(), missing=0)
 
 
 class EditProfileSchema(Schema):

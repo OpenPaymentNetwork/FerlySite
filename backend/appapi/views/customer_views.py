@@ -25,9 +25,15 @@ import logging
 import os
 import requests
 import uuid
-
+import json
 log = logging.getLogger(__name__)
 
+@view_config(name='set-expo-token', renderer='json')
+def SetExpoToken(request):
+    params = request.get_params(schemas.ExpoTokenSchema())
+    device = get_device(request)
+    device.expo_token = params['expo_token']
+    return {}
 @view_config(name='request-card', renderer='json')
 def request_card(request):
     """Save the address a customer requested a new Ferly Card be mailed to."""
@@ -237,6 +243,7 @@ def add_factor(request):
         secret=params['secret'],
         params=postParams).json()
 
+
 @view_config(name='auth-uid', renderer='json')
 def auth_uid(request):
     """Calls wingcash auth-uid api."""
@@ -361,28 +368,42 @@ def send(request):
     params = request.get_params(schemas.SendSchema())
     device = get_device(request)
     customer = device.customer
-
     recipient_id = params['recipient_id']
     design_id = params['design_id']
     amount = params['amount']
     message = params['message']
-
+    invitation_type = params['invitation_type']
+    invitation_code_length = params['invitation_code_length']
     dbsession = request.dbsession
-    recipient = dbsession.query(Customer).get(recipient_id)
+    sendNotify = False
+    customer_uid = 'wingcash:{0}'.format(customer.wc_id)
+    if params['sender'] == '':
+        sendNotify = True
+        recipient = dbsession.query(Customer).get(recipient_id)
+        recipient_uid = 'wingcash:{0}'.format(recipient.wc_id)
+
+    else:
+        recipient = recipient_id
+        recipient_uid = recipient
     design = dbsession.query(Design).get(design_id)
     if design is None:
         return {'error': 'invalid_design'}
     amount_row = "{0}-USD-{1}".format(design.wc_id, amount)
-
     params = {
-        'sender_id': customer.wc_id,
-        'recipient_uid': 'wingcash:{0}'.format(recipient.wc_id),
+        'sender_uid': customer_uid,
+        'recipient_uid': recipient_uid,
         'amounts': amount_row,
         'require_recipient_email': False,
         'accepted_policy': True,
         'appdata.ferly.transactionType': 'gift',
+        'appdata.ferly.designId': design_id,
+        'appdata.ferly.title': design.title,
     }
 
+    if invitation_type != '':
+        params['invitation_type'] = invitation_type
+        params['invitation_code_length'] = invitation_code_length
+        params['invitation_expire_days'] = 30
     if message:
         params['message'] = message
 
@@ -390,21 +411,19 @@ def send(request):
     new_recents = [recipient_id]
     new_recents.extend(
         filter(lambda x: x != recipient_id, customer.recents or ()))
-    customer.recents = new_recents[:9]
-
     access_token = get_wc_token(request, customer)
-    wc_contact(request, 'POST', 'wallet/send', params=params,
-               access_token=access_token)
-
+    response = wc_contact(request, 'POST', 'wallet/send', params=params,
+               access_token=access_token).json()
     formatted_amount = '${:.2f}'.format(amount)
 
     title = 'Received {0} {1}'.format(formatted_amount, design.title)
     sender = 'from {0}'.format(customer.title)
     body = '{0}\n{1}'.format(message, sender) if message else sender
-    notify_customer(
-        request, recipient, title, body, channel_id='gift-received')
-
-    return {}
+    if sendNotify:
+        notify_customer(
+            request, recipient, title, body, channel_id='gift-received')
+        customer.recents = new_recents[:9]
+    return response
 
 
 @view_config(name='edit-profile', renderer='json')
@@ -458,19 +477,18 @@ def history(request):
     device = get_device(request)
     customer = device.customer
     dbsession = request.dbsession
-
     post_params = {'limit': params['limit'], 'offset': params['offset']}
 
     access_token = get_wc_token(request, customer)
     response = wc_contact(
         request, 'GET', 'wallet/history', params=post_params,
         access_token=access_token)
-
-    json = response.json()
-    results = json.get('results', [])
-    has_more = bool(json.get('more'))
+    json2 = response.json()
+    print("herehistoryrequest")
+    print(json2)
+    results = json2.get('results', [])
+    has_more = bool(json2.get('more'))
     history = []
-
     # Gather the designs using a single query for speed.
     all_loop_ids = set()
     transfer_loop_ids = {}  # {transfer_id: loop_id}
@@ -479,7 +497,6 @@ def history(request):
         if loop_id:
             all_loop_ids.add(loop_id)
         transfer_loop_ids[transfer['id']] = loop_id
-
     if all_loop_ids:
         rows = (
             dbsession.query(Design)
@@ -488,14 +505,18 @@ def history(request):
         designs = {row.wc_id: row for row in rows}
     else:
         designs = {}
-
     for transfer in results:
+        appdataDesignId = transfer.get('appdata.ferly.designId')
+        pending = transfer.get('next_activity')
         amount = transfer['amount']
         timestamp = transfer['timestamp']
         loop_id = transfer_loop_ids.get(transfer['id'])
         if loop_id:
             design = designs.get(loop_id)
-
+        elif appdataDesignId:
+            design =  dbsession.query(Design).filter(Design.id == appdataDesignId).first()
+        else:
+            design = None
         sender_info = transfer['sender_info']
         recipient_info = transfer['recipient_info']
         transfer_type = 'unrecognized'
@@ -509,15 +530,19 @@ def history(request):
         elif transfer['sender_id'] == customer.wc_id:
             counter_party = recipient_info['title']
             if bool(recipient_info['is_individual']):
-                transfer_type = 'send'
+                if pending == "invite.wait":
+                    transfer_type = 'pending'
+                elif transfer.get('canceled') == True:
+                    transfer_type = 'canceled'
+                else:
+                    transfer_type = 'send'
             else:
                 transfer_type = 'redeem'
-
         design_json = (
             None if design is None else serialize_design(request, design))
-
         history.append({
             'id': transfer['id'],
+            'sent_count': transfer.get('sent_count'),
             'amount': amount,
             'transfer_type': transfer_type,
             'counter_party': counter_party,

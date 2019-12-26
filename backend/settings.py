@@ -18,6 +18,10 @@ class FerlySettings(object):
         return self._settings['wingcash_api_url']
 
     @reify
+    def branch_api_url(self):
+        return self._settings['branch_api_url']
+
+    @reify
     def wingcash_profile_id(self):
         return self._settings['wingcash_profile_id']
 

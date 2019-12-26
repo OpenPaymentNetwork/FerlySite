@@ -89,6 +89,23 @@ class DBFixture:
             engine.dispose()
             del self.engine
 
+def add_customer( 
+        dbsession,       
+        wc_id='11',
+        first_name='defaultfirstname',
+        last_name='defaultlastname',
+        username='defaultusername'):
+    from backend.database.models import Customer, Device
+    import hashlib
+    customer = Customer(
+        wc_id=wc_id,
+        first_name=first_name,
+        last_name=last_name,
+        username=username,
+    )
+    dbsession.add(customer)
+    dbsession.flush()
+    return customer
 
 def add_device(
         dbsession,

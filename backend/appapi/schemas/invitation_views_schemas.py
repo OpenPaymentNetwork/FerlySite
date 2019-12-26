@@ -4,6 +4,7 @@ from colander import Schema
 from colander import SchemaNode
 from colander import String
 from colander import Decimal
+from colander import Boolean
 from backend.api_schemas import Recipient
 
 
@@ -20,3 +21,12 @@ class ExistingInvitationsSchema(Schema):
 
 class InviteSchema(Schema):
     recipient = SchemaNode(Recipient())
+
+class AcceptCodeSchema(Schema):
+    code = SchemaNode(String())
+
+class RetractSchema(Schema):
+    transfer_id = SchemaNode(String())
+
+class updateInvalidCodeCountSchema(Schema):
+    invalid_result = SchemaNode(Boolean())

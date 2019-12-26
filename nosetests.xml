@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="2" errors="2" failures="0" skip="0"><testcase classname="test_customer_views.TestLogInfo" name="test_get_device_called" time="0.829"><error type="builtins.TypeError" message="test_get_device_called() missing 1 required positional argument: 'info'"><![CDATA[Traceback (most recent call last):
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\case.py", line 59, in testPartExecutor
+    yield
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\case.py", line 628, in run
+    testMethod()
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\mock.py", line 1209, in patched
+    return func(*args, **keywargs)
+TypeError: test_get_device_called() missing 1 required positional argument: 'info'
+]]></error></testcase><testcase classname="test_customer_views.TestLogInfo" name="test_log_info_called" time="0.001"><error type="builtins.TypeError" message="test_log_info_called() missing 1 required positional argument: 'info'"><![CDATA[Traceback (most recent call last):
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\case.py", line 59, in testPartExecutor
+    yield
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\case.py", line 628, in run
+    testMethod()
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\mock.py", line 1209, in patched
+    return func(*args, **keywargs)
+TypeError: test_log_info_called() missing 1 required positional argument: 'info'
+]]></error></testcase></testsuite>

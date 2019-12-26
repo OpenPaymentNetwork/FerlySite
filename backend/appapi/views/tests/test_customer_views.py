@@ -3,6 +3,7 @@ from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.database.models import Design
 from backend.database.models import Device
 from backend import settings
+from backend.testing import add_customer
 from backend.testing import add_device
 from backend.testing import DBFixture
 from pyramid.httpexceptions import HTTPServiceUnavailable
@@ -1504,7 +1505,73 @@ class TestLogInfoInitial(TestCase):
         info.assert_called()
         self.assertEqual({},response)
 
+@patch('backend.appapi.views.customer_views.wc_contact')
+class Testsignup(TestCase):
 
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import signup
+        return signup(*args, **kw)
+
+    def _make_request(self, **params):
+        request_params = {
+            'login': 'test@test.com',
+            'username': 'testuser'
+        }
+        request_params.update(**params)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'
+            })
+        request.ferlysettings = MagicMock()
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.SignupSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def test_correct_schema_used(self, wc_contact):
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schemas.SignupSchema))
+
+    def test_wingcash_called(self, wc_contact):
+        request = self._make_request()
+        self._call(request)
+        wc_contact.assert_called()
+
+    def test_wc_params(self, wc_contact):
+        device_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "defaultdeviceToken0defaultdeviceToken0"))
+        request = self._make_request()
+        self._call(request)
+        params = {
+            'client_id': request.ferlysettings.wingcash_client_id,
+            'device_uuid': device_uuid,
+            'login': 'test@test.com',
+        }
+        wc_params = {**params}
+        self._call(request)
+        wc_contact.assert_called_with(
+            request, 'POST', 'aa/signup-closed', params=wc_params,
+            auth=True)
+
+    def test_device_already_exists(self, wc_contact):
+        add_device(self.dbsession)
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual({'error': 'device_already_registered'}, response)
+
+    def test_username_already_exists(self, wc_contact):
+        add_customer(self.dbsession, username='testuser')
+        request = self._make_request()
+        response = self._call(request)
+        self.assertEqual({'error': 'existing_username'}, response)
 
 
 

@@ -1,6 +1,7 @@
 from backend.site import API
 from backend.site import Site
 from colander import Invalid
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPUnauthorized
@@ -31,6 +32,12 @@ def index_html(request):
         request=request,
         cache_max_age=600,
         content_type='text/html;charset=utf-8')
+
+@view_config(name='b', context=Site)
+def branch_html(request):
+    if (len(request.subpath) > 0):
+        print(request.subpath[0])
+    return HTTPSeeOther('https://cy7je.app.link/RzrGpv6m61')
 
 
 @notfound_view_config(renderer='json')

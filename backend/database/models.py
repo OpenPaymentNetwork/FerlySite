@@ -50,6 +50,8 @@ class Customer(Base):
     recents = Column(ARRAY(String), nullable=False, default=[])
     tsvector = Column(TSVECTOR)
     stripe_id = Column(String)
+    invalid_date = Column(DateTime, nullable=False, server_default=now_utc)
+    invalid_count = Column(String, nullable=False, server_default='0')
 
     @property
     def title(self):
