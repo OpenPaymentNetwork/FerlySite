@@ -369,11 +369,17 @@ class TestUpdateInvalidCodeCount(TestCase):
         from backend.appapi.views.invitation_views import updateInvalidCodeCount
         return updateInvalidCodeCount(*args, **kw)
 
-    def _make_request(self, **kw):
+    def _make_request(self, invalid=True, **params):
+        request_params = {
+            'invalid_result': invalid,
+        }
+        request_params.update(**params)
         request = pyramid.testing.DummyRequest(headers={
-            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'}, params=request_params)
         request.dbsession = self.dbsession
-        request.get_params = kw = MagicMock()
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.updateInvalidCodeCountSchema().bind(
+            request=request).deserialize(request_params)
         return request
 
     def test_correct_schema_used(self, get_device):
@@ -404,6 +410,14 @@ class TestUpdateInvalidCodeCount(TestCase):
         self._call(self._make_request())
         self.assertEqual(customer.invalid_count, '2')
         self.assertEqual(customer.invalid_date.date(), datetime.now().date())
+
+    def test_update_successful_Valid(self, get_device):
+        from datetime import datetime
+        deviceCustomer = add_device(self.dbsession,invalidCount='1')
+        get_device.return_value = deviceCustomer[0]
+        customer = deviceCustomer[1]
+        self._call(self._make_request(invalid=False))
+        self.assertEqual(customer.invalid_count, '0')
 
 @patch('backend.appapi.views.invitation_views.wc_contact')
 @patch('backend.appapi.views.invitation_views.get_wc_token')

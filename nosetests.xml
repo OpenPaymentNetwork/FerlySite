@@ -1,1 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="1" errors="0" failures="0" skip="0"><testcase classname="test_customer_views.TestSend" name="test_correct_schema_used" time="33.789"></testcase></testsuite>
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="1" errors="0" failures="0" skip="0"><testcase classname="test_invitation_views.TestUpdateInvalidCodeCount" name="test_update_successful_Valid" time="73.684"></testcase></testsuite>

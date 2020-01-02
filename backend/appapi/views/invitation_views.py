@@ -93,7 +93,8 @@ def getInvalidCodeCount(request):
 
 @view_config(name='update-invalid-code-count', renderer='json')
 def updateInvalidCodeCount(request):
-    invalid_result = request.get_params(schemas.updateInvalidCodeCountSchema())
+    params = request.get_params(schemas.updateInvalidCodeCountSchema())
+    invalid_result = params.get('invalid_result')
     device = get_device(request)
     customer = device.customer
     if invalid_result:
