@@ -776,12 +776,13 @@ class TestSend(TestCase):
         from backend.appapi.views.customer_views import send
         return send(*args, **kw)
 
-    def _make_request(self, **kw):
+    def _make_request(self, sender='', **kw):
         request_params = {
             'expected_env': 'staging',
             'recipient_id': '01',
             'amount': '2.53',
             'design_id': '00',
+            'sender': sender
         }
         request_params.update(kw)
         request = pyramid.testing.DummyRequest()
@@ -818,20 +819,29 @@ class TestSend(TestCase):
         dbsession.flush()  # Assign recipient.id
         return recipient
 
+    def _make_response(self, json_content):
+        class MockJSONResponse:
+            def json(self):
+                return json_content
+
+        return MockJSONResponse()
+
     def test_correct_schema_used(self, *args):
-        add_device(self.dbsession)
-        request = self._make_request()
+        recipient = self._add_recipient()
+        request = self._make_request(recipient_id=recipient.id)
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.SendSchema))
 
     def test_get_device_called(self, get_device, *args):
-        request = self._make_request()
+        recipient = self._add_recipient()
+        request = self._make_request(recipient_id=recipient.id)
         self._call(request)
         get_device.assert_called()
 
     def test_invalid_design(self, *args):
-        request = self._make_request()
+        recipient = self._add_recipient()
+        request = self._make_request(recipient_id=recipient.id)
         response = self._call(request)
         self.assertEqual({'error': 'invalid_design'}, response)
 
@@ -840,7 +850,6 @@ class TestSend(TestCase):
         device = add_device(self.dbsession)[0]
         customer = device.customer
         get_device.return_value = device
-
         design = self._add_design()
         recipient = self._add_recipient()
         customer.recents = [
@@ -849,18 +858,21 @@ class TestSend(TestCase):
 
         request = self._make_request(
             design_id=design.id, recipient_id=recipient.id)
+        wc_contact.return_value = self._make_response({})
         response = self._call(request)
-        self.assertEqual({}, response)
+        self.assertEqual( {}, response)
 
         access_token = get_wc_token.return_value
         get_wc_token.assert_called_with(request, customer)
         expect_params = {
-            'sender_id': '11',
+            'sender_uid': 'wingcash:11',
             'recipient_uid': 'wingcash:12',
             'amounts': '41-USD-2.53',
             'require_recipient_email': False,
             'accepted_policy': True,
             'appdata.ferly.transactionType': 'gift',
+            'appdata.ferly.designId': design.id,
+            'appdata.ferly.title': 'Test Design'
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,
@@ -877,6 +889,40 @@ class TestSend(TestCase):
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
             'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
 
+    def test_success_not_customer(
+            self, get_device, wc_contact, get_wc_token, notify_customer):
+        device = add_device(self.dbsession)[0]
+        customer = device.customer
+        get_device.return_value = device
+        design = self._add_design()
+        recipient = self._add_recipient()
+
+        request = self._make_request(sender='test',
+            design_id=design.id, recipient_id=recipient.id)
+        wc_contact.return_value = self._make_response({})
+        response = self._call(request)
+        self.assertEqual( {}, response)
+
+        access_token = get_wc_token.return_value
+        get_wc_token.assert_called_with(request, customer)
+        expect_params = {
+            'sender_uid': 'wingcash:11',
+            'recipient_uid': recipient.id,
+            'amounts': '41-USD-2.53',
+            'require_recipient_email': False,
+            'accepted_policy': True,
+            'appdata.ferly.transactionType': 'gift',
+            'appdata.ferly.designId': design.id,
+            'appdata.ferly.title': 'Test Design'
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', 'wallet/send', params=expect_params,
+            access_token=access_token)
+
+        notify_customer.assert_not_called()
+
+        self.assertEqual([], customer.recents)
+
     def test_with_message(
             self, get_device, wc_contact, get_wc_token, notify_customer):
         device = add_device(self.dbsession)[0]
@@ -891,19 +937,22 @@ class TestSend(TestCase):
 
         request = self._make_request(
             design_id=design.id, recipient_id=recipient.id, message='hi sir')
+        wc_contact.return_value = self._make_response({})
         response = self._call(request)
         self.assertEqual({}, response)
 
         access_token = get_wc_token.return_value
         get_wc_token.assert_called_with(request, customer)
         expect_params = {
-            'sender_id': '11',
+            'sender_uid': 'wingcash:11',
             'recipient_uid': 'wingcash:12',
             'amounts': '41-USD-2.53',
             'require_recipient_email': False,
             'accepted_policy': True,
             'message': 'hi sir',
             'appdata.ferly.transactionType': 'gift',
+            'appdata.ferly.designId': design.id,
+            'appdata.ferly.title': 'Test Design'
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,

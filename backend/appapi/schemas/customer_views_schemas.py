@@ -128,3 +128,6 @@ class UploadProfileImageSchema(Schema):
 
 class LogInfoSchema(Schema):
     text = SchemaNode(String())
+
+class GetCustomerNameSchema(Schema):
+    recipient_id = SchemaNode(String())

@@ -42,16 +42,16 @@ def redemption_notification(request):
             completed = transfer['completed']
             loop_id = transfer['movements'][0]['loops'][0]['loop_id']
             sender_id = transfer['sender_id']
-            transfer_id = transfer['id']
+            #transfer_id = transfer['id']
         except Exception:
             log.exception("Error in redemption_notification()")
             continue
         if not completed:
             continue
-        global _last_transfer_notified
-        if _last_transfer_notified == transfer_id:
-            continue
-        _last_transfer_notified = transfer_id
+        #global _last_transfer_notified
+        #if _last_transfer_notified == transfer_id:
+        #    continue
+        #_last_transfer_notified = transfer_id
         dbsession = request.dbsession
         customer = dbsession.query(
             Customer).filter(Customer.wc_id == sender_id).first()

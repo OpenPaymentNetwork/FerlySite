@@ -274,3 +274,281 @@ class TestDeleteInvitation(TestCase):
         response = self._call(request)
         self.assertEqual(invitation.status, 'deleted')
         self.assertEqual({}, response)
+
+class TestGetInvalidCodeCount(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.invitation_views import getInvalidCodeCount
+        return getInvalidCodeCount(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    @patch('backend.appapi.views.invitation_views.get_device')
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_once()
+
+    @patch('backend.appapi.views.invitation_views.get_device')
+    def test_invalid_count_returned(self, get_device):
+        get_device.return_value = add_device(self.dbsession,invalidCount='1')[0]
+        response = self._call(self._make_request())
+        self.assertEqual(response, {'count': '1'})
+
+@patch('backend.appapi.views.invitation_views.wc_contact')
+@patch('backend.appapi.views.invitation_views.get_wc_token')
+@patch('backend.appapi.views.invitation_views.get_device')
+class TestAcceptCode(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.invitation_views import acceptCode
+        return acceptCode(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_correct_schema_used(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        get_wc_token.return_value = 'test'
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schemas.AcceptCodeSchema))
+
+    def test_get_device_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_once()
+
+    def test_get_token_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_wc_token.assert_called_once()
+
+    def test_wc_contact_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        wc_contact.assert_called_once()
+
+@patch('backend.appapi.views.invitation_views.get_device')
+class TestUpdateInvalidCodeCount(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.invitation_views import updateInvalidCodeCount
+        return updateInvalidCodeCount(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_correct_schema_used(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schemas.updateInvalidCodeCountSchema))
+
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_once()
+
+    def test_successful_response(self, get_device):
+        deviceCustomer = add_device(self.dbsession,invalidCount='1')
+        get_device.return_value = deviceCustomer[0]
+        response = self._call(self._make_request())
+        self.assertEqual(response, {})
+
+    def test_update_successful(self, get_device):
+        from datetime import datetime
+        deviceCustomer = add_device(self.dbsession,invalidCount='1')
+        get_device.return_value = deviceCustomer[0]
+        customer = deviceCustomer[1]
+        self._call(self._make_request())
+        self.assertEqual(customer.invalid_count, '2')
+        self.assertEqual(customer.invalid_date.date(), datetime.now().date())
+
+@patch('backend.appapi.views.invitation_views.wc_contact')
+@patch('backend.appapi.views.invitation_views.get_wc_token')
+@patch('backend.appapi.views.invitation_views.get_device')
+class TestRetract(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.invitation_views import retract
+        return retract(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_correct_schema_used(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        get_wc_token.return_value = 'test'
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schemas.RetractSchema))
+
+    def test_get_device_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_once()
+
+    def test_get_token_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_wc_token.assert_called_once()
+
+    def test_wc_contact_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        wc_contact.assert_called_once()
+
+@patch('backend.appapi.views.invitation_views.wc_contact')
+@patch('backend.appapi.views.invitation_views.get_wc_token')
+@patch('backend.appapi.views.invitation_views.get_device')
+class TestGetTransferDetails(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.invitation_views import getTransferDetails
+        return getTransferDetails(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_correct_schema_used(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        get_wc_token.return_value = 'test'
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schemas.RetractSchema))
+
+    def test_get_device_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_once()
+
+    def test_get_token_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_wc_token.assert_called_once()
+
+    def test_wc_contact_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        wc_contact.assert_called_once()
+
+@patch('backend.appapi.views.invitation_views.wc_contact')
+@patch('backend.appapi.views.invitation_views.get_wc_token')
+@patch('backend.appapi.views.invitation_views.get_device')
+class TestResend(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.invitation_views import resend
+        return resend(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_correct_schema_used(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        get_wc_token.return_value = 'test'
+        request = self._make_request()
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(
+            isinstance(schema_used, schemas.RetractSchema))
+
+    def test_get_device_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called_once()
+
+    def test_get_token_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_wc_token.assert_called_once()
+
+    def test_wc_contact_called(self, get_device, get_wc_token, wc_contact):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        wc_contact.assert_called_once()
+

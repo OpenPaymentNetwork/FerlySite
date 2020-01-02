@@ -114,7 +114,8 @@ def add_device(
         last_name='defaultlastname',
         wc_id='11',
         expo_token='test1234',
-        deviceToken=b'defaultdeviceToken0defaultdeviceToken0'):
+        deviceToken=b'defaultdeviceToken0defaultdeviceToken0',
+        invalidCount=''):
     """Add a Customer and Device to the database."""
     from backend.database.models import Customer, Device
     import hashlib
@@ -123,6 +124,7 @@ def add_device(
         first_name=first_name,
         last_name=last_name,
         username=username,
+        invalid_count=invalidCount
     )
     dbsession.add(customer)
     dbsession.flush()  # Assign customer.id

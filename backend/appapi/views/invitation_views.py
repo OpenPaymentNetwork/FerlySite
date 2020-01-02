@@ -86,6 +86,9 @@ def acceptCode(request):
 def getInvalidCodeCount(request):
     device = get_device(request)
     customer = device.customer
+    if customer.invalid_date.date() < datetime.now().date():
+        customer.invalid_count = '0'
+        customer.invalid_date = func.timezone('UTC', func.current_timestamp())
     return { 'count': customer.invalid_count}
 
 @view_config(name='update-invalid-code-count', renderer='json')
@@ -104,7 +107,7 @@ def updateInvalidCodeCount(request):
     return {}
 
 @view_config(name='retract', renderer='json')
-def recover(request):
+def retract(request):
     params = request.get_params(schemas.RetractSchema())
     device = get_device(request)
     customer = device.customer

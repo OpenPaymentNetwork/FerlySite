@@ -414,8 +414,19 @@ def send(request):
     access_token = get_wc_token(request, customer)
     response = wc_contact(request, 'POST', 'wallet/send', params=params,
                access_token=access_token).json()
+    completed = response.get('transfer')
+    if completed and not sendNotify:
+        completed = completed.get('completed') 
+        if completed:
+            completed = response.get('transfer')
+            id = completed.get('recipient_id')
+            recipient = dbsession.query(Customer).filter(Customer.wc_id == id).first()
+            sendNotify = True
+            recipient_id = recipient.id
+            new_recents = [recipient_id]
+            new_recents.extend(
+                filter(lambda x: x != recipient_id, customer.recents or ()))
     formatted_amount = '${:.2f}'.format(amount)
-
     title = 'Received {0} {1}'.format(formatted_amount, design.title)
     sender = 'from {0}'.format(customer.title)
     body = '{0}\n{1}'.format(message, sender) if message else sender
@@ -484,8 +495,6 @@ def history(request):
         request, 'GET', 'wallet/history', params=post_params,
         access_token=access_token)
     json2 = response.json()
-    print("herehistoryrequest")
-    print(json2)
     results = json2.get('results', [])
     has_more = bool(json2.get('more'))
     history = []
@@ -697,3 +706,13 @@ def logInfoInitial(request):
     params = request.get_params(schemas.LogInfoSchema())
     log.info(get_device_token(request) + ": " + params['text'])
     return {}
+
+@view_config(name='get-customer-name', renderer='json')
+def getCustomerName(request):
+    """Log client info"""
+    params = request.get_params(schemas.GetCustomerNameSchema())
+    id = params.get('recipient_id')
+    device = get_device(request)
+    if device:
+        recipient = request.dbsession.query(Customer).filter(Customer.wc_id == id).first()
+        return {'name' : (recipient.first_name + ' ' + recipient.last_name)}
