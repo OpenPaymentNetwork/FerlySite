@@ -228,21 +228,6 @@ def signup(request):
             params=postParams,
             auth=True).json()
 
-@view_config(name='add-factor', renderer='json')
-def add_factor(request):
-    """Calls wingcash add-factor api."""
-    params = request.get_params(schemas.AddFactorSchema())
-    postParams = {
-        'login': params['login'],
-    }
-
-    return wc_contact(
-        request,
-        'POST',
-        params['attempt_path'] + 'add-factor',
-        secret=params['secret'],
-        params=postParams).json()
-
 
 @view_config(name='auth-uid', renderer='json')
 def auth_uid(request):
