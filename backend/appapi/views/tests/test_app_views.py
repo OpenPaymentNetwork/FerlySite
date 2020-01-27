@@ -16,7 +16,7 @@ def setup_module():
 def teardown_module():
     dbfixture.close_fixture()
 
-
+@patch('backend.appapi.views.app_views.get_device')
 @patch('backend.appapi.views.app_views.wc_contact')
 class TestLocationsCard(TestCase):
 
@@ -33,7 +33,8 @@ class TestLocationsCard(TestCase):
     def _make_request(self, **params):
         request_params = {'design_id': 'default_design_id'}
         request_params.update(**params)
-        request = pyramid.testing.DummyRequest(params=request_params)
+        request = pyramid.testing.DummyRequest(params=request_params, headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
         request.dbsession = self.dbsession
         request.get_params = params = MagicMock()
         params.return_value = schemas.LocationsSchema().bind(
@@ -62,18 +63,18 @@ class TestLocationsCard(TestCase):
         dbsession.flush()  # Assign design.id
         return design
 
-    def test_correct_schema_used(self, wc_contact):
+    def test_correct_schema_used(self, wc_contact, get_device):
         request = self._make_request()
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.LocationsSchema))
 
-    def test_invalid_design(self, wc_contact):
+    def test_invalid_design(self, wc_contact, get_device):
         request = self._make_request()
         response = self._call(request)
         self.assertEqual({'error': 'invalid_design'}, response)
 
-    def test_wc_contact_args(self, wc_contact):
+    def test_wc_contact_args(self, wc_contact, get_device):
         design = self._add_design()
         request = self._make_request(design_id=design.id)
         self._call(request)
@@ -83,14 +84,14 @@ class TestLocationsCard(TestCase):
             '/design/{0}/redeemers'.format(design.wc_id),
             anon=True)
 
-    def test_response(self, wc_contact):
+    def test_response(self, wc_contact, get_device):
         design = self._add_design()
         location = self._make_location()
         wc_contact.return_value.json.return_value = [location]
         response = self._call(self._make_request(design_id=design.id))
         self.assertEqual([location], response['locations'])
 
-    def test_unwanted_attributes_ignored(self, wc_contact):
+    def test_unwanted_attributes_ignored(self, wc_contact, get_device):
         design = self._add_design()
         location = self._make_location()
         revised_location = location.copy()
@@ -99,7 +100,7 @@ class TestLocationsCard(TestCase):
         response = self._call(self._make_request(design_id=design.id))
         self.assertEqual([location], response['locations'])
 
-    def test_multiple_locations(self, wc_contact):
+    def test_multiple_locations(self, wc_contact, get_device):
         design = self._add_design()
         locations = wc_contact.return_value.json.return_value = [
             self._make_location(title='title1', address='address1'),

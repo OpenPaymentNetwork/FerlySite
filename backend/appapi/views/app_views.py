@@ -2,6 +2,7 @@ from backend.appapi.schemas import app_views_schemas
 from backend.database.models import Design
 from backend.database.models import Customer
 from backend.database.serialize import serialize_design
+from backend.appapi.utils import get_device
 from backend.appapi.utils import notify_customer
 from backend.wccontact import wc_contact
 from pyramid.view import view_config
@@ -79,6 +80,7 @@ def redemption_notification(request):
 
 @view_config(name='recaptcha-sitekey', renderer='json')
 def recaptcha_sitekey(request):
+    get_device(request)
     response = wc_contact(
         request, 'GET', 'aa/recaptcha_invisible_sitekey', anon=True)
     return response.json()
@@ -87,6 +89,7 @@ def recaptcha_sitekey(request):
 @view_config(name='list-designs', renderer='json')
 def list_designs(request):
     """List all the listable designs on Ferly."""
+    get_device(request)
     dbsession = request.dbsession
     designs = dbsession.query(Design).filter(Design.listable).order_by(
         Design.title).all()
@@ -97,6 +100,7 @@ def list_designs(request):
 def locations(request):
     """List location information for redeemers of the cash design."""
     params = request.get_params(app_views_schemas.LocationsSchema())
+    get_device(request)
     design = request.dbsession.query(Design).get(params['design_id'])
     if design is None:
         return {'error': 'invalid_design'}
@@ -119,6 +123,7 @@ def locations(request):
 @view_config(name='search-market', renderer='json')
 def search_market(request):
     """Search all listable designs."""
+    get_device(request)
     params = request.get_params(app_views_schemas.SearchMarketSchema())
     dbsession = request.dbsession
 

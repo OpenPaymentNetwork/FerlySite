@@ -34,6 +34,13 @@ def SetExpoToken(request):
     device = get_device(request)
     device.expo_token = params['expo_token']
     return {}
+
+@view_config(name='verify-account', renderer='json')
+def verifyAccount(request):
+    device = get_device(request)
+    customer = device.customer
+    return {'Verified': customer.verified_account}
+
 @view_config(name='request-card', renderer='json')
 def request_card(request):
     """Save the address a customer requested a new Ferly Card be mailed to."""
@@ -334,7 +341,9 @@ def profile(request):
 
     recents = [dbsession.query(
         Customer).get(recent) for recent in customer.recents]
-
+    
+    if len(amounts) > 0 and not customer.verified_account:
+        customer.verified_account = True
     return {
         'first_name': customer.first_name,
         'last_name': customer.last_name,
@@ -694,10 +703,13 @@ def logInfoInitial(request):
 
 @view_config(name='get-customer-name', renderer='json')
 def getCustomerName(request):
-    """Log client info"""
+    """Gets the customer name"""
     params = request.get_params(schemas.GetCustomerNameSchema())
     id = params.get('recipient_id')
     device = get_device(request)
     if device:
         recipient = request.dbsession.query(Customer).filter(Customer.wc_id == id).first()
-        return {'name' : (recipient.first_name + ' ' + recipient.last_name)}
+        if recipient:
+            return {'name' : (recipient.first_name + ' ' + recipient.last_name)}
+        else:
+            return {'invalid': 'Recipient is not a Ferly Customer'}

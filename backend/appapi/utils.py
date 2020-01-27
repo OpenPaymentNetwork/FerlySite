@@ -56,7 +56,6 @@ def get_device(request):
     token = get_device_token(request)
     if not token:
         raise HTTPUnauthorized()
-
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
 
     dbsession = request.dbsession

@@ -52,6 +52,7 @@ class Customer(Base):
     stripe_id = Column(String)
     invalid_date = Column(DateTime, nullable=False, server_default=now_utc)
     invalid_count = Column(String, nullable=False, server_default='0')
+    verified_account = Column(Boolean, nullable=False, server_default='False')
 
     @property
     def title(self):
