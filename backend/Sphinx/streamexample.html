@@ -1,0 +1,60 @@
+<html>
+<head>
+<title>OPN Platform Bidirectional Demo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js">
+</script>
+</head>
+<body>
+
+<h1>OPN Platform Bidirectional Demo</h1>
+<ul id="steps"></ul>
+
+<script>
+
+var url = '[=stream_url=]/bd/sockjs';
+var conn = new SockJS(url);
+
+function write(s) {
+    var e = document.createElement('li');
+    var text = document.createTextNode(s);
+    e.appendChild(text);
+    document.getElementById('steps').appendChild(e);
+}
+
+function ping(counter) {
+    write('Sending ping ' + counter);
+    conn.send(JSON.stringify({path: '/ping', counter: counter}));
+}
+
+write('Connecting to ' + url);
+
+conn.onopen = function () {
+    write('Connected!');
+    ping(0);
+};
+
+conn.onmessage = function (message) {
+    var data, counter;
+
+    write('Got a message: ' + message.data);
+    data = JSON.parse(message.data);
+    if (data.pong) {
+        counter = data.request_message.counter;
+        if (counter < 4) {
+            window.setTimeout(function () {
+                ping(counter + 1);
+            }, 1000);
+        } else {
+            write("Pings complete.");
+        }
+    }
+};
+
+conn.onclose = function () {
+    write('Disconnected.');
+};
+
+</script>
+
+</body>
+</html>

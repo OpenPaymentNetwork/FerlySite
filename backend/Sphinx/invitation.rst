@@ -1,0 +1,84 @@
+
+.. _Invitation API Calls:
+.. _Invitation  API:
+
+Invitation  API Calls
+===============================
+
+.. _Invite:
+
+Invite
+------------------------
+
+.. http:post:: ferlyapi.com/invite
+
+    Sends an invitation to join Ferly to an email or phone number.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json string recipient:
+        Required. The email or phone number to whom the invitation should be sent.
+
+.. _Accept Code:
+
+Accept Code
+-------------------------------
+
+.. http:post:: /accept-code
+
+    Redeems and completes and invitation sent with cash so that the cash sent gets put into the customers wallet.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json string code:
+        Required. The code given in the cash invitation.
+
+.. _Get Invalid Code Count:
+
+Get Invalid Code Count
+-------------------------------
+
+.. http:get:: ferlyapi.com/get-invalid-code-count
+
+    Returns the amount of invalid invitation codes the user has entered for the day.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+.. _Update Invalid Code Count:
+
+Update Invalid Code Count
+---------------------------------------
+
+
+.. http:post:: ferlyapi.com/update-invalid-code-count
+
+    Updates the amount of invalid invitation codes the user has entered for the day.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json bool invalid_result:
+        Required. Whether the last invitation code entered was valid or not.
+
+.. _Retract:
+.. _Resend:
+
+Transfer API
+---------------------------------------
+
+
+.. http:post:: ferlyapi.com/retract
+
+    See :http:post:`ferlyapi.com/retract`
+
+.. http:post:: ferlyapi.com/resend
+
+    See :http:post:`ferlyapi.com/retract`
+
+.. http:post:: ferlyapi.com/get_transfer_details
+
+    Used to control and monitor the cash invitation. :http:post:`ferlyapi.com/retract` cancels the cash invitation so that the cash invitation code becomes invalid. :http:post:`ferlyapi.com/resend` sends the recipient a reminder cash invitation. :http:post:`ferlyapi.com/get_transfer_details` gets information about the state of a cash invitation.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json string transfer_id:
+        Required. The transfer id of the cash invitation.
