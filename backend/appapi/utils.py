@@ -76,7 +76,7 @@ def notify_customer(request, customer, title, body, channel_id=None):
     url = 'https://exp.host/--/api/v2/push/send'
     devices = request.dbsession.query(Device).filter(
         Device.customer_id == customer.id).all()
-
+        
     notifications = []
     for device in devices:
         if device.expo_token:

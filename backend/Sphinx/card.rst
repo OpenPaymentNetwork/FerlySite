@@ -23,6 +23,17 @@ Add A Card
     :<json string pin:
         Required. The pin to use at the point of sale during redemption.
 
+    :statuscode 200:
+        If successful, the response body is a JSON object with the following attribute:
+            ``result``
+                A boolean representing whether the card was associated with the customer successfully.
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Delete A Card:
 
 Delete A Card
@@ -36,6 +47,15 @@ Delete A Card
 
     :<json string card_id:
         Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
+
+    :statuscode 200:
+        **If successful, the response body is a JSON object with no attributes:**
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Change Card Pin:
 
@@ -55,6 +75,15 @@ Change Card Pin
     :<json string pin:
         Required. The new pin to use at point of sale during redemption.
 
+    :statuscode 200:
+        **If successful, the response body is a JSON object with no attributes:**
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Suspend Card:
 
 Suspend Card
@@ -70,6 +99,15 @@ Suspend Card
 
     :<json string card_id:
         Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
+
+    :statuscode 200:
+        **If successful, the response body is a JSON object with no attributes:**
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Unsuspend Card:
 
@@ -87,6 +125,15 @@ Unsuspend Card
     :<json string card_id:
         Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
 
+    :statuscode 200:
+        **If successful, the response body is a JSON object with no attributes:**
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Verify Address:
 
 Get Address On File To Send Ferly Card
@@ -98,6 +145,33 @@ Get Address On File To Send Ferly Card
     Gets the last address the customer had a Ferly card sent to them.
 
     :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :statuscode 200:
+        **If successful, the response body is a JSON object with the following attributes:**
+            ``id``
+                A id of the card request.
+            ``customer_id``
+                The id of the customer.
+            ``name``
+                The name of the customer.
+            ``address_line1``
+                The first line of address.
+            ``address_line2``
+                The second line of address.
+            ``city``
+                The city of the customer's address.
+            ``state``
+                The state of the customer's address.
+            ``zip``
+                The zip code of the customer's address.
+            ``verified``
+                Whether the customer has verified their address before.
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Request Card:
 
@@ -131,3 +205,24 @@ Request Card
 
     :<json string verified:
         Optional. A field given to help determine if the address has been verified by the customer.
+
+    :statuscode 200:
+        **If successful, the response body is a JSON object with the following attributes:**
+            ``name``
+                The name of the customer.
+            ``address_line1``
+                The first line of address.
+            ``address_line2``
+                The second line of address.
+            ``city``
+                The city of the customer's address.
+            ``state``
+                The state of the customer's address.
+            ``zip``
+                The zip code of the customer's address.
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.

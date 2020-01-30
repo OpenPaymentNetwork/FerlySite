@@ -20,9 +20,9 @@ Set Expo Token
         Required. The expo-token corresponding to device.
 
     :statuscode 200:
-        **If successful the response body will be a JSON object with no attributes.**
+        **If successful, the response body will be a JSON object with no attributes.**
 
-        If unsuccessful the response body is a JSON object with one of the following attributes:
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
             ``invalid``
                 A string explaining why the input was invalid.
             ``error``
@@ -40,9 +40,9 @@ List Designs
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :statuscode 200:
-        **If successful the response body is a JSON object with a list of design objects.** See :ref:`design`.
+        **If successful, the response body is a JSON object with a list of design objects.** See :ref:`design`.
 
-        **If unsuccessful the response body is a JSON object with one of the following attributes:**
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
             ``invalid``
                 A string explaining why the input was invalid.
             ``error``
@@ -63,11 +63,11 @@ Search Market
         Search text of the design name.
 
     :statuscode 200:
-        **If successful the response body is a JSON object with the following attribute.** 
+        **If successful, the response body is a JSON object with the following attribute:** 
             ``results``
                 A list of design objects. See :ref:`design`.
 
-        **If unsuccessful the response body is a JSON object with one of the following attributes:**
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
             ``invalid``
                 A string explaining why the input was invalid.
             ``error``

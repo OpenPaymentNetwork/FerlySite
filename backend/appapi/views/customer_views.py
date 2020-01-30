@@ -228,12 +228,21 @@ def signup(request):
             'device_uuid': str(uuid.uuid5(uuid.NAMESPACE_URL, token)),
             'login': params['login'],
         }
-        return wc_contact(
+        response = wc_contact(
             request,
             'POST',
             'aa/signup-closed',
             params=postParams,
             auth=True).json()
+        if response.get('error') or response.get('invalid'):
+            return response
+        else:
+            return { 
+                'attempt_path': response.get('attempt_path'), 
+                'secret' : response.get('secret'), 
+                'factor_id' : response.get('factor_id'), 
+                'code_length' : response.get('code_length'),
+                'revealed_codes' : response.get('revealed_codes')}
 
 
 @view_config(name='auth-uid', renderer='json')
@@ -262,7 +271,10 @@ def auth_uid(request):
                 return recovery_error(request, 'recaptcha_required')
             else:
                 return recovery_error(request, 'code_expired')
-    return response.json()
+    return { 
+            'profile_id': response_json.get('profile_id'), 
+            'expo_token' : response_json.get('expo_token'), 
+            'os' : response_json.get('os')}
 
 @view_config(name='signup-finish', renderer='json')
 def signup_finish(request):
@@ -272,12 +284,16 @@ def signup_finish(request):
         'agreed': params['agreed'],
     }
 
-    return wc_contact(
+    response = wc_contact(
         request,
         'POST',
         params['attempt_path'] + 'signup-finish',
         secret=params['secret'],
         params=postParams).json()
+    if response.get('error') or response.get('invalid'):
+        return response
+    else:
+        return {'profile_id': response.get('profile_id')}
 
 @view_config(name='set-signup-data', renderer='json')
 def set_signup_data(request):
@@ -287,12 +303,16 @@ def set_signup_data(request):
         'first_name': params['first_name'],
         'last_name': params['last_name'],
     }
-    return wc_contact(
+    response = wc_contact(
         request,
         'POST',
         params['attempt_path'] + 'set-signup-data',
         secret=params['secret'],
         params=postParams).json() 
+    if response.get('error') or response.get('invalid'):
+        return response
+    else:
+        return {}
 
 @view_config(name='is-customer', renderer='json')
 def is_customer(request):

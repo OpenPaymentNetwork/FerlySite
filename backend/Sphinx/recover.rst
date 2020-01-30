@@ -21,6 +21,27 @@ Recover
     :<json string login:
         Required. The email or phone number the customer used to signup or put in their recovery settings.
 
+    :statuscode 200:
+        **If successful, the response body is a JSON object with the following attributes:** 
+            ``login_type``
+                A string representing whether the login type is an email or phone number.
+            ``secret``
+                A string that authenticates the user's device for the duration of the authentication attempt. The client should not share this string with other devices. In subsequent authentication API calls, the client must send the secret.
+            ``attempt_path``
+                The path inside the platform API for updating or accessing the new authentication attempt. It looks like ``/aa/<attempt_id>``.
+            ``code_length``
+                The length of the code the user should enter. The length is currently either 6 or 9 digits depending on the authentication flow type, but the platform may expand the code length if necessary.
+            ``factor_id``
+                An opaque random string that identifies which factor the user should attempt to authenticate. The factor_id changes for each authentication factor attempt.
+            ``revealed_codes``
+                In development sandboxes and testing environments, this is a list of human-readable strings that reveal the authentication codes sent to the user through email, SMS, or another channel. This allows testers to skip the communication channel. In production, this attribute does not exist.
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Recover Code:
 
 Recover Code
@@ -53,6 +74,15 @@ Recover Code
     :<json string os:
         Optional. The os on which the device is being run on.
 
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Add a UID:
 
 Add UID
@@ -61,7 +91,7 @@ Add UID
 
 .. http:post:: ferlyapi.com/add-uid
 
-    Begin adding a UID (email address or SMS phone number) to the wallet. The platform will send a random code through the specified communication channel. After your app receives a response from this API call, it should prompt the user to enter the received code. Once the user inputs the code, your app should call :http:post:`ferlyapi.com/add-uid-confirm` to finish adding the UID.
+    Begin adding a UID (email address or SMS phone number) to the wallet. The platform will send a random code through the specified communication channel. After your app receives a response from this API call, it should prompt the user to enter the received code. Once the user inputs the code, your app should call :http:post:`ferlyapi.com/confirm-uid` to finish adding the UID.
 
     :Permission Required: change_settings. Change the authenticated profile’s personal settings like the password or login information. Used in Settings API Calls.
 
@@ -72,8 +102,8 @@ Add UID
     :<json string uid_type:
         Required. If provided, must be either ``email`` or ``phone``.
 
-    The response body is a JSON object with these attributes:
-
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with the following attributes:**
             ``attempt_id``
                 A string that identifies this attempt to add a UID.
             ``secret``
@@ -83,12 +113,18 @@ Add UID
             ``revealed_codes``
                 In development sandboxes and testing environments, this is a list of human-readable strings that reveal the authentication codes sent to the user through email, SMS, or another channel. This allows testers to skip the communication channel. In production, this attribute does not exist.
 
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Confirm Uid:
 
 Finish Adding a UID
 -------------------
 
-.. http:post:: ferlyapi.com/add-uid-confirm
+.. http:post:: ferlyapi.com/confirm-uid
 
     Finish adding a UID (email address or SMS phone number) to the wallet. The app calls this after :http:post:`ferlyapi.com/add-uid`.
 
@@ -106,3 +142,12 @@ Finish Adding a UID
         Optional. If provided, and the code entry is successful, the platform will remove the specified UID from the wallet while adding the new UID. This is a way to let users "edit" their email address or phone number.
     :<json string recaptcha_response:
         Conveys the response provided by the invisible ReCAPTCHA widget. This field is required when the platform detects excessive attempts to guess passwords or authentication codes.
+
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.

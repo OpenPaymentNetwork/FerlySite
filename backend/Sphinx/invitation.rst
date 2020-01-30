@@ -19,6 +19,15 @@ Invite
     :<json string recipient:
         Required. The email or phone number to whom the invitation should be sent.
 
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Accept Code:
 
 Accept Code
@@ -33,6 +42,17 @@ Accept Code
     :<json string code:
         Required. The code given in the cash invitation.
 
+    :statuscode 200:
+        **If successful, the response body is a JSON object with the following attribute.** 
+            ``transfer``
+                The updated :ref:`TransferDetail` object.
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Get Invalid Code Count:
 
 Get Invalid Code Count
@@ -43,6 +63,17 @@ Get Invalid Code Count
     Returns the amount of invalid invitation codes the user has entered for the day.
 
     :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :statuscode 200:
+        **If successful, the response body is a JSON object with the following attribute.** 
+            ``count``
+                The invalid count for the current day.
+
+        **If unsuccessful, the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Update Invalid Code Count:
 
@@ -82,3 +113,12 @@ Transfer API
 
     :<json string transfer_id:
         Required. The transfer id of the cash invitation.
+
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.

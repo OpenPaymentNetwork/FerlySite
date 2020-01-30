@@ -30,6 +30,29 @@ Signup
 
     :<json string username: Required. The username the user wishes to signup with.
 
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with the following attributes:**
+            ``attempt_path``
+                The path inside the platform API for updating or accessing the new authentication attempt. It looks like ``/aa/<attempt_id>``.
+
+            ``secret``
+                A string that authenticates the user's device for the duration of the authentication attempt. The client should not share this string with other devices. In subsequent authentication API calls, the client must send the secret.
+
+            ``factor_id``
+                An opaque random string that identifies which factor the user should attempt to authenticate. The factor_id changes for each authentication factor attempt.
+
+            ``code_length``
+                The length of the code the user should enter. The length is currently either 6 or 9 digits depending on the authentication flow type, but the platform may expand the code length if necessary.
+
+            ``revealed_codes``
+                In development sandboxes and testing environments, this is a list of human-readable strings that reveal the authentication codes sent to the user through email, SMS, or another channel. This allows testers to skip the communication channel. In production, this attribute does not exist.
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Authorize UID:
 
 Authorize UID
@@ -39,18 +62,31 @@ Authorize UID
 
     Receive a code that validates the user's control of a UID. The client calls this API after the user enters a code after the user has called :http:post:`ferlyapi.com/newSignup`.
 
-    :<json string factor_id: The factor_id returned from newSignup.
+    :<json string factor_id: Required. The factor_id returned from newSignup.
 
-    :<json string code: The code entered by the user.
+    :<json string code: Required. The code entered by the user.
 
     :<json string recaptcha_response:
         Conveys the response provided by the invisible ReCAPTCHA widget. This field is required when the platform detects excessive attempts to guess passwords or authentication codes.
 
-    :<json string attempt_path: The attempt path returned from newSignup.
+    :<json string attempt_path: Required. The attempt path returned from newSignup.
 
-    :<json string secret: The secret returned from newSignup.
+    :<json string secret: Required. The secret returned from newSignup.
 
+        **If successful, the response body will be a JSON object with the following attributes:**
+            ``profile_id``
+                This is the id of a registered profile. This field will only have data if the user is already registered and should be logged in instead of completing registration.
 
+            ``expo_token``
+                This is the registered profile's expo_token. It will only have data if profile_id is returned and we have the expo_token on file.
+            ``os``
+                This is the registered profile's os. It will only have data if profile_id is returned and we have the os on file.
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Login:
 
@@ -72,6 +108,15 @@ Login
     :<json string os:
         Optional. The os on which the device is being run on.
 
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
 .. _Set Signup Data:
 
 Set Signup Data
@@ -81,13 +126,22 @@ Set Signup Data
 
     Called after :http:post:`ferlyapi.com/auth-uid` when a profile_id is not returned to continue signup process.
 
-    :<json string first_name: First name of customer.
+    :<json string first_name: Required. First name of customer.
 
-    :<json string last_name: Last name of customer.
+    :<json string last_name: Required. Last name of customer.
 
-    :<json string attempt_path: The attempt path returned from newSignup.
+    :<json string attempt_path: Required. The attempt path returned from newSignup.
 
-    :<json string secret: The secret returned from newSignup.
+    :<json string secret: Required. The secret returned from newSignup.
+
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Signup Finish:
 
@@ -98,11 +152,21 @@ Signup Finish
 
     Called after :http:post:`ferlyapi.com/set-signup-data`. Acceptance of terms and conditions of using Ferly.
 
-    :<json bool agreed: Indicates the user agreed to the terms and conditions.
+    :<json bool agreed: Required. Indicates the user agreed to the terms and conditions.
 
-    :<json string attempt_path: The attempt path returned from newSignup.
+    :<json string attempt_path: Required. The attempt path returned from newSignup.
 
-    :<json string secret: The secret returned from newSignup.
+    :<json string secret: Required. The secret returned from newSignup.
+
+        **If successful, the response body will be a JSON object with the following attribute:**
+            ``profile_id``
+                This is the id of a registered profile. This field will only have data if the user is already registered and should be logged in instead of completing registration.
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Register:
 
@@ -132,3 +196,12 @@ Register
 
     :<json string os:
         Optional. The os on which the device is being run on.
+
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with no attributes.**
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
