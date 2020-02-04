@@ -7,3 +7,5 @@ __pycache__/
 *.sublime-*
 .coverage
 htmlcov
+backend/Sphinx/_build
+frontend/package-lock.json

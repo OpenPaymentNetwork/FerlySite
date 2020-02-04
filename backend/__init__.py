@@ -32,7 +32,7 @@ def main(global_config, **settings):
     config.set_csrf_storage_policy(CookieCSRFStoragePolicy(
         secure=asbool(settings.get('secure_cookie', True))))
 
-    config.add_static_view(name='files', path=settings['webpack_dist_dir'])
+    config.add_static_view(name='doc', path=settings['apidoc_dir'])
     config.add_static_view('static', 'deform:static')
     config.add_static_view(
         name='stripeform', path=os.path.join(here, 'stripeform'))

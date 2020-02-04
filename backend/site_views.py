@@ -22,16 +22,19 @@ def version(request):
         'version': '0.0.0'
     }
 
+@view_config(name='', context=Site, renderer='templates/home.pt')
+def home(request):
+    return {}
 
-@view_config(name='', context=Site)
-def index_html(request):
-    webpack_dist_dir = request.ferlysettings.webpack_dist_dir
-    fn = os.path.join(webpack_dist_dir, 'index.html')
-    return FileResponse(
-        fn,
-        request=request,
-        cache_max_age=600,
-        content_type='text/html;charset=utf-8')
+# @view_config(name='', context=Site)
+# def index_html(request):
+#     webpack_dist_dir = request.ferlysettings.webpack_dist_dir
+#     fn = os.path.join(webpack_dist_dir, 'index.html')
+#     return FileResponse(
+#         fn,
+#         request=request,
+#         cache_max_age=600,
+#         content_type='text/html;charset=utf-8')
 
 @view_config(name='b', context=Site)
 def branch_html(request):
@@ -40,20 +43,20 @@ def branch_html(request):
     return HTTPSeeOther('https://cy7je.app.link/RzrGpv6m61')
 
 
-@notfound_view_config(renderer='json')
-def notfound(request):
-    """Render index.html for everything else.
+# @notfound_view_config(renderer='json')
+# def notfound(request):
+#     """Render index.html for everything else.
 
-    The frontend code will route appropriately.
-    """
-    p = request.path
-    if p.startswith('/api/') or p.startswith('/staff/'):
-        return HTTPNotFound(json_body={
-            'error': 'not_found',
-            'error_description': 'The resource could not be found.',
-        })
+#     The frontend code will route appropriately.
+#     """
+#     p = request.path
+#     if p.startswith('/api/') or p.startswith('/staff/'):
+#         return HTTPNotFound(json_body={
+#             'error': 'not_found',
+#             'error_description': 'The resource could not be found.',
+#         })
 
-    return index_html(request)
+#     return index_html(request)
 
 
 @view_config(context=Invalid, renderer='json')
