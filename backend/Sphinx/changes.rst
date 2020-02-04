@@ -7,7 +7,7 @@ API Changes
 
 
 
-0.1 (2020-01-24)
+0.1 (2020-02-04)
 ----------------
 
 * Initial release of API documentation.
