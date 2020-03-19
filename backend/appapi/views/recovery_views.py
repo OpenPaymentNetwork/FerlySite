@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 def recover(request):
     params = request.get_params(schemas.RecoverySchema())
 
-    token = get_device_token(request, required=True)
+    token = get_device_token(request)
     # Device tokens should be kept secret, so don't send them to
     # other services, even OPN/WingCash. However, we do want to send a UUID
     # that is consistent for the device. Therefore, derive a hashed UUID
@@ -47,7 +47,7 @@ def recover(request):
     if login_type == 'username':
         raise invalid_response
 
-    r = {'login_type': login_type}
+    r = {'login_type': login_type, 'token': token}
     for key in response_json:
         if key in (
             'secret',
@@ -108,7 +108,6 @@ def recover_code(request):
         'factor_id': params['factor_id'],
         'g-recaptcha-response': params['recaptcha_response']
     }
-
     urlTail = params['attempt_path'] + '/auth-uid'
     response = wc_contact(request, 'POST', urlTail, secret=params['secret'],
                           params=wc_params, return_errors=True)

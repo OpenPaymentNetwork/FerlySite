@@ -16,11 +16,6 @@ Common Attributes
 ``id``
     String: the id of the design.
 
-.. index:: wingcash_id
-
-``wingcash_id``
-    String: The design id used in the data base of a third party.
-
 .. index:: title
 
 ``title``

@@ -16,6 +16,28 @@ Set Expo Token
 
     :reqheader Authorization: See :ref:`Authorization Header`.
 
+    :statuscode 200:
+        **If successful, the response body will be a JSON object with the following attribute:**
+            ``expo_token``
+                A string containing the expo token for the customer's device.
+
+        If unsuccessful, the response body is a JSON object with one of the following attributes:
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
+.. _Get Expo Token:
+
+Get Expo Token
+-------------------------
+
+.. http:post:: ferlyapi.com/get-expo-token
+
+    Gets the expo-token corresponding to the device.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
     :<json string expo_token:
         Required. The expo-token corresponding to device.
 

@@ -16,13 +16,15 @@ Recover
 
      Recovers a Ferly Users account
 
-    :reqheader Authorization: See :ref:`Authorization Header`.
+    :reqheader Authorization: Optional. See :ref:`Authorization Header`.
 
     :<json string login:
         Required. The email or phone number the customer used to signup or put in their recovery settings.
 
     :statuscode 200:
         **If successful, the response body is a JSON object with the following attributes:** 
+            ``token``
+                The token to be used in future calls requiring the reqheader Authorization. See :ref:`Authorization Header`.
             ``login_type``
                 A string representing whether the login type is an email or phone number.
             ``secret``

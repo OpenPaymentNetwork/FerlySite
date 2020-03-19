@@ -12,10 +12,10 @@ Contents
    getstarted
    appcommunication
    authorization
-   customer
    card
-   recover
+   customer
    invitation
+   recover
    stripe
    objects
    glossary

@@ -20,7 +20,6 @@ def serialize_customer(request, customer):
 def serialize_design(request, design):
     return {
         'id': design.id,
-        'wingcash_id': design.wc_id,
         'logo_image_url': design.logo_image_url,
         'title': design.title,
         'fee': str(design.fee),

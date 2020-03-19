@@ -105,7 +105,7 @@ Transfer API
 
     See :http:post:`ferlyapi.com/retract`
 
-.. http:post:: ferlyapi.com/get_transfer_details
+.. http:get:: ferlyapi.com/get_transfer_details
 
     Used to control and monitor the cash invitation. :http:post:`ferlyapi.com/retract` cancels the cash invitation so that the cash invitation code becomes invalid. :http:post:`ferlyapi.com/resend` sends the recipient a reminder cash invitation. :http:post:`ferlyapi.com/get_transfer_details` gets information about the state of a cash invitation.
 
@@ -115,10 +115,19 @@ Transfer API
         Required. The transfer id of the cash invitation.
 
     :statuscode 200:
-        **If successful, the response body will be a JSON object with no attributes.**
+        Successful. The response body is a JSON object with the following attribute:
+            ``transfer``
+                A TransferDetail object. See :ref:`TransferDetail`
 
         If unsuccessful, the response body is a JSON object with one of the following attributes:
             ``invalid``
                 A string explaining why the input was invalid.
             ``error``
                 A string explaining the error that occured.
+
+    :statuscode 400:
+        The parameters are not invalid.
+    :statuscode 401:
+        The access token is missing or not valid.
+    :statuscode 403:
+        The access token is valid but the app is not authorized to access this function.

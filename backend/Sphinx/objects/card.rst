@@ -13,7 +13,7 @@ Attributes
 
 .. index:: Card_id
 
-``Card_id``
+``card_id``
     String: the customer's card number.
 
 .. index:: expiration

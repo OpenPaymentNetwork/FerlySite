@@ -108,34 +108,12 @@ Search Customers
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :query query:
-        Search text of the design name.
+        Search text of the customer name.
 
     :statuscode 200:
         **If successful the response body is a JSON object with the following attribute.** 
             ``results``
                 A list of ``customer`` objects. See :ref:`customer`.
-
-        **If unsuccessful the response body is a JSON object with one of the following attributes:**
-            ``invalid``
-                A string explaining why the input was invalid.
-            ``error``
-                A string explaining the error that occured.` 
-            
-.. _Is Customer:
-
-Check if Customer
-------------------------
-
-.. http:get:: ferlyapi.com/is-customer
-
-    Returns whether the device sent corresponds with a customer.
-
-    :reqheader Authorization: See :ref:`Authorization Header`.
-
-    :statuscode 200:
-        **If successful the response body is a JSON object with the following attribute.** 
-            ``is_customer``
-                Boolean representing whether the device corresponds with a customer.
 
         **If unsuccessful the response body is a JSON object with one of the following attributes:**
             ``invalid``
@@ -158,10 +136,10 @@ Edit Profile
         Required. The username to be used by the customer.
 
     :<json string first_name:
-        Required. The first name of the customer.
+        Required. The first name to be used by the customer.
 
     :<json string last_name:
-        Required. The last name of the customer.
+        Required. The last name to be used by the customer.
 
     :statuscode 200:
         **If successful the response body will be a JSON object with no attributes.**
@@ -177,7 +155,7 @@ Edit Profile
 History
 ------------------------
 
-.. http:post:: ferlyapi.com/history
+.. http:get:: ferlyapi.com/history
 
     Request and return the customer's transfer history.
 
@@ -192,7 +170,7 @@ History
     :statuscode 200:
         **If successful the response body is a JSON object with the following attributes:**
             ``has_more``
-                A boolean representing if their are more history results.
+                A boolean representing if there are more history results.
 
             ``history``
                 A list of history objects that contain the following attributes:
@@ -200,7 +178,7 @@ History
                     ``id``
                         A string containing the transfer id.
                     ``sent_count``
-                        If this transfer is an invitation, this attribute indicates how many times the invitation message has been sent. Apps may use this information to limit the number of times users are permitted to re-send invitation messages. This attribute is not present if the transfer is not an invitation.
+                        If this transfer is an invitation, this attribute indicates how many times the invitation message has been sent. Apps may use this information to limit the number of times users are permitted to re-send invitation messages. This attribute is empty if the transfer is not an invitation.
                     ``amount``
                         String containing a decimal amount.
                     ``transfer_type``
@@ -227,7 +205,7 @@ History
 Send Cash
 ------------------------
 
-.. http:post:: ferlyapi.com/Send
+.. http:post:: ferlyapi.com/send
 
     Send Money as an invitation containing a code to redeem the cash to a non Ferly user or directly into the wallet of an existing Ferly user.
 
@@ -240,10 +218,10 @@ Send Cash
         Required. The id of the close loop design location to which the cash belongs.
 
     :<json string recipient_id:
-        Required. The uid (email or phone number) of the recipient.
+        Required. The uid (email prefixed with email: or phone number prefixed with phone:) of the recipient or their Ferly customer id.
 
     :<json string sender:
-        Optional. The uid (email or phone number) of the sender.
+        Optional. The uid (email prefixed with email: or phone number prefixed with phone:) of the sender or their Ferly customer id.
 
     :<json string message:
         Optional. A custom message sent to the recipient along with the cash.
@@ -255,12 +233,9 @@ Send Cash
         Optional number specifying how many characters should be in the invitation code (if the transfer is an invitation). A minimum of 6 characters is required. More characters mean the code takes longer to enter but is less guessable. The code consists of digits and uppercase letters. Apps may present invitation codes with embedded dashes (-) for readability; the platform ignores the dashes.
 
     :statuscode 200:
-        Successful. The response body is a JSON object with these attributes:
+        Successful. The response body is a JSON object with the following attribute:
             ``transfer``
                 A TransferDetail object. See :ref:`TransferDetail`.
-
-            ``profile``
-                The sender's ProfileDetail object, updated to reflect the new amounts in the wallet. A payment code may also be added.
 
     :statuscode 400:
         The parameters are not invalid.
@@ -274,9 +249,9 @@ Send Cash
 Request Transfer Details
 ------------------------
 
-.. http:post:: ferlyapi.com/transfer
+.. http:get:: ferlyapi.com/transfer
 
-    Requests and returns transfer details of a transfer.
+    Requests and returns transfer details of a transfer mostly relating to buy transfers. To get full transfer details use :http:post:`ferlyapi.com/get_transfer_details`.
 
     :reqheader Authorization: See :ref:`Authorization Header`.
 
@@ -297,7 +272,7 @@ Request Transfer Details
             ``message``
                 A string containing the message sent in conjuction with :http:post:`ferlyapi.com/add-card`.
 
-            ``counter_party_proifle_image_url``
+            ``counter_party_profile_image_url``
                 A string containing the profile image url.
 
         **If unsuccessful the response body is a JSON object with one of the following attributes:**

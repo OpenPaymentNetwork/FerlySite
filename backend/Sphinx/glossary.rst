@@ -32,4 +32,4 @@ Glossary
         A person or business that is a member on the platform. Every profile has a wallet.
 
     UID
-        A normalized string that identifies a person or business such as a phone number or email.
+        A normalized string that identifies a person or business by their phone number prefixed with "phone:" or email prefixed with "email:".

@@ -5,6 +5,7 @@ from backend.database.serialize import serialize_design
 from backend.appapi.utils import get_device
 from backend.appapi.utils import notify_customer
 from backend.wccontact import wc_contact
+from datetime import datetime
 from pyramid.view import view_config
 from sqlalchemy import cast
 import json
@@ -21,6 +22,8 @@ def redemption_notification(request):
     # XXX Security issue: Anyone can trigger this and create havoc.
     # The webhook message should be signed.
     # See: https://github.com/pyauth/requests-http-signature
+    log.info("Entered redemption-notification call")
+    
     if getattr(request, 'content_type', None) == 'application/json':
         param_map = request.json_body
     else:
@@ -38,21 +41,32 @@ def redemption_notification(request):
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
         transaction_type = transfer.get('appdata.ferly.transactionType','')
+        sender_id = transfer.get('sender_id','')
         try:
             amount = transfer['amount']
             completed = transfer['completed']
             loop_id = transfer['movements'][0]['loops'][0]['loop_id']
-            sender_id = transfer['sender_id']
-            #transfer_id = transfer['id']
+            transfer_id = transfer['id']
         except Exception:
-            log.exception("Error in redemption_notification()")
-            continue
+            if transfer.get('reason') != '' and sender_id:
+                customer = dbsession.query(
+            Customer).filter(Customer.wc_id == sender_id).first()
+                if customer:
+                    notify_customer(request, customer, 'Oops!', "An attempt to use your Ferly Card was unsuccessful.",
+                        channel_id='card-used', data={'type': 'redemption_error', 'reason': transfer.get('reason')})
+                else:
+                    log.exception("Error in redemption_notification()")
+                    continue
+            else:
+                log.exception("Error in redemption_notification()")
+                continue
         if not completed:
             continue
-        #global _last_transfer_notified
-        #if _last_transfer_notified == transfer_id:
-        #    continue
-        #_last_transfer_notified = transfer_id
+        # if this becomes a problem a fix can be to create a table that remembers when a notification was sent.
+        global _last_transfer_notified
+        if _last_transfer_notified == transfer_id:
+            continue
+        _last_transfer_notified = transfer_id
         dbsession = request.dbsession
         customer = dbsession.query(
             Customer).filter(Customer.wc_id == sender_id).first()
@@ -65,22 +79,24 @@ def redemption_notification(request):
                 amount, design.title)
             notify_customer(request, customer, 'Gift', body,
                     channel_id='card-used')
+            log.info("Notified Customer: "+ customer.id+" of gift")
         elif transaction_type == 'purchase':
             body = 'Your purchased ${0} {1}.'.format(
                 amount, design.title)
             notify_customer(request, customer, 'Purchase', body,
                     channel_id='card-used')
+            log.info("Notified Customer: "+ customer.id+" of purchase")
         else:
             body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
                 amount, design.title)
             notify_customer(request, customer, 'Redemption', body,
                     channel_id='card-used')
+            log.info("Notified Customer: "+ customer.id+" of redemption")
     return {}
 
 
 @view_config(name='recaptcha-sitekey', renderer='json')
 def recaptcha_sitekey(request):
-    get_device(request)
     response = wc_contact(
         request, 'GET', 'aa/recaptcha_invisible_sitekey', anon=True)
     return response.json()

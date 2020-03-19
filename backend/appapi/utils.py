@@ -47,6 +47,15 @@ def get_device_token(request, required=False):
         raise HTTPBadRequest(json={
             'error': 'device_token_required',
         })
+    else:
+        import math
+        import random
+        result = ''
+        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+        charactersLength = len(characters)
+        for i in range(32):
+            result += characters[math.floor(random.uniform(0,1) * charactersLength)]
+        return result
 
     return None
 
@@ -72,19 +81,20 @@ def get_device(request):
     return device
 
 
-def notify_customer(request, customer, title, body, channel_id=None):
+def notify_customer(request, customer, title, body, channel_id=None, data={}):
     url = 'https://exp.host/--/api/v2/push/send'
-    devices = request.dbsession.query(Device).filter(
+    rows = request.dbsession.query(Device.expo_token).distinct(Device.expo_token).filter(
         Device.customer_id == customer.id).all()
-        
+    expoTokens = [x for (x,) in rows]
     notifications = []
-    for device in devices:
-        if device.expo_token:
+    for expoToken in expoTokens:
+        if expoToken:
             notification = {
-                'to': device.expo_token,
+                'to': expoToken,
                 'title': title,
                 'body': body,
-                'sound': 'default'
+                'sound': 'default',
+                'data' : data
             }
             if channel_id:
                 notification['channelId'] = channel_id

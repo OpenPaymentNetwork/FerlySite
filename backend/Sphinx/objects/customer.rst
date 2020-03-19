@@ -5,7 +5,7 @@
 customer
 --------------
 
-The attributes of a custom object.
+The attributes of a customer object.
 
 
 Attributes
@@ -19,7 +19,7 @@ Attributes
 .. index:: last_name
 
 ``last_name``
-    String: The customer's last name.
+    String: the customer's last name.
 
 .. index:: id
 
@@ -29,7 +29,7 @@ Attributes
 .. index:: profile_image_url
 
 ``profile_image_url``
-    String: the customer's url to their profile image.
+    String: the URL to the customer's profile image.
 
 .. index:: username
 

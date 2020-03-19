@@ -13,7 +13,7 @@ The ``Authorization`` HTTP header is required for most API calls. The header lin
 
     ``Authorization: Bearer ACCESS_TOKEN``
 
-``ACCESS_TOKEN`` is an access token received through an :ref:`Authentication`.
+``ACCESS_TOKEN`` is an access token received through :http:post:`ferlyapi.com/newSignup` or :http:post:`ferlyapi.com/recover` or created by client and sent in the authorization header in those same two calls. This token should not be shared and kept secret.
 
 .. _Signup:
 
@@ -24,16 +24,18 @@ Signup
 
     Begins the signup process with Ferly.
 
-    :reqheader Authorization: See :ref:`Authorization Header`.
+    :reqheader Authorization: Optional. See :ref:`Authorization Header`. 
 
     :<json string login: Required. The phone or email the user wishes to signup with.
 
-    :<json string username: Required. The username the user wishes to signup with.
+    :<json string username: Required. The username the user wishes to signup with. It must contain greaten than 3 but less than 21 characters, start with a letter, and contain only letters, numbers, and periods.
 
     :statuscode 200:
         **If successful, the response body will be a JSON object with the following attributes:**
+            ``token``
+                The access token to be used in future calls. See :ref:`Authorization Header`.
             ``attempt_path``
-                The path inside the platform API for updating or accessing the new authentication attempt. It looks like ``/aa/<attempt_id>``.
+                The path inside the platform API for updating or accessing the new authentication attempt. It looks like ``/aa/<attempt_id>/``.
 
             ``secret``
                 A string that authenticates the user's device for the duration of the authentication attempt. The client should not share this string with other devices. In subsequent authentication API calls, the client must send the secret.
@@ -160,7 +162,7 @@ Signup Finish
 
         **If successful, the response body will be a JSON object with the following attribute:**
             ``profile_id``
-                This is the id of a registered profile. This field will only have data if the user is already registered and should be logged in instead of completing registration.
+                This is the id of a registered profile.
 
         If unsuccessful, the response body is a JSON object with one of the following attributes:
             ``invalid``
@@ -177,7 +179,7 @@ Register
 
     Associate a device with a new customer and wallet and completes the signup process. Called after :http:post:`ferlyapi.com/signup-finish`.
 
-    :reqheader Authorization: See :ref:`Authorization Header` The ACCESS_TOKEN the caller wants to use for future authentication is passed at this point.
+    :reqheader Authorization: See :ref:`Authorization Header`. This is the token received from :http:post:`ferlyapi.com/newSignup`.
 
     :<json string first_name:
         Required. The customer's first name.
@@ -189,7 +191,7 @@ Register
         Required. The customer's username.
 
     :<json string profile_id:
-        Required. The profile_id returned from :http:post:`ferlyapi.com/auth-uid`.
+        Required. The profile_id returned from :http:post:`ferlyapi.com/signup-finish`.
 
     :<json string expo_token:
         Optional. expo_token corresponding to the new device on which the account is being recovered from.

@@ -210,7 +210,7 @@ def register(request):
 def signup(request):
     """Calls wingcash signup api."""
     params = request.get_params(schemas.SignupSchema())
-    token = get_device_token(request, required=True)
+    token = get_device_token(request)
     token_sha256 = hashlib.sha256(token.encode('utf-8')).hexdigest()
     dbsession = request.dbsession
     device = dbsession.query(Device).filter(
@@ -238,6 +238,7 @@ def signup(request):
             return response
         else:
             return { 
+                'token': token,
                 'attempt_path': response.get('attempt_path'), 
                 'secret' : response.get('secret'), 
                 'factor_id' : response.get('factor_id'), 
@@ -386,15 +387,20 @@ def send(request):
     design_id = params['design_id']
     amount = params['amount']
     message = params['message']
-    invitation_type = params['invitation_type']
-    invitation_code_length = params['invitation_code_length']
+    name = params['name']
+    invitation_type = params.get('invitation_type','')
+    invitation_code_length = params.get('invitation_code_length')
     dbsession = request.dbsession
     sendNotify = False
     customer_uid = 'wingcash:{0}'.format(customer.wc_id)
-    if params['sender'] == '':
-        sendNotify = True
+    if params.get('sender','') == '':
         recipient = dbsession.query(Customer).get(recipient_id)
-        recipient_uid = 'wingcash:{0}'.format(recipient.wc_id)
+        if recipient:
+            sendNotify = True
+            recipient_uid = 'wingcash:{0}'.format(recipient.wc_id)
+        else:
+            recipient = recipient_id
+            recipient_uid = recipient
 
     else:
         recipient = recipient_id
@@ -412,6 +418,7 @@ def send(request):
         'appdata.ferly.transactionType': 'gift',
         'appdata.ferly.designId': design_id,
         'appdata.ferly.title': design.title,
+        'appdata.ferly.name': name
     }
 
     if invitation_type != '':
@@ -445,9 +452,17 @@ def send(request):
     sender = 'from {0}'.format(customer.title)
     body = '{0}\n{1}'.format(message, sender) if message else sender
     if sendNotify:
+        data={
+            'type': 'receive',
+            'from': customer.first_name+' '+customer.last_name,
+            'amount': formatted_amount, 
+            'title': design.title,
+            'message': message
+        }
         notify_customer(
-            request, recipient, title, body, channel_id='gift-received')
-        customer.recents = new_recents[:9]
+            request, recipient, title, body, channel_id='gift-received',data=data)
+        customer.recents = new_recents[:9]   
+    response.pop("profile", None)
     return response
 
 
@@ -566,6 +581,7 @@ def history(request):
         history.append({
             'id': transfer['id'],
             'sent_count': transfer.get('sent_count'),
+            'name': transfer.get('appdata.ferly.name'),
             'amount': amount,
             'transfer_type': transfer_type,
             'counter_party': counter_party,
@@ -617,15 +633,18 @@ def transfer(request):
             Customer.wc_id == counter_party['uid_value']).first()
         if cp_customer is not None:
             profile_image_url = cp_customer.profile_image_url
-
     return {
+        'card_acceptor': transfer.get('card_acceptor'),
+        'pan_redacted': transfer.get('pan_redacted'),
+        'available_amount': transfer.get('available_amount'),
+        'reason': transfer.get('reason'),
+        'expiration': transfer.get('alarms'),
         'convenience_fee': transfer.get('appdata.ferly.convenience_fee', ''),
         'cc_brand': transfer.get('appdata.ferly.stripe_brand', ''),
         'cc_last4': transfer.get('appdata.ferly.stripe_last4', ''),
         'message': transfer['message'],
         'counter_party_profile_image_url': profile_image_url
     }
-
 
 @view_config(name='search-customers', renderer='json')
 def search_customers(request):

@@ -46,7 +46,7 @@ Delete A Card
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :<json string card_id:
-        Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
+        Required. The card identification number. This may be obtained from :http:get:`ferlyapi.com/profile`.
 
     :statuscode 200:
         **If successful, the response body is a JSON object with no attributes:**
@@ -70,7 +70,7 @@ Change Card Pin
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :<json string card_id:
-        Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
+        Required. The card identification number. This may be obtained from :http:get:`ferlyapi.com/profile`.
 
     :<json string pin:
         Required. The new pin to use at point of sale during redemption.
@@ -98,7 +98,7 @@ Suspend Card
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :<json string card_id:
-        Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
+        Required. The card identification number. This may be obtained from :http:get:`ferlyapi.com/profile`.
 
     :statuscode 200:
         **If successful, the response body is a JSON object with no attributes:**
@@ -123,7 +123,7 @@ Unsuspend Card
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :<json string card_id:
-        Required. The card identification number. This may be optained from :http:get:`ferlyapi.com/profile`.
+        Required. The card identification number. This may be obtained from :http:get:`ferlyapi.com/profile`.
 
     :statuscode 200:
         **If successful, the response body is a JSON object with no attributes:**
@@ -210,15 +210,15 @@ Request Card
         **If successful, the response body is a JSON object with the following attributes:**
             ``name``
                 The name of the customer.
-            ``address_line1``
+            ``line1``
                 The first line of address.
-            ``address_line2``
+            ``line2``
                 The second line of address.
             ``city``
                 The city of the customer's address.
             ``state``
                 The state of the customer's address.
-            ``zip``
+            ``zip_code``
                 The zip code of the customer's address.
 
         **If unsuccessful, the response body is a JSON object with one of the following attributes:**

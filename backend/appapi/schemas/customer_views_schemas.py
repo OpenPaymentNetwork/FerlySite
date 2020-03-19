@@ -20,8 +20,8 @@ def validate_username(node, value):
         raise Invalid(node, "Must contain at least 4 characters")
     if len(value) > 20:
         raise Invalid(node, "Must not be longer than 20 characters")
-    if value[0].isdigit():
-        raise Invalid(node, "Must not start with a number")
+    if value[0].isdigit() or value[0] == '.':
+        raise Invalid(node, "Must start with a letter")
     if re.compile(r'^[A-Za-z][A-Za-z0-9\.]{3,19}$').match(value) is None:
         raise Invalid(node, "Can only contain letters, numbers, and periods")
 
@@ -101,7 +101,9 @@ class SendSchema(Schema):
     message = SchemaNode(
         StrippedString(), missing='', validator=Length(max=500))
     invitation_type = SchemaNode(String(), missing = '')
-    invitation_code_length = SchemaNode(Integer(), missing=0)
+    invitation_code_length = SchemaNode(Integer(), missing=None)
+    name = SchemaNode(
+        StrippedString(), missing='', validator=Length(max=500))
 
 
 class EditProfileSchema(Schema):
