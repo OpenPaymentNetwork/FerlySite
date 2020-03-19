@@ -29,7 +29,7 @@ class Test_get_device_token(TestCase):
 
     def test_missing_token_when_not_required(self):
         request = pyramid.testing.DummyRequest()
-        self.assertIsNone(self._call(request))
+        self.assertIsNotNone(self._call(request))
 
     def test_valid_token_with_authorization_header(self):
         request = pyramid.testing.DummyRequest(headers={
@@ -50,7 +50,7 @@ class Test_get_device_token(TestCase):
             'Authorization': 'Bearer id0',
         })
         result = self._call(request)
-        self.assertIsNone(result)
+        self.assertIsNotNone(result)
 
     def test_token_too_short_when_required(self):
         request = pyramid.testing.DummyRequest(headers={
@@ -66,7 +66,7 @@ class Test_get_device_token(TestCase):
             'Authorization': 'Bearer ' + '1' * 201,
         })
         result = self._call(request, {})
-        self.assertIsNone(result)
+        self.assertIsNotNone(result)
 
     def test_token_too_long_when_required(self):
         request = pyramid.testing.DummyRequest(headers={
@@ -188,7 +188,8 @@ class TestNotifyCustomer(TestCase):
             'to': 'my_expo_token',
             'title': 'my_title',
             'body': 'my_body',
-            'sound': 'default'
+            'sound': 'default',
+            'data': {}
         }
         post.assert_called_once()
         call_ordered, call_kw = post.call_args
@@ -218,7 +219,8 @@ class TestNotifyCustomer(TestCase):
             'title': 'my_title',
             'body': 'my_body',
             'sound': 'default',
-            'channelId': 'my_channel_id'
+            'channelId': 'my_channel_id',
+            'data': {}
         }
         post.assert_called_once()
         call_ordered, call_kw = post.call_args

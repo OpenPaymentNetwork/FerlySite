@@ -107,7 +107,7 @@ Transfer API
 
 .. http:get:: ferlyapi.com/get_transfer_details
 
-    Used to control and monitor the cash invitation. :http:post:`ferlyapi.com/retract` cancels the cash invitation so that the cash invitation code becomes invalid. :http:post:`ferlyapi.com/resend` sends the recipient a reminder cash invitation. :http:post:`ferlyapi.com/get_transfer_details` gets information about the state of a cash invitation.
+    Used to control and monitor the cash invitation. :http:post:`ferlyapi.com/retract` cancels the cash invitation so that the cash invitation code becomes invalid. :http:post:`ferlyapi.com/resend` sends the recipient a reminder cash invitation. :http:get:`ferlyapi.com/get_transfer_details` gets information about the state of a cash invitation.
 
     :reqheader Authorization: See :ref:`Authorization Header`.
 

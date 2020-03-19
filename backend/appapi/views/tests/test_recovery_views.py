@@ -101,6 +101,7 @@ class TestRecover(TestCase):
     def test_response(self, wc_contact):
         good_values = {
             'secret': 'mysecret',
+            'token': 'defaultdeviceToken0defaultdeviceToken0',
             'code_length': 9,
             'attempt_path': 'myattemptpath',
             'factor_id': 'myfactor_id',

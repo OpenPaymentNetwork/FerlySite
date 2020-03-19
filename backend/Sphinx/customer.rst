@@ -251,7 +251,7 @@ Request Transfer Details
 
 .. http:get:: ferlyapi.com/transfer
 
-    Requests and returns transfer details of a transfer mostly relating to buy transfers. To get full transfer details use :http:post:`ferlyapi.com/get_transfer_details`.
+    Requests and returns transfer details of a transfer mostly relating to buy transfers. To get full transfer details use :http:get:`ferlyapi.com/get_transfer_details`.
 
     :reqheader Authorization: See :ref:`Authorization Header`.
 

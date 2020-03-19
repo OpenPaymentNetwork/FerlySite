@@ -30,7 +30,7 @@ class TestUsername(TestCase):
 
     def test_beginning_with_number(self):
         with self.assertRaisesRegex(
-                Invalid, "'username': 'Must not start with a number'"):
+                Invalid, "'username': 'Must start with a letter'"):
             self._make('1abc')
 
     def test_invalid_symbols(self):

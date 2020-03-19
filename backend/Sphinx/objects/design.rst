@@ -49,6 +49,6 @@ Common Attributes
 Used In
 ~~~~~~~
 
-- :http:post:`ferlyapi.com/history`
+- :http:get:`ferlyapi.com/history`
 - :http:get:`ferlyapi.com/list-designs`
 - :http:get:`ferlyapi.com/search-market`

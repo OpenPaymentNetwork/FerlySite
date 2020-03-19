@@ -872,7 +872,8 @@ class TestSend(TestCase):
             'accepted_policy': True,
             'appdata.ferly.transactionType': 'gift',
             'appdata.ferly.designId': design.id,
-            'appdata.ferly.title': 'Test Design'
+            'appdata.ferly.title': 'Test Design',
+            'appdata.ferly.name': ''
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,
@@ -883,7 +884,11 @@ class TestSend(TestCase):
             recipient,
             'Received $2.53 Test Design',
             'from defaultfirstname defaultlastname',
-            channel_id='gift-received')
+            channel_id='gift-received',
+            data={
+                'type': 'receive', 
+                'from': 'defaultfirstname defaultlastname', 
+                'amount': '$2.53', 'title': 'Test Design', 'message': ''})
 
         self.assertEqual([
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
@@ -913,7 +918,8 @@ class TestSend(TestCase):
             'accepted_policy': True,
             'appdata.ferly.transactionType': 'gift',
             'appdata.ferly.designId': design.id,
-            'appdata.ferly.title': 'Test Design'
+            'appdata.ferly.title': 'Test Design',
+            'appdata.ferly.name': ''
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,
@@ -952,7 +958,8 @@ class TestSend(TestCase):
             'message': 'hi sir',
             'appdata.ferly.transactionType': 'gift',
             'appdata.ferly.designId': design.id,
-            'appdata.ferly.title': 'Test Design'
+            'appdata.ferly.title': 'Test Design',
+            'appdata.ferly.name': '',
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/send', params=expect_params,
@@ -963,7 +970,11 @@ class TestSend(TestCase):
             recipient,
             'Received $2.53 Test Design',
             'hi sir\nfrom defaultfirstname defaultlastname',
-            channel_id='gift-received')
+            channel_id='gift-received',
+            data={
+                'type': 'receive', 
+                'from': 'defaultfirstname defaultlastname', 
+                'amount': '$2.53', 'title': 'Test Design', 'message': 'hi sir'})
 
         self.assertEqual([
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
@@ -1080,8 +1091,6 @@ class TestHistory(TestCase):
         request = self._make_request()
         response = self._call(request)
         self.assertEqual(1, len(response['history']))
-        transfer = response['history'][0]
-        self.assertEqual('myloop_id', transfer['design']['wingcash_id'])
 
     def test_design_title(self, get_device, wc_contact, get_wc_token):
         self._add_design()

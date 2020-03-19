@@ -307,4 +307,4 @@ These attributes are included in the :ref:`TransferDetail` object when the trans
 Used In
 ~~~~~~~
 
-- :http:post:`ferlyapi.com/Send`
+- :http:post:`ferlyapi.com/send`
