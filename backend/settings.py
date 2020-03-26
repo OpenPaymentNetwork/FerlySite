@@ -35,6 +35,16 @@ class FerlySettings(object):
         return os.environ.get('WINGCASH_CLIENT_SECRET',
                               self._settings.get('wingcash_client_secret'))
 
+    @reify
+    def open_wingcash_client_id(self):
+        return os.environ.get('OPEN_WINGCASH_CLIENT_ID',
+                              self._settings.get('open_wingcash_client_id'))
+
+    @reify
+    def open_wingcash_client_secret(self):
+        return os.environ.get('OPEN_WINGCASH_CLIENT_SECRET',
+                              self._settings.get('open_wingcash_client_secret'))
+
     # No longer in use:
     # @reify
     # def wingcash_api_token(self):

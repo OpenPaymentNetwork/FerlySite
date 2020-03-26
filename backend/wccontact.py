@@ -9,7 +9,8 @@ log = logging.getLogger(__name__)
 
 def wc_contact(
         request, method, urlTail, params={}, secret='',
-        access_token=None, auth=False, return_errors=False, anon=False):
+        access_token=None, auth=False, return_errors=False, 
+        anon=False, open_loop=False):
     """Issue an OPN API call and return the Response.
 
     The caller must specify which authentication mechanism to use:
@@ -44,9 +45,14 @@ def wc_contact(
         pass
     elif auth:
         # Use HTTP Basic auth.
-        wcauth = (
-            request.ferlysettings.wingcash_client_id,
-            request.ferlysettings.wingcash_client_secret)
+        if open_loop:
+            wcauth = (
+                request.ferlysettings.open_wingcash_client_id,
+                request.ferlysettings.open_wingcash_client_secret)
+        else:
+            wcauth = (
+                request.ferlysettings.wingcash_client_id,
+                request.ferlysettings.wingcash_client_secret)
         args.update({'auth': wcauth})
     elif secret:
         # Use a secret value.

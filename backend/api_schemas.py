@@ -53,6 +53,17 @@ class StrippedString(String):
             return null
         return value
 
+class AmountString(String):
+    """A regular string with whitespace stripped from the ends"""
+    def deserialize(self, node, cstruct):
+        value = String.deserialize(self, node, cstruct)
+        if not value:
+            return null
+        value = value.strip()
+        if not value:
+            return null
+        return value
+
 
 class Recipient(StrippedString):
 

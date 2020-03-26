@@ -199,6 +199,7 @@ class DesignPage(colander.MappingSchema):
     field_color = colander.SchemaNode(colander.String(), title='Field Color', missing='')
     field_dark = colander.SchemaNode(colander.Bool(), title='Field Dark', missing='False')
     fee = colander.SchemaNode(colander.Decimal(), title='Fee')
+    authorized_merchant = colander.SchemaNode(colander.Bool(), title='Authorized Merchant', missing =False)
 
 @view_config(
     name = 'edit',
@@ -227,6 +228,7 @@ def edit(design, request):
             design.fee = round(appstruct['fee'],2)
             design.field_color = appstruct['field_color']
             design.field_dark = appstruct['field_dark']
+            design.authorized_merchant = appstruct['authorized_merchant']
             return HTTPSeeOther(location=request.resource_url(design.__parent__))
     appstruct = {
                 'distribution_id': design.distribution_id,
@@ -237,7 +239,8 @@ def edit(design, request):
                 'wallet_image_url': design.wallet_image_url,
                 'fee': design.fee,
                 'field_color': design.field_color,
-                'field_dark': design.field_dark
+                'field_dark': design.field_dark,
+                'authorized_merchant': design.authorized_merchant
         }
     return {'form_rendered': form.render(appstruct), 'breadcrumbs': []}
 
@@ -269,6 +272,7 @@ def add(designCollection, request):
                 fee = round(appstruct['fee'],2),
                 field_color = appstruct['field_color'],
                 field_dark = appstruct['field_dark'],
+                authorized_merchant = appstruct['authorized_merchant'],
                 )
             myNewDesign.update_tsvector()
             dbsession.add(myNewDesign)

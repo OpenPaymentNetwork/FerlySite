@@ -116,13 +116,13 @@ def notify_customer(request, customer, title, body, channel_id=None, data={}):
                 repr(customer.id), repr(title), repr(response.text))
 
 
-def get_wc_token(request, customer, permissions=[]):
+def get_wc_token(request, customer, permissions=[], open_loop=False):
     params = {
         'uid': 'wingcash:' + customer.wc_id,
         'concurrent': True,
         'permissions': permissions
     }
-    response = wc_contact(request, 'POST', 'p/token', params, auth=True)
+    response = wc_contact(request, 'POST', 'p/token', params, auth=True, open_loop=open_loop)
     try:
         response.raise_for_status()
     except Exception:

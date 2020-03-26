@@ -1,5 +1,6 @@
 from backend.appapi.schemas import customer_views_schemas as schemas
 from backend.appapi.utils import get_device
+from backend.appapi.views.stripe_views import get_distributor_token
 from backend.appapi.utils import get_device_token
 from backend.appapi.utils import get_wc_token
 from backend.appapi.utils import notify_customer
@@ -12,6 +13,8 @@ from backend.database.serialize import serialize_customer
 from backend.database.serialize import serialize_design
 from backend.wccontact import wc_contact
 from colander import Invalid
+import colander
+import decimal
 from markupsafe import escape
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.view import view_config
@@ -465,6 +468,94 @@ def send(request):
     response.pop("profile", None)
     return response
 
+@view_config(name='trade', renderer='json')
+def trade(request):
+    params = request.get_params(schemas.TradeSchema())
+    device = get_device(request)
+    customer = device.customer
+    if not customer:
+        return {'error': 'Trader is not a Ferly Customer'}
+    dbsession = request.dbsession
+    amounts = []
+    myAmounts = params.get('amounts')
+    loopIds = params.get('loop_ids')
+    if len(myAmounts) != len(loopIds):
+        return {'invalid': 'must have same number of amounts as loop_ids'}
+    for i in range(0,len(myAmounts)):
+        LoopAmount = {}
+        design = dbsession.query(Design).get(loopIds[i])
+        if design:
+            LoopAmount['loop_id'] = design.wc_id
+        else:
+            return {'invalid': 'invalid loop id: ' + loopIds[i]}
+        LoopAmount['currency'] = 'USD'
+        try:
+            LoopAmount['amount'] = str(round(decimal.Decimal(myAmounts[i]),2))
+        except:
+            return {'invalid': 'invalid amount: ' + myAmounts[i]}
+        amounts.append(LoopAmount)
+    expectAmounts = []
+    myExpectAmounts = params.get('expect_amounts')
+    expectLoopIds = params.get('expect_loop_ids')
+    if len(myExpectAmounts) != len(expectLoopIds):
+        return {'invalid': 'must have same number of expect_amounts as expect_loop_ids'}
+    for i in range(0,len(myExpectAmounts)):
+        LoopAmount = {}
+        design = dbsession.query(Design).get(expectLoopIds[i])
+        if design:
+            LoopAmount['loop_id'] = design.wc_id
+        else:
+            return {'invalid': 'invalid expected loop id: ' + expectLoopIds[i]}
+        try:
+            LoopAmount['currency'] = 'USD'
+            LoopAmount['amount'] = str(round(decimal.Decimal(myExpectAmounts[i]),2))
+        except:
+            return {'invalid': 'invalid amount: ' + myExpectAmounts[i]}
+        expectAmounts.append(LoopAmount)
+    tradeParams = {
+        'recipient_uid': request.ferlysettings.distributor_uid,
+        'amounts': amounts,
+        'expect_amounts': expectAmounts,
+    }
+    access_token = get_wc_token(request, customer,
+                                permissions=['send_cash'], open_loop=params['open_loop'])
+    return wc_contact(request, 'POST', 'wallet/trade', params=tradeParams,
+               access_token=access_token).json() 
+
+@view_config(name='accept-trade', renderer='json')
+def accept_trade(request):
+    params = request.get_params(schemas.AcceptTradeSchema())
+    device = get_device(request)
+    customer = device.customer
+    if not customer:
+        return {'error': 'Trader is not a Ferly Customer'}
+    dbsession = request.dbsession
+    distribution_plan_ids = {}
+    myLoopIds = params.get('loop_ids')
+    for id in myLoopIds:
+        design = dbsession.query(Design).get(id)
+        if design:
+            distribution_plan_ids[design.wc_id] = design.distribution_id
+    tradeParams = {
+        'settler_uid': request.ferlysettings.distributor_uid,
+        'distribution_plan_ids': distribution_plan_ids,
+    }
+    access_token = get_distributor_token(request,
+                                permissions=['manage_received', 'apply_design'], open_loop=params['open_loop'])
+    return wc_contact(request, 'POST', 't/'+params['transfer_id']+'/accept-trade', params=tradeParams,
+                access_token=access_token).json()
+
+@view_config(name='refuse-trade', renderer='json')
+def refuse_trade(request):
+    params = request.get_params(schemas.RefuseTradeSchema())
+    device = get_device(request)
+    customer = device.customer
+    if not customer:
+        return {'error': 'Person refusing trade is not a Ferly Customer'}
+    access_token = get_distributor_token(request,
+                                permissions=['manage_received'], open_loop=params['open_loop'])
+    return wc_contact(request, 'POST', 't/'+params['transfer_id']+'/refuse',
+                access_token=access_token).json()
 
 @view_config(name='edit-profile', renderer='json')
 def edit_profile(request):

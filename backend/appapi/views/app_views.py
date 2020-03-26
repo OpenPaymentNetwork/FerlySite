@@ -111,6 +111,15 @@ def list_designs(request):
         Design.title).all()
     return [serialize_design(request, design) for design in designs]
 
+@view_config(name='get-ferly-cash-design', renderer='json')
+def get_ferly_cash_design(request):
+    """List all the listable designs on Ferly."""
+    get_device(request)
+    dbsession = request.dbsession
+    designs = dbsession.query(Design).filter(
+        Design.title == 'Ferly Cash').first()
+    return [serialize_design(request, design) for design in designs]
+
 
 @view_config(name='locations', renderer='json')
 def locations(request):

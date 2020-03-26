@@ -60,16 +60,16 @@ def delete_stripe_source(request):
     return {'result': stripe_response.get('deleted', False)}
 
 
-def get_distributor_token(request):
+def get_distributor_token(request, permissions=['apply_design'], open_loop=False):
     """Get an access token for distributing cash to the purchaser."""
     ferlysettings = request.ferlysettings
     params = {
         'uid': ferlysettings.distributor_uid,
         'manager_uid': ferlysettings.distributor_manager_uid,
         'concurrent': True,
-        'permissions': ['apply_design'],
+        'permissions': permissions,
     }
-    response = wc_contact(request, 'POST', 'p/token', params, auth=True)
+    response = wc_contact(request, 'POST', 'p/token', params, auth=True, open_loop=open_loop)
     try:
         response.raise_for_status()
     except Exception:

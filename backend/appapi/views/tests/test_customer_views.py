@@ -980,6 +980,215 @@ class TestSend(TestCase):
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
             'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
 
+@patch('backend.appapi.views.customer_views.get_wc_token')
+@patch('backend.appapi.views.customer_views.wc_contact')
+@patch('backend.appapi.views.customer_views.get_device')
+class TestTrade(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import trade
+        return trade(*args, **kw)
+
+    def _make_request(self, sender='', **kw):
+        request_params = {
+            'recipient_uid': '01',
+            'amounts': ['2.53'],
+            'loop_ids': ['1'],
+            'expect_amounts': ['1.00'],
+            'expect_loop_ids': ['2'],
+            'open_loop': False
+        }
+        request_params.update(kw)
+        request = pyramid.testing.DummyRequest()
+        settings = request.ferlysettings = MagicMock()
+        settings.environment = kw.get('environment', 'staging')
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        params.return_value = schemas.TradeSchema().bind(
+            request=request).deserialize(request_params)
+        return request
+
+    def _add_design(self):
+        from backend.database.models import Design
+        dbsession = self.dbsession
+        design = Design(
+            id='1',
+            wc_id='41',
+            title='Test Design',
+            fee='1.20',
+        )
+        dbsession.add(design)
+        dbsession.flush()  # Assign design.id
+        return design
+
+    def _add_recipient(self):
+        from backend.database.models import Customer
+        dbsession = self.dbsession
+        recipient = Customer(
+            wc_id='12',
+            first_name='Friend',
+            last_name='User',
+            username='friend',
+        )
+        dbsession.add(recipient)
+        dbsession.flush()  # Assign recipient.id
+        return recipient
+
+    def _make_response(self, json_content):
+        class MockJSONResponse:
+            def json(self):
+                return json_content
+
+        return MockJSONResponse()
+
+    def test_correct_schema_used(self, *args):
+        recipient = self._add_recipient()
+        request = self._make_request(recipient_id=recipient.id)
+        self._call(request)
+        schema_used = request.get_params.call_args[0][0]
+        self.assertTrue(isinstance(schema_used, schemas.TradeSchema))
+"""
+    def test_get_device_called(self, get_device, *args):
+        recipient = self._add_recipient()
+        request = self._make_request(recipient_id=recipient.id)
+        self._call(request)
+        get_device.assert_called()
+
+    def test_invalid_design(self, *args):
+        recipient = self._add_recipient()
+        request = self._make_request(recipient_id=recipient.id)
+        response = self._call(request)
+        self.assertEqual({'error': 'invalid_design'}, response)
+
+    def test_success_without_message(
+            self, get_device, wc_contact, get_wc_token):
+        device = add_device(self.dbsession)[0]
+        customer = device.customer
+        get_device.return_value = device
+        design = self._add_design()
+        recipient = self._add_recipient()
+        customer.recents = [
+            'cust1', 'cust2', 'cust3', 'cust4', recipient.id,
+            'cust5', 'cust6', 'cust7', 'cust8', 'cust9']
+
+        request = self._make_request(
+            design_id=design.id, recipient_id=recipient.id)
+        wc_contact.return_value = self._make_response({})
+        response = self._call(request)
+        self.assertEqual( {}, response)
+
+        access_token = get_wc_token.return_value
+        get_wc_token.assert_called_with(request, customer)
+        expect_params = {
+            'sender_uid': 'wingcash:11',
+            'recipient_uid': 'wingcash:12',
+            'amounts': '41-USD-2.53',
+            'require_recipient_email': False,
+            'accepted_policy': True,
+            'appdata.ferly.transactionType': 'gift',
+            'appdata.ferly.designId': design.id,
+            'appdata.ferly.title': 'Test Design',
+            'appdata.ferly.name': ''
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', 'wallet/send', params=expect_params,
+            access_token=access_token)
+
+        self.assertEqual([
+            recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
+            'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
+
+    def test_success_not_customer(
+            self, get_device, wc_contact, get_wc_token, notify_customer):
+        device = add_device(self.dbsession)[0]
+        customer = device.customer
+        get_device.return_value = device
+        design = self._add_design()
+        recipient = self._add_recipient()
+
+        request = self._make_request(sender='test',
+            design_id=design.id, recipient_id=recipient.id)
+        wc_contact.return_value = self._make_response({})
+        response = self._call(request)
+        self.assertEqual( {}, response)
+
+        access_token = get_wc_token.return_value
+        get_wc_token.assert_called_with(request, customer)
+        expect_params = {
+            'sender_uid': 'wingcash:11',
+            'recipient_uid': recipient.id,
+            'amounts': '41-USD-2.53',
+            'require_recipient_email': False,
+            'accepted_policy': True,
+            'appdata.ferly.transactionType': 'gift',
+            'appdata.ferly.designId': design.id,
+            'appdata.ferly.title': 'Test Design',
+            'appdata.ferly.name': ''
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', 'wallet/send', params=expect_params,
+            access_token=access_token)
+
+        notify_customer.assert_not_called()
+
+        self.assertEqual([], customer.recents)
+
+    def test_with_message(
+            self, get_device, wc_contact, get_wc_token, notify_customer):
+        device = add_device(self.dbsession)[0]
+        customer = device.customer
+        get_device.return_value = device
+
+        design = self._add_design()
+        recipient = self._add_recipient()
+        customer.recents = [
+            'cust1', 'cust2', 'cust3', 'cust4',
+            'cust5', 'cust6', 'cust7', 'cust8']
+
+        request = self._make_request(
+            design_id=design.id, recipient_id=recipient.id, message='hi sir')
+        wc_contact.return_value = self._make_response({})
+        response = self._call(request)
+        self.assertEqual({}, response)
+
+        access_token = get_wc_token.return_value
+        get_wc_token.assert_called_with(request, customer)
+        expect_params = {
+            'sender_uid': 'wingcash:11',
+            'recipient_uid': 'wingcash:12',
+            'amounts': '41-USD-2.53',
+            'require_recipient_email': False,
+            'accepted_policy': True,
+            'message': 'hi sir',
+            'appdata.ferly.transactionType': 'gift',
+            'appdata.ferly.designId': design.id,
+            'appdata.ferly.title': 'Test Design',
+            'appdata.ferly.name': '',
+        }
+        wc_contact.assert_called_with(
+            request, 'POST', 'wallet/send', params=expect_params,
+            access_token=access_token)
+
+        notify_customer.assert_called_with(
+            request,
+            recipient,
+            'Received $2.53 Test Design',
+            'hi sir\nfrom defaultfirstname defaultlastname',
+            channel_id='gift-received',
+            data={
+                'type': 'receive', 
+                'from': 'defaultfirstname defaultlastname', 
+                'amount': '$2.53', 'title': 'Test Design', 'message': 'hi sir'})
+
+        self.assertEqual([
+            recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
+            'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)"""
 
 @patch('backend.appapi.views.customer_views.get_wc_token')
 @patch('backend.appapi.views.customer_views.wc_contact')

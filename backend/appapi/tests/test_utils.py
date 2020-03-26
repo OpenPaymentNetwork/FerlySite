@@ -260,7 +260,7 @@ class TestGetWCToken(TestCase):
             'concurrent': True,
             'permissions': []}
         args = (request, 'POST', 'p/token', params)
-        kw = {'auth': True}
+        kw = {'auth': True, 'open_loop': False}
         mock_wc_contact.assert_called_once_with(*args, **kw)
 
     def test_permissions(self, wc_contact):

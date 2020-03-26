@@ -2,16 +2,21 @@ from colander import Integer
 from colander import Invalid
 from colander import Length
 from colander import Boolean
+from colander import Decimal
 from colander import Range
 from colander import Regex
 from colander import Schema
+from colander import SequenceSchema
 from colander import SchemaNode
+from colander import MappingSchema
 from colander import String
+import decimal
 from backend.appapi.schemas.recovery_views_schemas import recaptcha_response
 from backend.api_schemas import amount
 from backend.api_schemas import FieldStorage
 from backend.api_schemas import Recipient
 from backend.api_schemas import StrippedString
+from backend.api_schemas import AmountString
 import re
 
 
@@ -105,6 +110,28 @@ class SendSchema(Schema):
     name = SchemaNode(
         StrippedString(), missing='', validator=Length(max=500))
 
+class Amounts(SequenceSchema):
+    amount = SchemaNode(AmountString())
+
+class LoopIds(SequenceSchema):
+    loop_id = SchemaNode(StrippedString())
+
+class TradeSchema(MappingSchema):
+    recipient_uid = SchemaNode(String())
+    amounts = Amounts()
+    loop_ids = LoopIds()
+    expect_amounts = Amounts()
+    expect_loop_ids = LoopIds()
+    open_loop = SchemaNode(Boolean())
+
+class AcceptTradeSchema(MappingSchema):
+    loop_ids = LoopIds()
+    transfer_id = SchemaNode(String())
+    open_loop = SchemaNode(Boolean())
+
+class RefuseTradeSchema(MappingSchema):
+    transfer_id = SchemaNode(String())
+    open_loop = SchemaNode(Boolean())
 
 class EditProfileSchema(Schema):
     username = username()
