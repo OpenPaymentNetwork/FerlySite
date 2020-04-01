@@ -473,8 +473,9 @@ def trade(request):
     params = request.get_params(schemas.TradeSchema())
     device = get_device(request)
     customer = device.customer
-    if not customer:
-        return {'error': 'Trader is not a Ferly Customer'}
+    return completeTrade(request, params, customer)
+
+def completeTrade(request, params, customer):
     dbsession = request.dbsession
     amounts = []
     myAmounts = params.get('amounts')
@@ -483,11 +484,14 @@ def trade(request):
         return {'invalid': 'must have same number of amounts as loop_ids'}
     for i in range(0,len(myAmounts)):
         LoopAmount = {}
-        design = dbsession.query(Design).get(loopIds[i])
-        if design:
-            LoopAmount['loop_id'] = design.wc_id
+        if loopIds[i] != '0':
+            design = dbsession.query(Design).get(loopIds[i])
+            if design:
+                LoopAmount['loop_id'] = design.wc_id
+            else:
+                return {'invalid': 'invalid loop id: ' + loopIds[i]}
         else:
-            return {'invalid': 'invalid loop id: ' + loopIds[i]}
+            LoopAmount['loop_id'] = '0'
         LoopAmount['currency'] = 'USD'
         try:
             LoopAmount['amount'] = str(round(decimal.Decimal(myAmounts[i]),2))
@@ -520,7 +524,7 @@ def trade(request):
     access_token = get_wc_token(request, customer,
                                 permissions=['send_cash'], open_loop=params['open_loop'])
     return wc_contact(request, 'POST', 'wallet/trade', params=tradeParams,
-               access_token=access_token).json() 
+               access_token=access_token).json()
 
 @view_config(name='accept-trade', renderer='json')
 def accept_trade(request):
@@ -529,6 +533,9 @@ def accept_trade(request):
     customer = device.customer
     if not customer:
         return {'error': 'Trader is not a Ferly Customer'}
+    return completeAcceptTrade(request, params, customer)
+
+def completeAcceptTrade(request, params, customer):
     dbsession = request.dbsession
     distribution_plan_ids = {}
     myLoopIds = params.get('loop_ids')
@@ -536,6 +543,8 @@ def accept_trade(request):
         design = dbsession.query(Design).get(id)
         if design:
             distribution_plan_ids[design.wc_id] = design.distribution_id
+        else:
+            return {'invalid': 'invalid loop id: ' + id}
     tradeParams = {
         'settler_uid': request.ferlysettings.distributor_uid,
         'distribution_plan_ids': distribution_plan_ids,
@@ -548,10 +557,7 @@ def accept_trade(request):
 @view_config(name='refuse-trade', renderer='json')
 def refuse_trade(request):
     params = request.get_params(schemas.RefuseTradeSchema())
-    device = get_device(request)
-    customer = device.customer
-    if not customer:
-        return {'error': 'Person refusing trade is not a Ferly Customer'}
+    get_device(request)
     access_token = get_distributor_token(request,
                                 permissions=['manage_received'], open_loop=params['open_loop'])
     return wc_contact(request, 'POST', 't/'+params['transfer_id']+'/refuse',
@@ -843,3 +849,24 @@ def getCustomerName(request):
             return {'name' : (recipient.first_name + ' ' + recipient.last_name)}
         else:
             return {'invalid': 'Recipient is not a Ferly Customer'}
+
+@view_config(name='get-ach', renderer='json')
+def getACH(request):
+    """Get or create a matching funding proxy for the ACH network."""
+    device = get_device(request)
+    customer = device.customer
+    ACHParams = {
+        'routing_number': request.ferlysettings.routing,
+        'issuer_uid': request.ferlysettings.issuer_uid,
+        'recipient_uid': 'wingcash:{0}'.format(customer.wc_id),
+    }                      
+    return wc_contact(request, 'POST', 'fundproxy/get-ach', params=ACHParams,
+               auth=True).json() 
+
+@view_config(name='test2', renderer='json')
+def test2(request):
+    return test3(request)
+
+@view_config(name='test3', renderer='json')
+def test3(request):
+    return {'test': 'test3'}

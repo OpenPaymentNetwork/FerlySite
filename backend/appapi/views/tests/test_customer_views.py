@@ -5,6 +5,7 @@ from backend.database.models import Device
 from backend import settings
 from backend.testing import add_customer
 from backend.testing import add_device
+from backend.testing import add_deviceForCustomer11
 from backend.testing import DBFixture
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from unittest import TestCase
@@ -980,9 +981,6 @@ class TestSend(TestCase):
             recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
             'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
 
-@patch('backend.appapi.views.customer_views.get_wc_token')
-@patch('backend.appapi.views.customer_views.wc_contact')
-@patch('backend.appapi.views.customer_views.get_device')
 class TestTrade(TestCase):
 
     def setUp(self):
@@ -1001,11 +999,12 @@ class TestTrade(TestCase):
             'amounts': ['2.53'],
             'loop_ids': ['1'],
             'expect_amounts': ['1.00'],
-            'expect_loop_ids': ['2'],
+            'expect_loop_ids': ['1'],
             'open_loop': False
         }
         request_params.update(kw)
-        request = pyramid.testing.DummyRequest()
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0',})
         settings = request.ferlysettings = MagicMock()
         settings.environment = kw.get('environment', 'staging')
         request.dbsession = self.dbsession
@@ -1047,148 +1046,65 @@ class TestTrade(TestCase):
 
         return MockJSONResponse()
 
+    @patch('backend.appapi.views.customer_views.get_device')
     def test_correct_schema_used(self, *args):
         recipient = self._add_recipient()
         request = self._make_request(recipient_id=recipient.id)
         self._call(request)
         schema_used = request.get_params.call_args[0][0]
         self.assertTrue(isinstance(schema_used, schemas.TradeSchema))
-"""
+
+    @patch('backend.appapi.views.customer_views.get_device')
     def test_get_device_called(self, get_device, *args):
         recipient = self._add_recipient()
         request = self._make_request(recipient_id=recipient.id)
         self._call(request)
         get_device.assert_called()
 
+    @patch('backend.appapi.views.customer_views.get_device')
     def test_invalid_design(self, *args):
         recipient = self._add_recipient()
         request = self._make_request(recipient_id=recipient.id)
         response = self._call(request)
-        self.assertEqual({'error': 'invalid_design'}, response)
+        self.assertEqual({'invalid': 'invalid loop id: 1'}, response)
 
-    def test_success_without_message(
+    def test_customer(self, *args):
+        from pyramid.httpexceptions import HTTPUnauthorized
+        from backend.appapi.views.customer_views import trade
+        request = self._make_request()
+        try:
+            self._call(request)
+        except HTTPUnauthorized:
+            print("worked")
+
+    @patch('backend.appapi.views.customer_views.get_wc_token')
+    @patch('backend.appapi.views.customer_views.wc_contact')
+    @patch('backend.appapi.views.customer_views.get_device')        
+    def test_success(
             self, get_device, wc_contact, get_wc_token):
         device = add_device(self.dbsession)[0]
         customer = device.customer
         get_device.return_value = device
-        design = self._add_design()
-        recipient = self._add_recipient()
-        customer.recents = [
-            'cust1', 'cust2', 'cust3', 'cust4', recipient.id,
-            'cust5', 'cust6', 'cust7', 'cust8', 'cust9']
+        self._add_design()
+        self._add_recipient()
 
-        request = self._make_request(
-            design_id=design.id, recipient_id=recipient.id)
+        request = self._make_request()
         wc_contact.return_value = self._make_response({})
         response = self._call(request)
         self.assertEqual( {}, response)
 
         access_token = get_wc_token.return_value
-        get_wc_token.assert_called_with(request, customer)
+        get_wc_token.assert_called_with(request, customer, 
+            permissions=['send_cash'], open_loop=False
+        )
         expect_params = {
-            'sender_uid': 'wingcash:11',
-            'recipient_uid': 'wingcash:12',
-            'amounts': '41-USD-2.53',
-            'require_recipient_email': False,
-            'accepted_policy': True,
-            'appdata.ferly.transactionType': 'gift',
-            'appdata.ferly.designId': design.id,
-            'appdata.ferly.title': 'Test Design',
-            'appdata.ferly.name': ''
+            'recipient_uid': request.ferlysettings.distributor_uid,
+            'amounts': [{'amount': '2.53', 'currency': 'USD', 'loop_id': '41'}],
+            'expect_amounts': [{'amount': '1.00', 'currency': 'USD', 'loop_id': '41'}],
         }
         wc_contact.assert_called_with(
-            request, 'POST', 'wallet/send', params=expect_params,
+            request, 'POST', 'wallet/trade', params=expect_params,
             access_token=access_token)
-
-        self.assertEqual([
-            recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
-            'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)
-
-    def test_success_not_customer(
-            self, get_device, wc_contact, get_wc_token, notify_customer):
-        device = add_device(self.dbsession)[0]
-        customer = device.customer
-        get_device.return_value = device
-        design = self._add_design()
-        recipient = self._add_recipient()
-
-        request = self._make_request(sender='test',
-            design_id=design.id, recipient_id=recipient.id)
-        wc_contact.return_value = self._make_response({})
-        response = self._call(request)
-        self.assertEqual( {}, response)
-
-        access_token = get_wc_token.return_value
-        get_wc_token.assert_called_with(request, customer)
-        expect_params = {
-            'sender_uid': 'wingcash:11',
-            'recipient_uid': recipient.id,
-            'amounts': '41-USD-2.53',
-            'require_recipient_email': False,
-            'accepted_policy': True,
-            'appdata.ferly.transactionType': 'gift',
-            'appdata.ferly.designId': design.id,
-            'appdata.ferly.title': 'Test Design',
-            'appdata.ferly.name': ''
-        }
-        wc_contact.assert_called_with(
-            request, 'POST', 'wallet/send', params=expect_params,
-            access_token=access_token)
-
-        notify_customer.assert_not_called()
-
-        self.assertEqual([], customer.recents)
-
-    def test_with_message(
-            self, get_device, wc_contact, get_wc_token, notify_customer):
-        device = add_device(self.dbsession)[0]
-        customer = device.customer
-        get_device.return_value = device
-
-        design = self._add_design()
-        recipient = self._add_recipient()
-        customer.recents = [
-            'cust1', 'cust2', 'cust3', 'cust4',
-            'cust5', 'cust6', 'cust7', 'cust8']
-
-        request = self._make_request(
-            design_id=design.id, recipient_id=recipient.id, message='hi sir')
-        wc_contact.return_value = self._make_response({})
-        response = self._call(request)
-        self.assertEqual({}, response)
-
-        access_token = get_wc_token.return_value
-        get_wc_token.assert_called_with(request, customer)
-        expect_params = {
-            'sender_uid': 'wingcash:11',
-            'recipient_uid': 'wingcash:12',
-            'amounts': '41-USD-2.53',
-            'require_recipient_email': False,
-            'accepted_policy': True,
-            'message': 'hi sir',
-            'appdata.ferly.transactionType': 'gift',
-            'appdata.ferly.designId': design.id,
-            'appdata.ferly.title': 'Test Design',
-            'appdata.ferly.name': '',
-        }
-        wc_contact.assert_called_with(
-            request, 'POST', 'wallet/send', params=expect_params,
-            access_token=access_token)
-
-        notify_customer.assert_called_with(
-            request,
-            recipient,
-            'Received $2.53 Test Design',
-            'hi sir\nfrom defaultfirstname defaultlastname',
-            channel_id='gift-received',
-            data={
-                'type': 'receive', 
-                'from': 'defaultfirstname defaultlastname', 
-                'amount': '$2.53', 'title': 'Test Design', 'message': 'hi sir'})
-
-        self.assertEqual([
-            recipient.id, 'cust1', 'cust2', 'cust3', 'cust4',
-            'cust5', 'cust6', 'cust7', 'cust8'], customer.recents)"""
 
 @patch('backend.appapi.views.customer_views.get_wc_token')
 @patch('backend.appapi.views.customer_views.wc_contact')
@@ -1726,13 +1642,13 @@ class TestLogInfo(TestCase):
         request.get_params = kw = MagicMock()
         return request
 
-    def test_get_device_called(self, get_device, info):
+    def test_get_device_called(self, info, get_device):
         get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         self._call(request)
         get_device.assert_called()
 
-    def test_log_info_called(self, get_device, info):
+    def test_log_info_called(self, info, get_device):
         get_device.return_value = add_device(self.dbsession)[0]
         request = self._make_request()
         response = self._call(request)
@@ -1759,13 +1675,13 @@ class TestLogInfoInitial(TestCase):
         request.get_params = kw = MagicMock()
         return request
 
-    def test_get_device_called(self, get_device_token, info):
+    def test_get_device_called(self, info, get_device_token):
         get_device_token.return_value = 'test1234'
         request = self._make_request()
         self._call(request)
         get_device_token.assert_called()
 
-    def test_log_info_called(self, get_device_token, info):
+    def test_log_info_called(self, info, get_device_token):
         get_device_token.return_value = 'test1234'
         request = self._make_request()
         response = self._call(request)
@@ -1839,6 +1755,56 @@ class Testsignup(TestCase):
         request = self._make_request()
         response = self._call(request)
         self.assertEqual({'error': 'existing_username'}, response)
+
+@patch('backend.appapi.views.customer_views.get_device')
+@patch('backend.appapi.views.customer_views.wc_contact')
+class TestGetACH(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.customer_views import getACH
+        return getACH(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.ferlysettings = MagicMock()
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def test_get_device_called(self, wc_contact, get_device):
+        get_device.return_value = add_device(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_wingcash_called(self, wc_contact, get_device):
+        request = self._make_request()
+        self._call(request)
+        wc_contact.assert_called()
+
+    def test_wc_params(self, wc_contact, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._call(request)
+        params = {
+            'routing_number': request.ferlysettings.routing,
+            'issuer_uid': request.ferlysettings.issuer_uid,
+            'recipient_uid': 'wingcash:{0}'.format('11'),
+        }
+        wc_params = {**params}
+        self._call(request)
+        wc_contact.assert_called_with(
+            request, 'POST', 'fundproxy/get-ach', params=wc_params,
+            auth=True)
+
+
 
 
 

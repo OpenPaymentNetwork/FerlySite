@@ -260,6 +260,53 @@ Request Transfer Details
 
     :statuscode 200:
         **If successful the response body is a JSON object with the following attributes:**
+            ``card_acceptor``
+                If this transfer is a payment using a card and the platform knows the location of the receiving merchant, this attribute is an object containing ``location_id`` and ``location_name``, both of which are short strings. If the transfer is not a card payment or the location is not known, this attribute is not provided.
+
+            ``pan_redacted``
+                The PAN (primary account number) of the card that was used, with all but the last 4 digits redacted using ``X`` characters.
+
+            ``available_amount``
+                When the ``reason`` is ``insufficient_funds``, this attribute is a decimal string containing the amount of funds the sender had that qualified for payment to the merchant. Otherwise, this attribute is an empty string.
+
+            ``reason``
+                An identifier describing the reason why the card payment failed. The possible values include:
+
+                    ``denied_externally``
+                        The payment was denied by the  merchant or network.
+
+                    ``card_suspended``
+                        The card is suspended.
+
+                    ``card_holder_not_found``
+                        No wallet is linked to the card.
+
+                    ``merchant_not_found``
+                        The receiving merchant could not be identified.
+
+                    ``preauth_not_allowed``
+                        The merchant does not allow pre-authorized transactions.
+
+                    ``transaction_type_not_supported``
+                        The specified transaction type is not supported.
+
+                    ``cash_back_not_supported``
+                        Cash back transactions are not supported.
+
+                    ``no_funds``
+                        The sender has no funds accepted by the merchant.
+
+                    ``insufficient_funds``
+                        The sender does not have sufficient funds accepted by the merchant.
+
+                    ``reversal_original_not_found``
+                        A reversal of a transfer was attempted, but the original transfer could not be found.
+
+                    ``reversal_system_error``
+                        An internal system error occurred while reversing the transfer.
+
+            ``expiration``
+                When an invitation will expire automatically.
             ``convenience_fee``
                 A decimal number indicating the convenience fee of the transfer.
 

@@ -57,6 +57,16 @@ class FerlySettings(object):
         return self._settings['distributor_uid']
 
     @reify
+    def routing(self):
+        """The routing number for ach call"""
+        return self._settings['routing']
+
+    @reify
+    def issuer_uid(self):
+        """The issuer uid for the ach call"""
+        return self._settings['issuer_uid']
+
+    @reify
     def distributor_manager_uid(self):
         """The OPN UID of the manager (an individual) of the distributor"""
         return self._settings['distributor_manager_uid']

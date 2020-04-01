@@ -32,14 +32,6 @@
     color: #c33;
 }
 
-.authorized-merchant-checked {
-    color: #3c3;
-}
-
-.authorized-merchant-unchecked {
-    color: #c33;
-}
-
 .field-color-swatch {
     width: 150px;
     text-align: center;
@@ -69,7 +61,6 @@
             <th>Wallet Image</th>
             <th>Field Color</th>
             <th>Fee</th>
-            <th>Authorized Merchant</th>
         </tr>
     </thead>
     <tbody>
@@ -93,10 +84,6 @@
                 </div>
             </td>
             <td>${row.fee}</td>
-            <td>
-                <span tal:condition="row.authorized_merchant" class="authorized-merchant-checked">&#x2714;</span>
-                <span tal:condition="not row.authorized_merchant" class="authorized-merchant-unchecked">&#x2715;</span>
-            </td>
         </tr>
     </tbody>
 </table>

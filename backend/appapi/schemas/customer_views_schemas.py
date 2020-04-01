@@ -117,7 +117,6 @@ class LoopIds(SequenceSchema):
     loop_id = SchemaNode(StrippedString())
 
 class TradeSchema(MappingSchema):
-    recipient_uid = SchemaNode(String())
     amounts = Amounts()
     loop_ids = LoopIds()
     expect_amounts = Amounts()

@@ -1,10 +1,13 @@
 from backend.appapi.schemas import app_views_schemas
+from backend.appapi.views.customer_views import completeTrade
+from backend.appapi.views.customer_views import completeAcceptTrade
 from backend.database.models import Design
 from backend.database.models import Customer
 from backend.database.serialize import serialize_design
 from backend.appapi.utils import get_device
 from backend.appapi.utils import notify_customer
 from backend.wccontact import wc_contact
+import decimal
 from datetime import datetime
 from pyramid.view import view_config
 from sqlalchemy import cast
@@ -40,12 +43,18 @@ def redemption_notification(request):
         return {}
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
+        dbsession = request.dbsession
         transaction_type = transfer.get('appdata.ferly.transactionType','')
         sender_id = transfer.get('sender_id','')
+        recipient_id = transfer.get('recipient_id', '')
+        workflow_type = transfer.get('workflow_type', '')
+        if workflow_type == 'trade':
+            continue
         try:
             amount = transfer['amount']
             completed = transfer['completed']
             loop_id = transfer['movements'][0]['loops'][0]['loop_id']
+            currency = transfer['movements'][0]['loops'][0]['currency']
             transfer_id = transfer['id']
         except Exception:
             if transfer.get('reason') != '' and sender_id:
@@ -67,12 +76,11 @@ def redemption_notification(request):
         if _last_transfer_notified == transfer_id:
             continue
         _last_transfer_notified = transfer_id
-        dbsession = request.dbsession
         customer = dbsession.query(
             Customer).filter(Customer.wc_id == sender_id).first()
         design = dbsession.query(Design).filter(
             Design.wc_id == loop_id).first()
-        if not customer or not design:
+        if loop_id != '0' and (not customer or not design):
             continue
         if transaction_type == 'gift':
             body = 'You gifted ${0} {1}.'.format(
@@ -86,6 +94,31 @@ def redemption_notification(request):
             notify_customer(request, customer, 'Purchase', body,
                     channel_id='card-used')
             log.info("Notified Customer: "+ customer.id+" of purchase")
+        elif loop_id == '0' and currency == 'USD':
+            ferlyCashDesign = dbsession.query(Design).filter(
+                Design.title == 'Ferly Cash').first()
+            rewardCashDesign = dbsession.query(Design).filter(
+                Design.title == 'Ferly Rewards').first()
+            if ferlyCashDesign:
+                customer = dbsession.query(
+                    Customer).filter(Customer.wc_id == recipient_id).first()
+                rewards = str(round(decimal.Decimal(amount)*decimal.Decimal(.05),2))
+                params = {
+                    'amounts': [amount],
+                    'loop_ids': ['0'],
+                    'expect_amounts': [amount, rewards],
+                    'expect_loop_ids': [ferlyCashDesign.id, rewardCashDesign.id],
+                    'open_loop': True
+                }
+                response = completeTrade(request, params, customer)
+                transfer = response.get('transfer')
+                if transfer:
+                    params2 = {
+                        'loop_ids': [ferlyCashDesign.id, rewardCashDesign.id],
+                        'transfer_id': transfer.get('id'),
+                        'open_loop': True
+                    }
+                    response = completeAcceptTrade(request, params2, customer)
         else:
             body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
                 amount, design.title)
@@ -116,8 +149,19 @@ def get_ferly_cash_design(request):
     """List all the listable designs on Ferly."""
     get_device(request)
     dbsession = request.dbsession
-    designs = dbsession.query(Design).filter(
+    design = dbsession.query(Design).filter(
         Design.title == 'Ferly Cash').first()
+    return serialize_design(request, design)
+
+@view_config(name='list-loyalty-designs', renderer='json')
+def list_Loyalty_designs(request):
+    """List all the listable designs on Ferly."""
+    print("here in list loyalty")
+    get_device(request)
+    dbsession = request.dbsession
+    designs = dbsession.query(Design).filter(
+        Design.title.contains('Loyalty')).all()
+    print("here in list loyalty2")
     return [serialize_design(request, design) for design in designs]
 
 
