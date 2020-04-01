@@ -3,6 +3,7 @@ from backend.appapi.schemas import app_views_schemas as schemas
 from backend.database.models import Design
 from backend.testing import DBFixture
 from unittest import TestCase
+from backend.testing import add_deviceForCustomer11
 from unittest.mock import MagicMock
 from unittest.mock import patch
 import pyramid.testing
@@ -108,3 +109,167 @@ class TestLocationsCard(TestCase):
         ]
         response = self._call(self._make_request(design_id=design.id))
         self.assertEqual(locations, response['locations'])
+
+
+@patch('backend.appapi.views.app_views.get_device')
+class TestGetFerlyCashDesign(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.app_views import get_ferly_cash_design
+        return get_ferly_cash_design(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def _add_design(self):
+        from backend.database.models import Design
+        dbsession = self.dbsession
+        design = Design(
+            wc_id='41',
+            title='Ferly Cash',
+            fee='1.20',
+        )
+        dbsession.add(design)
+        dbsession.flush()  # Assign design.id
+        return design
+
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._add_design()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_got_Ferly_Cash_design(self, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._add_design()
+        response = self._call(request)
+        self.assertEqual(response.get('title'), "Ferly Cash")
+
+@patch('backend.appapi.views.app_views.get_device')
+class TestListLoyaltyDesigns(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.app_views import list_Loyalty_designs
+        return list_Loyalty_designs(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def _add_designs(self):
+        from backend.database.models import Design
+        dbsession = self.dbsession
+        design = Design(
+            wc_id='41',
+            title='Best Buy Loyalty',
+            fee='1.20',
+        )
+        dbsession.add(design)
+        dbsession.flush()  # Assign design.id
+        design = Design(
+            wc_id='42',
+            title='Best Buy',
+            fee='1.20',
+        )
+        dbsession.add(design)
+        dbsession.flush()  # Assign design.id
+        return design
+
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._add_designs()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_got_Ferly_Cash_design(self, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._add_designs()
+        response = self._call(request)
+        self.assertEqual(response[0].get('title'), "Best Buy Loyalty")
+        self.assertEqual(len(response),1)
+
+@patch('backend.appapi.views.app_views.get_device')
+class TestListDesigns(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.app_views import list_designs
+        return list_designs(*args, **kw)
+
+    def _make_request(self, **kw):
+        request = pyramid.testing.DummyRequest(headers={
+            'Authorization': 'Bearer defaultdeviceToken0defaultdeviceToken0'})
+        request.dbsession = self.dbsession
+        request.get_params = kw = MagicMock()
+        return request
+
+    def _add_designs(self):
+        from backend.database.models import Design
+        dbsession = self.dbsession
+        design = Design(
+            wc_id='41',
+            title='Walmart',
+            fee='1.20',
+            listable=True
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        design = Design(
+            wc_id='42',
+            title='Best Buy',
+            fee='1.20',
+            listable=False
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        design = Design(
+            wc_id='42',
+            title='Shopco',
+            fee='1.20',
+            listable=True
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        return design
+
+    def test_get_device_called(self, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._add_designs()
+        self._call(request)
+        get_device.assert_called()
+
+    def test_got_designs(self, get_device):
+        get_device.return_value = add_deviceForCustomer11(self.dbsession)[0]
+        request = self._make_request()
+        self._add_designs()
+        response = self._call(request)
+        self.assertEqual(len(response),2)

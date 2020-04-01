@@ -48,7 +48,7 @@ def redemption_notification(request):
         sender_id = transfer.get('sender_id','')
         recipient_id = transfer.get('recipient_id', '')
         workflow_type = transfer.get('workflow_type', '')
-        if workflow_type == 'trade':
+        if workflow_type == 'trade' or recipient_id == request.ferlysettings.distributor_uid:
             continue
         try:
             amount = transfer['amount']
@@ -156,12 +156,10 @@ def get_ferly_cash_design(request):
 @view_config(name='list-loyalty-designs', renderer='json')
 def list_Loyalty_designs(request):
     """List all the listable designs on Ferly."""
-    print("here in list loyalty")
     get_device(request)
     dbsession = request.dbsession
     designs = dbsession.query(Design).filter(
         Design.title.contains('Loyalty')).all()
-    print("here in list loyalty2")
     return [serialize_design(request, design) for design in designs]
 
 

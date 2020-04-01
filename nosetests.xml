@@ -1,14 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="1" errors="0" failures="1" skip="0"><testcase classname="test_app_views.TestLocationsCard" name="test_wc_contact_args" time="72.190"><failure type="builtins.AssertionError" message="Expected call: get_device(&lt;pyramid.testing.DummyRequest object at 0x0000028E654AC388&gt;, 'GET', '/design/41/redeemers', anon=True)&#10;Actual call: get_device(&lt;pyramid.testing.DummyRequest object at 0x0000028E654AC388&gt;)"><![CDATA[Traceback (most recent call last):
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="1" errors="0" failures="1" skip="0"><testcase classname="test_app_views.TestGetFerlyCashDesign" name="test_get_device_called" time="79.562"><failure type="builtins.AssertionError" message="Expected 'get_device' to have been called."><![CDATA[Traceback (most recent call last):
   File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\case.py", line 59, in testPartExecutor
     yield
   File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\case.py", line 628, in run
     testMethod()
   File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\mock.py", line 1209, in patched
     return func(*args, **keywargs)
-  File "c:\Users\willi\Documents\Work\FerlySite\backend\appapi\views\tests\test_app_views.py", line 86, in test_wc_contact_args
-    anon=True)
-  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\mock.py", line 834, in assert_called_with
-    raise AssertionError(_error_message()) from cause
-AssertionError: Expected call: get_device(<pyramid.testing.DummyRequest object at 0x0000028E654AC388>, 'GET', '/design/41/redeemers', anon=True)
-Actual call: get_device(<pyramid.testing.DummyRequest object at 0x0000028E654AC388>)
+  File "c:\Users\willi\Documents\Work\FerlySite\backend\appapi\views\tests\test_app_views.py", line 151, in test_get_device_called
+    get_device.assert_called()
+  File "C:\Users\willi\AppData\Local\Programs\Python\Python37\lib\unittest\mock.py", line 806, in assert_called
+    raise AssertionError(msg)
+AssertionError: Expected 'get_device' to have been called.
 ]]></failure></testcase></testsuite>
