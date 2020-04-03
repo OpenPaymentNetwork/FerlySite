@@ -122,9 +122,15 @@ def retract(request):
     postParams = {
         'reason': 'other'
     }
-    return wc_contact(
+    response = wc_contact(
         request, 'POST', 't/' + params['transfer_id'] + '/retract', params=postParams,
         access_token=access_token).json()
+    if response.get('error'):
+        return { 'error': response.get('error')}
+    elif response.get('invalid'):
+        return { 'invalid': response.get('error')}
+    else:
+        return response
 
 @view_config(name='resend', renderer='json')
 def resend(request):

@@ -473,7 +473,17 @@ def trade(request):
     params = request.get_params(schemas.TradeSchema())
     device = get_device(request)
     customer = device.customer
-    return completeTrade(request, params, customer)
+    response = completeTrade(request, params, customer)
+    transfer = response.get('transfer','')
+    if transfer:
+        return {'transfer_id': transfer['id']}
+    else:
+        if response.get('error'):
+            return { 'error': response.get('error')}
+        elif response.get('invalid'):
+            return { 'invalid': response.get('error')}
+        else:
+            return response
 
 def completeTrade(request, params, customer):
     dbsession = request.dbsession
@@ -533,7 +543,17 @@ def accept_trade(request):
     customer = device.customer
     if not customer:
         return {'error': 'Trader is not a Ferly Customer'}
-    return completeAcceptTrade(request, params, customer)
+    response = completeAcceptTrade(request, params, customer)
+    transfer = response.get('transfer','')
+    if transfer:
+        return {'transfer_id': transfer['id']}
+    else:
+        if response.get('error'):
+            return { 'error': response.get('error')}
+        elif response.get('invalid'):
+            return { 'invalid': response.get('error')}
+        else:
+            return response
 
 def completeAcceptTrade(request, params, customer):
     dbsession = request.dbsession
@@ -641,6 +661,7 @@ def history(request):
     else:
         designs = {}
     for transfer in results:
+        tradeReceivers = []
         appdataDesignId = transfer.get('appdata.ferly.designId')
         pending = transfer.get('next_activity')
         amount = transfer['amount']
@@ -661,7 +682,13 @@ def history(request):
             if not bool(sender_info['is_individual']):
                 transfer_type = 'purchase'
             else:
-                transfer_type = 'receive'
+                try:
+                    if transfer['movements'][0]['loops'][0]['loop_id'] == '0':
+                        transfer_type = 'add'
+                    else:
+                        transfer_type = 'receive'
+                except:
+                    transfer_type = 'receive'
         elif transfer['sender_id'] == customer.wc_id:
             counter_party = recipient_info['title']
             if bool(recipient_info['is_individual']):
@@ -673,6 +700,18 @@ def history(request):
                     transfer_type = 'send'
             else:
                 transfer_type = 'redeem'
+            if transfer['workflow_type'] == 'trade':
+                transfer_type = 'trade'
+                movements = transfer.get('movements')
+                for movement in movements:
+                    if movement.get('action') == 'issue':
+                        try:
+                            TradeReceiverid = movement['loops'][0]['loop_id']
+                            tradeDesign = dbsession.query(Design).filter(Design.wc_id == TradeReceiverid).first()
+                            if tradeDesign:
+                                tradeReceivers.append(tradeDesign.title)
+                        except:
+                            continue
         design_json = (
             None if design is None else serialize_design(request, design))
         history.append({
@@ -689,6 +728,7 @@ def history(request):
             'design_logo_image_url': (
                 '' if design is None else design.logo_image_url),
             'timestamp': timestamp,
+            'trade_Designs_Received': tradeReceivers
             # 'loop_id': loop_id
         })
     return {'history': history, 'has_more': has_more}
@@ -860,8 +900,14 @@ def getACH(request):
         'issuer_uid': request.ferlysettings.issuer_uid,
         'recipient_uid': 'wingcash:{0}'.format(customer.wc_id),
     }                      
-    return wc_contact(request, 'POST', 'fundproxy/get-ach', params=ACHParams,
+    response = wc_contact(request, 'POST', 'fundproxy/get-ach', params=ACHParams,
                auth=True).json() 
+    if response.get('error'):
+        return { 'error': response.get('error')}
+    elif response.get('invalid'):
+        return { 'invalid': response.get('error')}
+    else:
+        return response
 
 @view_config(name='test2', renderer='json')
 def test2(request):

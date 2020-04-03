@@ -36,15 +36,8 @@ Common Attributes
 ``wallet_image_url``
     String: the wallet image url.
 
-.. index:: field_color
-
-``field_color``
-    String: a string representing the color of the field.
-
-.. index:: field_dark
-
-``field_dark``
-    Boolean: true if a dark font should be used on field.
+``authorized_merchant``
+    Boolean: true if merchant is an authorized merchant otherwise false.
 
 Used In
 ~~~~~~~

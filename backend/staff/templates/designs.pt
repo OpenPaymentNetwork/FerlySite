@@ -75,14 +75,6 @@
             </td>
             <td><a tal:condition="row.logo_image_url" href="${row.logo_image_url}"><img src="${row.logo_image_url}" class="cell-image" /></a></td>
             <td><a tal:condition="row.wallet_image_url" href="${row.wallet_image_url}"><img src="${row.wallet_image_url}" class="cell-image" /></a></td>
-            <td>
-                <div tal:condition="row.field_color"
-                    style="background-color: #${row.field_color}"
-                    class="field-color-swatch field-${'dark' if row.field_dark else 'light'}">
-                        ${row.field_color}
-                    ${'(dark)' if row.field_dark else '(light)'}
-                </div>
-            </td>
             <td>${row.fee}</td>
         </tr>
     </tbody>

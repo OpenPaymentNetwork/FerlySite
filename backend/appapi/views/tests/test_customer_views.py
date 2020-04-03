@@ -1152,7 +1152,8 @@ class TestHistory(TestCase):
             },
             'recipient_id': 'defaultrecipientid',
             'sender_id': 'defaultsenderid',
-            'id': 'defaultid'
+            'id': 'defaultid',
+            'workflow_type': 'profile_to_profile'
         }
         transfer.update(**kw)
         return transfer
@@ -1170,8 +1171,6 @@ class TestHistory(TestCase):
             logo_image_url=logo_image_url,
             wallet_image_url='',
             fee=2,
-            field_color='ff9900',
-            field_dark=True,
         )
         dbsession.add(design)
         dbsession.flush()  # Assign design.id

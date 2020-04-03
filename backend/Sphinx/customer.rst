@@ -193,6 +193,8 @@ History
                         A string containing the design logo image url.
                     ``timestamp``
                         A string containing the timestamp of the history item.
+                    ``trade_Designs_Received``
+                        An array of the titles of the designs that received cash in a trade exchange.
 
         **If unsuccessful the response body is a JSON object with one of the following attributes:**
             ``invalid``
@@ -321,6 +323,101 @@ Request Transfer Details
 
             ``counter_party_profile_image_url``
                 A string containing the profile image url.
+
+        **If unsuccessful the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
+.. _Trade:
+
+Request Trade
+------------------------
+
+.. http:post:: ferlyapi.com/trade
+
+    Initiates a trade request that exchanges one or more design cash for one or more other design cash.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json array amounts:
+        Required. An array of string amounts each being the amount of corresponding loop_id that is being transferred.
+
+    :<json array loop_ids:
+        Required. An array of string ids each being the id of the design cash where the corresponding amount will be transferred.
+
+    :<json array expect_amounts:
+        Required. An array of string amounts each being the amount of corresponding loop_id that is being received from the trade.
+
+    :<json array expect_loop_ids:
+        Required. An array of string ids each being the id of the design cash where the corresponding amount will be received from the trade.
+
+    :<json open_loop:
+        Required. True if converting open loop cash from ACH transfer to Ferly Cash.
+
+    :statuscode 200:
+        **If successful the response body is a JSON object with the following attribute:**
+            ``transfer_id``
+                The id needed for the accept_trade call.
+
+        **If unsuccessful the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
+.. _Accept Trade:
+
+Accept and Complete Trade
+------------------------
+
+.. http:post:: ferlyapi.com/accept_trade
+
+    Accepts and Completes the trade initiated in :http:post:`ferlyapi.com/trade` call.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json array loop_ids:
+        Required. The expect_loop_ids from the trade call.
+
+    :<json string transfer_id:
+        Required. The transfer_id from the trade call.
+
+    :<json open_loop:
+        Required. True if converting open loop cash from ACH transfer to Ferly Cash.
+
+    :statuscode 200:
+        **If successful the response body is a JSON object with the following attribute:**
+            ``transfer_id``
+                The id used to get transfer details if needed from :http:get:`ferlyapi.com/transfer` call.
+
+        **If unsuccessful the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
+
+
+.. _Get ACH ACCOUNT:
+
+Get ACH Account
+------------------------
+
+.. http:post:: ferlyapi.com/get-ach
+
+    Get or create a matching funding proxy for the ACH network.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :statuscode 200:
+        **If successful the response body is a JSON object with the following attributes:**
+            ``routing_number``
+                The routing number of the ACH funding proxy.
+            ``account_number``
+                Generated automatically.
+            ``created``
+                The UTC ISO 8601 when the funding proxy was created.
 
         **If unsuccessful the response body is a JSON object with one of the following attributes:**
             ``invalid``

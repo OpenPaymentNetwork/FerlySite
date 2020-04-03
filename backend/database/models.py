@@ -98,8 +98,6 @@ class Design(Base):
     logo_image_url = Column(String)
     wallet_image_url = Column(String)
     fee = Column(Numeric, nullable=False)
-    field_color = Column(String, nullable=True)
-    field_dark = Column(Boolean, nullable=True)
     authorized_merchant = Column(Boolean, nullable=False, server_default='False')
     tsvector = Column(TSVECTOR)
 
