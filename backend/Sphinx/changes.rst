@@ -5,6 +5,11 @@ API Changes
 2020
 ~~~~
 
+1.1 (2020-04-03)
+----------------
+
+* Added :http:post:`ferlyapi.com/get-ach`, :http:post:`ferlyapi.com/trade`, and :http:post:`ferlyapi.com/accept_trade` calls.
+
 1.0 (2020-02-12)
 ----------------
 
