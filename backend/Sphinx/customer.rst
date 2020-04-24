@@ -195,6 +195,8 @@ History
                         A string containing the timestamp of the history item.
                     ``trade_Designs_Received``
                         An array of the titles of the designs that received cash in a trade exchange.
+                    ``transfer_designs``
+                        A string containing designs and their amounts sent in exchange to receive other design cash from trade call. The format of the string is title:design_title amount:design_amount with commas separating the designs sent in trade.
 
         **If unsuccessful the response body is a JSON object with one of the following attributes:**
             ``invalid``
@@ -372,7 +374,7 @@ Request Trade
 Accept and Complete Trade
 ------------------------
 
-.. http:post:: ferlyapi.com/accept_trade
+.. http:post:: ferlyapi.com/accept-trade
 
     Accepts and Completes the trade initiated in :http:post:`ferlyapi.com/trade` call.
 
@@ -411,7 +413,7 @@ Get ACH Account
     :reqheader Authorization: See :ref:`Authorization Header`.
 
     :statuscode 200:
-        **If successful the response body is a JSON object with the following attributes:**
+        **If successful the response body is a JSON object with a list of the following attributes:**
             ``routing_number``
                 The routing number of the ACH funding proxy.
             ``account_number``

@@ -11,6 +11,7 @@ from sqlalchemy import Integer
 from sqlalchemy import Numeric
 from sqlalchemy import String
 from sqlalchemy import Unicode
+from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import JSONB
@@ -65,7 +66,24 @@ class Customer(Base):
             tsvector = tsvector.concat(func.to_tsvector(text_part))
         self.tsvector = tsvector
 
+class Notification(Base):
+    __tablename__ = 'notification'
+    id = Column(
+        String, nullable=False, primary_key=True,
+        server_default=string_sequencer('notification_seq'))
+    transfer_id = Column(String, nullable=False)
+    customer_id = Column(
+        String, ForeignKey('customer.id'), nullable=False, index=True)
+    # original_* contains the address input from the customer.
+    sentDate = Column(DateTime, nullable=False, server_default=now_utc)
 
+Index(
+    # This index is needed for foreign keys.
+    'ix_notification',
+    Notification.transfer_id,
+    Notification.customer_id,
+    unique=True)
+    
 class Device(Base):
     __tablename__ = 'device'
     id = Column(

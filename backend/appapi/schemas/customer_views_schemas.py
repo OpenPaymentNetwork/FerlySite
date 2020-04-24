@@ -109,6 +109,7 @@ class SendSchema(Schema):
     invitation_code_length = SchemaNode(Integer(), missing=None)
     name = SchemaNode(
         StrippedString(), missing='', validator=Length(max=500))
+    
 
 class Amounts(SequenceSchema):
     amount = SchemaNode(AmountString())
@@ -122,6 +123,8 @@ class TradeSchema(MappingSchema):
     expect_amounts = Amounts()
     expect_loop_ids = LoopIds()
     open_loop = SchemaNode(Boolean())
+    combine_accept = SchemaNode(Boolean(), missing=False)
+    accept_expire_seconds = SchemaNode(Integer(), missing=0)
 
 class AcceptTradeSchema(MappingSchema):
     loop_ids = LoopIds()

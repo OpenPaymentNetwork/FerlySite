@@ -84,7 +84,7 @@ def acceptCode(request):
     if response.get('error'):
         return { 'error': response.get('error')}
     elif response.get('invalid'):
-        return { 'invalid': response.get('error')}
+        return { 'invalid': response.get('invalid')}
     else:
         return response
 
@@ -128,7 +128,7 @@ def retract(request):
     if response.get('error'):
         return { 'error': response.get('error')}
     elif response.get('invalid'):
-        return { 'invalid': response.get('error')}
+        return { 'invalid': response.get('invalid')}
     else:
         return response
 

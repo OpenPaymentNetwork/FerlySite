@@ -428,6 +428,7 @@ def send(request):
         params['invitation_type'] = invitation_type
         params['invitation_code_length'] = invitation_code_length
         params['invitation_expire_days'] = 30
+        params['appdata.ferly.type'] = 'invite'
     if message:
         params['message'] = message
 
@@ -476,16 +477,25 @@ def trade(request):
     response = completeTrade(request, params, customer)
     transfer = response.get('transfer','')
     if transfer:
-        return {'transfer_id': transfer['id']}
+        if params.get('combine_accept'):
+            params2 = {
+                        'loop_ids': params['expect_loop_ids'],
+                        'transfer_id': transfer.get('id'),
+                        'open_loop': True
+                    }
+            return completeAcceptTrade(request, params2, customer)
+        else:
+            return {'transfer_id': transfer['id']}
     else:
         if response.get('error'):
             return { 'error': response.get('error')}
         elif response.get('invalid'):
-            return { 'invalid': response.get('error')}
+            return { 'invalid': response.get('invalid')}
         else:
             return response
 
 def completeTrade(request, params, customer):
+    transferDesigns = ''
     dbsession = request.dbsession
     amounts = []
     myAmounts = params.get('amounts')
@@ -494,19 +504,20 @@ def completeTrade(request, params, customer):
         return {'invalid': 'must have same number of amounts as loop_ids'}
     for i in range(0,len(myAmounts)):
         LoopAmount = {}
+        try:
+            LoopAmount['amount'] = str(round(decimal.Decimal(myAmounts[i]),2))
+        except:
+            return {'invalid': 'invalid amount: ' + myAmounts[i]}
         if loopIds[i] != '0':
             design = dbsession.query(Design).get(loopIds[i])
             if design:
                 LoopAmount['loop_id'] = design.wc_id
+                transferDesigns += 'title:' + design.title + ' amount:' + LoopAmount['amount'] + ','
             else:
                 return {'invalid': 'invalid loop id: ' + loopIds[i]}
         else:
             LoopAmount['loop_id'] = '0'
         LoopAmount['currency'] = 'USD'
-        try:
-            LoopAmount['amount'] = str(round(decimal.Decimal(myAmounts[i]),2))
-        except:
-            return {'invalid': 'invalid amount: ' + myAmounts[i]}
         amounts.append(LoopAmount)
     expectAmounts = []
     myExpectAmounts = params.get('expect_amounts')
@@ -527,9 +538,11 @@ def completeTrade(request, params, customer):
             return {'invalid': 'invalid amount: ' + myExpectAmounts[i]}
         expectAmounts.append(LoopAmount)
     tradeParams = {
+        'accept_expire_seconds': params.get('accept_expire_seconds'),
         'recipient_uid': request.ferlysettings.distributor_uid,
         'amounts': amounts,
         'expect_amounts': expectAmounts,
+        'appdata.ferly.transferDesigns': transferDesigns[:-1]
     }
     access_token = get_wc_token(request, customer,
                                 permissions=['send_cash'], open_loop=params['open_loop'])
@@ -551,7 +564,7 @@ def accept_trade(request):
         if response.get('error'):
             return { 'error': response.get('error')}
         elif response.get('invalid'):
-            return { 'invalid': response.get('error')}
+            return { 'invalid': response.get('invalid')}
         else:
             return response
 
@@ -662,6 +675,7 @@ def history(request):
         designs = {}
     for transfer in results:
         tradeReceivers = []
+        transferDesigns = ''
         appdataDesignId = transfer.get('appdata.ferly.designId')
         pending = transfer.get('next_activity')
         amount = transfer['amount']
@@ -702,6 +716,7 @@ def history(request):
                 transfer_type = 'redeem'
             if transfer['workflow_type'] == 'trade':
                 transfer_type = 'trade'
+                transferDesigns = transfer.get('appdata.ferly.transferDesigns')
                 movements = transfer.get('movements')
                 for movement in movements:
                     if movement.get('action') == 'issue':
@@ -712,11 +727,14 @@ def history(request):
                                 tradeReceivers.append(tradeDesign.title)
                         except:
                             continue
+                if len(tradeReceivers) == 1 and tradeReceivers[0] == 'Ferly Cash':
+                    continue
         design_json = (
             None if design is None else serialize_design(request, design))
         history.append({
             'id': transfer['id'],
             'sent_count': transfer.get('sent_count'),
+            'workflow_type': transfer.get('workflow_type', ''),
             'name': transfer.get('appdata.ferly.name'),
             'amount': amount,
             'transfer_type': transfer_type,
@@ -728,7 +746,8 @@ def history(request):
             'design_logo_image_url': (
                 '' if design is None else design.logo_image_url),
             'timestamp': timestamp,
-            'trade_Designs_Received': tradeReceivers
+            'trade_Designs_Received': tradeReceivers,
+            'transfer_designs': transferDesigns
             # 'loop_id': loop_id
         })
     return {'history': history, 'has_more': has_more}
@@ -780,7 +799,11 @@ def transfer(request):
         'cc_brand': transfer.get('appdata.ferly.stripe_brand', ''),
         'cc_last4': transfer.get('appdata.ferly.stripe_last4', ''),
         'message': transfer['message'],
-        'counter_party_profile_image_url': profile_image_url
+        'counter_party_profile_image_url': profile_image_url,
+        'odfi': transfer.get('odfi', ''),
+        'odfi_name': transfer.get('odfi_name', ''),
+        'credits': transfer.get('credits', ''),
+        'debits': transfer.get('debits', ''),
     }
 
 @view_config(name='search-customers', renderer='json')
@@ -901,11 +924,11 @@ def getACH(request):
         'recipient_uid': 'wingcash:{0}'.format(customer.wc_id),
     }                      
     response = wc_contact(request, 'POST', 'fundproxy/get-ach', params=ACHParams,
-               auth=True).json() 
-    if response.get('error'):
+               auth=True).json()
+    if not isinstance(response, list) and response.get('error'):
         return { 'error': response.get('error')}
-    elif response.get('invalid'):
-        return { 'invalid': response.get('error')}
+    elif not isinstance(response, list) and response.get('invalid'):
+        return { 'invalid': response.get('invalid')}
     else:
         return response
 

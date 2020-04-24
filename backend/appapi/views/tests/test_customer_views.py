@@ -1098,9 +1098,11 @@ class TestTrade(TestCase):
             permissions=['send_cash'], open_loop=False
         )
         expect_params = {
+            'accept_expire_seconds': 0,
             'recipient_uid': request.ferlysettings.distributor_uid,
             'amounts': [{'amount': '2.53', 'currency': 'USD', 'loop_id': '41'}],
             'expect_amounts': [{'amount': '1.00', 'currency': 'USD', 'loop_id': '41'}],
+            'appdata.ferly.transferDesigns': 'title:Test Design amount:2.53',
         }
         wc_contact.assert_called_with(
             request, 'POST', 'wallet/trade', params=expect_params,

@@ -5,6 +5,11 @@ API Changes
 2020
 ~~~~
 
+1.2 (2020-04-07)
+----------------
+
+* Added :http:get:`ferlyapi.com/get-ferly-cash-design` and :http:get:`ferlyapi.com/list-loyalty-designs` calls
+
 1.1 (2020-04-03)
 ----------------
 

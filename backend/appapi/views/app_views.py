@@ -3,6 +3,7 @@ from backend.appapi.views.customer_views import completeTrade
 from backend.appapi.views.customer_views import completeAcceptTrade
 from backend.database.models import Design
 from backend.database.models import Customer
+from backend.database.models import Notification
 from backend.database.serialize import serialize_design
 from backend.appapi.utils import get_device
 from backend.appapi.utils import notify_customer
@@ -14,6 +15,7 @@ from sqlalchemy import cast
 import json
 from sqlalchemy import func
 from sqlalchemy import Unicode
+from sqlalchemy import and_
 import logging
 
 _last_transfer_notified = ''
@@ -26,7 +28,6 @@ def redemption_notification(request):
     # The webhook message should be signed.
     # See: https://github.com/pyauth/requests-http-signature
     log.info("Entered redemption-notification call")
-    
     if getattr(request, 'content_type', None) == 'application/json':
         param_map = request.json_body
     else:
@@ -43,11 +44,28 @@ def redemption_notification(request):
         return {}
     transfers = param_map.get('transfers', [])
     for transfer in transfers:
+        skip = transfer.get('appdata.ferly.type')
+        if skip:
+            continue
         dbsession = request.dbsession
         transaction_type = transfer.get('appdata.ferly.transactionType','')
         sender_id = transfer.get('sender_id','')
         recipient_id = transfer.get('recipient_id', '')
         workflow_type = transfer.get('workflow_type', '')
+        if workflow_type == 'receive_ach_prenote':
+            continue
+        if workflow_type == 'receive_ach_confirm' and transfer.get('completed', False):
+            customer = dbsession.query(
+                    Customer).filter(Customer.wc_id == recipient_id).first()
+            odfi = transfer.get('odfi', '')
+            odfi_name = transfer.get('odfi_name', '')
+            creditsSent = transfer.get('credits', '')
+            debits = transfer.get('debits', '')
+            body = 'ACH confirmation received from ' + odfi_name + '.'
+            notify_customer(request, customer, 'ACH Confirmation', body,
+                    channel_id='card-used', data={'type': 'ach_confirmation', 'odfi': odfi,
+                    'odfi_name': odfi_name, 'credits': creditsSent, 'debits': debits})
+            continue
         if workflow_type == 'trade' or recipient_id == request.ferlysettings.distributor_uid:
             continue
         try:
@@ -57,12 +75,13 @@ def redemption_notification(request):
             currency = transfer['movements'][0]['loops'][0]['currency']
             transfer_id = transfer['id']
         except Exception:
-            if transfer.get('reason') != '' and sender_id:
+            if transfer.get('reason', '') != '' and sender_id:
                 customer = dbsession.query(
             Customer).filter(Customer.wc_id == sender_id).first()
                 if customer:
                     notify_customer(request, customer, 'Oops!', "An attempt to use your Ferly Card was unsuccessful.",
                         channel_id='card-used', data={'type': 'redemption_error', 'reason': transfer.get('reason')})
+                    continue
                 else:
                     log.exception("Error in redemption_notification()")
                     continue
@@ -71,17 +90,25 @@ def redemption_notification(request):
                 continue
         if not completed:
             continue
-        # if this becomes a problem a fix can be to create a table that remembers when a notification was sent.
-        global _last_transfer_notified
-        if _last_transfer_notified == transfer_id:
-            continue
-        _last_transfer_notified = transfer_id
         customer = dbsession.query(
             Customer).filter(Customer.wc_id == sender_id).first()
+
         design = dbsession.query(Design).filter(
             Design.wc_id == loop_id).first()
         if loop_id != '0' and (not customer or not design):
             continue
+        if customer:
+            notification_already_sent = dbsession.query(Notification).filter(and_(transfer_id == Notification.transfer_id, Notification.customer_id == customer.id)).first()
+            if notification_already_sent:
+                continue
+        _last_transfer_notified = transfer_id
+        if loop_id != '0':
+            try:
+                notification = Notification(transfer_id=transfer_id, customer_id = customer.id)
+                dbsession.add(notification)
+                dbsession.flush()
+            except:
+                continue
         if transaction_type == 'gift':
             body = 'You gifted ${0} {1}.'.format(
                 amount, design.title)
@@ -89,11 +116,10 @@ def redemption_notification(request):
                     channel_id='card-used')
             log.info("Notified Customer: "+ customer.id+" of gift")
         elif transaction_type == 'purchase':
-            body = 'Your purchased ${0} {1}.'.format(
+            body = 'You purchased ${0} {1}.'.format(
                 amount, design.title)
             notify_customer(request, customer, 'Purchase', body,
                     channel_id='card-used')
-            log.info("Notified Customer: "+ customer.id+" of purchase")
         elif loop_id == '0' and currency == 'USD':
             ferlyCashDesign = dbsession.query(Design).filter(
                 Design.title == 'Ferly Cash').first()
@@ -102,23 +128,37 @@ def redemption_notification(request):
             if ferlyCashDesign:
                 customer = dbsession.query(
                     Customer).filter(Customer.wc_id == recipient_id).first()
-                rewards = str(round(decimal.Decimal(amount)*decimal.Decimal(.05),2))
+                rewards = (decimal.Decimal(amount) * decimal.Decimal('0.05')).quantize(decimal.Decimal('0.01'))
                 params = {
                     'amounts': [amount],
                     'loop_ids': ['0'],
-                    'expect_amounts': [amount, rewards],
-                    'expect_loop_ids': [ferlyCashDesign.id, rewardCashDesign.id],
+                    'expect_amounts': [amount],
+                    'expect_loop_ids': [ferlyCashDesign.id],
                     'open_loop': True
                 }
+                Titles = ['Ferly Cash']
+                body = 'You added ${0} of Ferly Cash.'.format(
+                            amount)
+                if rewards:
+                    params['expect_amounts'].append(str(rewards))
+                    params['expect_loop_ids'].append(rewardCashDesign.id)
+                    Titles.append('Ferly Rewards')
+                    body = 'You added ${0} of Ferly Cash and earned ${1} Ferly Rewards.'.format(
+                            amount, str(rewards))
                 response = completeTrade(request, params, customer)
                 transfer = response.get('transfer')
                 if transfer:
                     params2 = {
-                        'loop_ids': [ferlyCashDesign.id, rewardCashDesign.id],
+                        'loop_ids': params['expect_loop_ids'],
                         'transfer_id': transfer.get('id'),
                         'open_loop': True
                     }
                     response = completeAcceptTrade(request, params2, customer)
+                    transfer = response.get('transfer')
+                    if transfer:
+                        notify_customer(request, customer, 'Added!', body,
+                            channel_id='card-used', data={'type': 'add', 'amounts': params['expect_amounts'],
+                            'Titles': Titles})
         else:
             body = 'Your Ferly card was used to redeem ${0} {1}.'.format(
                 amount, design.title)

@@ -273,3 +273,425 @@ class TestListDesigns(TestCase):
         self._add_designs()
         response = self._call(request)
         self.assertEqual(len(response),2)
+
+class TestRedemptionNotification(TestCase):
+
+    def setUp(self):
+        self.dbsession, self.close_session = dbfixture.begin_session()
+
+    def tearDown(self):
+        self.close_session()
+
+    def _call(self, *args, **kw):
+        from backend.appapi.views.app_views import redemption_notification
+        return redemption_notification(*args, **kw)
+
+    def _make_request(self, **params):
+        request_params = {
+            'source_url': '/p/1/webhook',
+            'transfers': [],
+        }
+        request_params.update(**params)
+        request = pyramid.testing.DummyRequest(params=request_params)
+        settings = request.ferlysettings = MagicMock()
+        settings.environment = params.get('environment', 'staging')
+        settings.wingcash_profile_id = 1
+        settings.distributor_uid = 10
+        request.dbsession = self.dbsession
+        request.get_params = params = MagicMock()
+        return request
+
+    def _add_recipient(self, wc_id='12', username='friend'):
+        from backend.database.models import Customer
+        dbsession = self.dbsession
+        recipient = Customer(
+            wc_id=wc_id,
+            first_name='Friend',
+            last_name='User',
+            username=username,
+        )
+        dbsession.add(recipient)
+        dbsession.flush()  # Assign recipient.id
+        return recipient
+
+    def _add_notification(self, customer_id):
+        from backend.database.models import Notification
+        dbsession = self.dbsession
+        notification = Notification(
+            id='12',
+            transfer_id='6',
+            customer_id=customer_id,
+        )
+        dbsession.add(notification)
+        dbsession.flush()  # Assign recipient.id
+        return notification
+
+    def _add_designs(self):
+        from backend.database.models import Design
+        dbsession = self.dbsession
+        design = Design(
+            wc_id='41',
+            title='Walmart',
+            fee='1.20',
+            listable=True
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        design = Design(
+            wc_id='42',
+            title='Best Buy',
+            fee='1.20',
+            listable=False
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        design = Design(
+            wc_id='43',
+            title='Shopco',
+            fee='1.20',
+            listable=True
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        design = Design(
+            wc_id='1',
+            title='Ferly Cash',
+            fee='0',
+            listable=False
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        design = Design(
+            wc_id='2',
+            title='Ferly Rewards',
+            fee='0',
+            listable=False
+        )
+        dbsession.add(design)
+        dbsession.flush()
+        
+        return design
+
+    @patch('backend.appapi.views.app_views.log.warning')
+    def test_source_url(self, warning):
+        request = self._make_request(source_url = '/p/2/webhook')
+        response = self._call(request)
+        self.assertEqual(response,{})
+        warning.assert_called_once()
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    def test_skip(self, notify_customer):
+        request = self._make_request(transfers=[{'appdata.ferly.type': 'skip'}])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        self.assertEqual(response,{})
+    
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_completed(self, exception, notify_customer):
+        result = {
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': False,
+            'movements': [{'loops': [{'loop_id': '1', 'currency': '1.00'}]}],
+            'id': '6'
+        }
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        exception.assert_not_called()
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    def test_trade(self, notify_customer):
+        request = self._make_request(transfers=[{'workflow_type': 'trade'}])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    def test_ach_confirm(self, notify_customer):
+        achResult = {
+            'odfi': '123456789',
+            'odfi_name': 'test bank',
+            'credits': ['.05'],
+            'debits': ['.05'],
+            'recipient_id': '12',
+            'workflow_type': 'receive_ach_confirm',
+            'completed': True
+        }
+        recipient = self._add_recipient()
+        body = 'ACH confirmation received from ' + 'test bank' + '.'
+        request = self._make_request(transfers = [achResult])
+        response = self._call(request)
+        self.assertEqual(response,{})
+        notify_customer.assert_called_with(request, recipient, 'ACH Confirmation', body,
+                    channel_id='card-used', data={'type': 'ach_confirmation', 'odfi': '123456789',
+                    'odfi_name': 'test bank', 'credits': ['.05'], 'debits': ['.05']})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    def test_ach_prenote(self, notify_customer):
+        achResult = {
+            'odfi': '123456789',
+            'odfi_name': 'test bank',
+            'recipient_id': '12',
+            'workflow_type': 'receive_ach_prenote',
+            'completed': True
+        }
+        self._add_recipient()
+        request = self._make_request(transfers = [achResult])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    def test_recipient_is_distributor(self, notify_customer):
+        result = {
+            'recipient_id': '10',
+            'completed': True
+        }
+        self._add_recipient()
+        request = self._make_request(transfers = [result])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_exception_no_customer(self, exception):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'completed': True,
+            'reason': 'error',
+            'sender_id': '12'
+        }
+        request = self._make_request(transfers = [result])
+        response = self._call(request)
+        exception.assert_called_with("Error in redemption_notification()")
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    def test_exception_customer(self, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'completed': True,
+            'reason': 'error',
+            'sender_id': '12'
+        }
+        recipient = self._add_recipient()
+        request = self._make_request(transfers = [result])
+        response = self._call(request)
+        notify_customer.assert_called_with(request, recipient, 'Oops!', "An attempt to use your Ferly Card was unsuccessful.",
+                        channel_id='card-used', data={'type': 'redemption_error', 'reason': 'error'})
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_exception_no_reason(self, exception):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'completed': True,
+            'sender_id': '12'
+        }
+        self._add_recipient()
+        request = self._make_request(transfers = [result])
+        response = self._call(request)
+        exception.assert_called_with("Error in redemption_notification()")
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_exception_no_sender_id(self, exception):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'completed': True,
+        }
+        self._add_recipient()
+        request = self._make_request(transfers = [result])
+        response = self._call(request)
+        exception.assert_called_with("Error in redemption_notification()")
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_not_customer_loopid_not_zero(self, exception, notify_customer):
+        result = {
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '1', 'currency': 'USD'}]}],
+            'id': '6',
+        }
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        exception.assert_not_called()
+        self.assertEqual(response,{})
+
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_no_design_loopid_not_zero(self, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '1', 'currency': 'USD'}]}],
+            'id': '6',
+        }
+        self._add_recipient()
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        exception.assert_not_called()
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_notification_already_sent(self, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
+            'id': '6',
+            'sender_id': '12'
+        }
+        recipient = self._add_recipient()
+        self._add_designs()
+        self._add_notification(customer_id=recipient.id)
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        notify_customer.assert_not_called()
+        exception.assert_not_called()
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_notification_gift(self, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
+            'id': '6',
+            'sender_id': '12',
+            'appdata.ferly.transactionType': 'gift'
+        }
+        customer = self._add_recipient()
+        past_recipient = self._add_recipient(wc_id='13', username='blah')
+        self._add_designs()
+        self._add_notification(customer_id=past_recipient.id)
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        body = 'You gifted $4.00 Best Buy.'
+        notify_customer.assert_called_with(request, customer, 'Gift', body,
+                    channel_id='card-used')
+        self.assertEqual(response,{})
+
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_notification_not_already_sent_card_redemption(self, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
+            'id': '7',
+            'sender_id': '12'
+        }
+        customer = self._add_recipient()
+        past_recipient = self._add_recipient(wc_id='13', username='blah')
+        self._add_designs()
+        self._add_notification(customer_id=past_recipient.id)
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        body = 'Your Ferly card was used to redeem $4.00 Best Buy.'
+        notify_customer.assert_called_with(request, customer, 'Redemption', body, channel_id='card-used')
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    def test_notification_purchase(self, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '4.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
+            'id': '8',
+            'sender_id': '12',
+            'appdata.ferly.transactionType': 'purchase'
+        }
+        customer = self._add_recipient()
+        past_recipient = self._add_recipient(wc_id='13', username='blah')
+        self._add_designs()
+        self._add_notification(customer_id=past_recipient.id)
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        body = 'You purchased $4.00 Best Buy.'
+        notify_customer.assert_called_with(request, customer, 'Purchase', body,
+                    channel_id='card-used')
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    @patch('backend.appapi.views.app_views.completeTrade')
+    @patch('backend.appapi.views.app_views.completeAcceptTrade')
+    def test_open_loop_trade_with_rewards(self, completeAcceptTrade, completeTrade, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '20.00',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '0', 'currency': 'USD'}]}],
+            'id': '8',
+            'sender_id': '12',
+        }
+        customer = self._add_recipient()
+        completeAcceptTrade.return_value = {'transfer': {'id': '3'}}
+        completeTrade.return_value = {'transfer': {'id': '3'}}
+        past_recipient = self._add_recipient(wc_id='13', username='blah')
+        self._add_designs()
+        self._add_notification(customer_id=past_recipient.id)
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        body = 'You added $20.00 of Ferly Cash and earned $1.00 Ferly Rewards.'
+        notify_customer.assert_called_with(request, customer, 'Added!', body,
+                    channel_id='card-used',data={'type': 'add', 'amounts': ['20.00','1.00'],
+                            'Titles': ['Ferly Cash', 'Ferly Rewards']})
+        self.assertEqual(response,{})
+
+    @patch('backend.appapi.views.app_views.notify_customer')
+    @patch('backend.appapi.views.app_views.log.exception')
+    @patch('backend.appapi.views.app_views.completeTrade')
+    @patch('backend.appapi.views.app_views.completeAcceptTrade')
+    def test_open_loop_trade_no_rewards(self, completeAcceptTrade, completeTrade, exception, notify_customer):
+        result = {
+            'recipient_id': '12',
+            'workflow_type': 'test',
+            'amount': '0.10',
+            'completed': True,
+            'movements': [{'loops': [{'loop_id': '0', 'currency': 'USD'}]}],
+            'id': '8',
+            'sender_id': '12',
+        }
+        customer = self._add_recipient()
+        completeAcceptTrade.return_value = {'transfer': {'id': '3'}}
+        completeTrade.return_value = {'transfer': {'id': '3'}}
+        past_recipient = self._add_recipient(wc_id='13', username='blah')
+        self._add_designs()
+        self._add_notification(customer_id=past_recipient.id)
+        request = self._make_request(transfers=[result])
+        response = self._call(request)
+        body = 'You added $0.10 of Ferly Cash.'
+        notify_customer.assert_called_with(request, customer, 'Added!', body,
+                    channel_id='card-used',data={'type': 'add', 'amounts': ['0.10'],
+                            'Titles': ['Ferly Cash']})
+        self.assertEqual(response,{})
