@@ -33,6 +33,7 @@ log = logging.getLogger(__name__)
 
 @view_config(name='set-expo-token', renderer='json')
 def SetExpoToken(request):
+    """Sets expo token for push notifications"""
     params = request.get_params(schemas.ExpoTokenSchema())
     device = get_device(request)
     device.expo_token = params['expo_token']
@@ -40,6 +41,7 @@ def SetExpoToken(request):
 
 @view_config(name='verify-account', renderer='json')
 def verifyAccount(request):
+    """Returns if a customer is verified"""
     device = get_device(request)
     customer = device.customer
     return {'Verified': customer.verified_account}
@@ -471,6 +473,7 @@ def send(request):
 
 @view_config(name='trade', renderer='json')
 def trade(request):
+    """Trade between types of open loop and closed loop cash"""
     params = request.get_params(schemas.TradeSchema())
     device = get_device(request)
     customer = device.customer
@@ -495,6 +498,7 @@ def trade(request):
             return response
 
 def completeTrade(request, params, customer):
+    """Does trade call to wingcash"""
     transferDesigns = ''
     dbsession = request.dbsession
     amounts = []
@@ -551,6 +555,7 @@ def completeTrade(request, params, customer):
 
 @view_config(name='accept-trade', renderer='json')
 def accept_trade(request):
+    """Accepts the trade"""
     params = request.get_params(schemas.AcceptTradeSchema())
     device = get_device(request)
     customer = device.customer
@@ -569,6 +574,7 @@ def accept_trade(request):
             return response
 
 def completeAcceptTrade(request, params, customer):
+    """calls wingash to complete the trade"""
     dbsession = request.dbsession
     distribution_plan_ids = {}
     myLoopIds = params.get('loop_ids')
@@ -589,12 +595,23 @@ def completeAcceptTrade(request, params, customer):
 
 @view_config(name='refuse-trade', renderer='json')
 def refuse_trade(request):
+    """Refuses a trade"""
     params = request.get_params(schemas.RefuseTradeSchema())
     get_device(request)
     access_token = get_distributor_token(request,
                                 permissions=['manage_received'], open_loop=params['open_loop'])
-    return wc_contact(request, 'POST', 't/'+params['transfer_id']+'/refuse',
+    response = wc_contact(request, 'POST', 't/'+params['transfer_id']+'/refuse',
                 access_token=access_token).json()
+    transfer = response.get('transfer','')
+    if transfer:
+        return {'transfer_id': transfer['id']}
+    else:
+        if response.get('error'):
+            return { 'error': response.get('error')}
+        elif response.get('invalid'):
+            return { 'invalid': response.get('invalid')}
+        else:
+            return response
 
 @view_config(name='edit-profile', renderer='json')
 def edit_profile(request):
@@ -675,6 +692,7 @@ def history(request):
         designs = {}
     for transfer in results:
         tradeReceivers = []
+        redemptionloops = []
         transferDesigns = ''
         appdataDesignId = transfer.get('appdata.ferly.designId')
         pending = transfer.get('next_activity')
@@ -714,8 +732,20 @@ def history(request):
                     transfer_type = 'send'
             else:
                 transfer_type = 'redeem'
+                movements = transfer.get('movements')
+                for movement in movements:
+                    if movement.get('action') == 'move':
+                        loops = movement.get('loops')
+                        for loop in loops:
+                            redemptiondesign = dbsession.query(Design).filter(Design.wc_id == loop.get('loop_id')).first()
+                            redemptionamount = loop.get('amount')
+                            if redemptiondesign:
+                                title = redemptiondesign.title
+                                redemptionloop = {'title': title, 'amount': redemptionamount}
+                                redemptionloops.append(redemptionloop)
             if transfer['workflow_type'] == 'trade':
                 transfer_type = 'trade'
+                redemptionloops = []
                 transferDesigns = transfer.get('appdata.ferly.transferDesigns')
                 movements = transfer.get('movements')
                 for movement in movements:
@@ -747,7 +777,8 @@ def history(request):
                 '' if design is None else design.logo_image_url),
             'timestamp': timestamp,
             'trade_Designs_Received': tradeReceivers,
-            'transfer_designs': transferDesigns
+            'transfer_designs': transferDesigns,
+            'split_redemption_info': redemptionloops
             # 'loop_id': loop_id
         })
     return {'history': history, 'has_more': has_more}
@@ -931,11 +962,3 @@ def getACH(request):
         return { 'invalid': response.get('invalid')}
     else:
         return response
-
-@view_config(name='test2', renderer='json')
-def test2(request):
-    return test3(request)
-
-@view_config(name='test3', renderer='json')
-def test3(request):
-    return {'test': 'test3'}

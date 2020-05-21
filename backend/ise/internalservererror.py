@@ -23,8 +23,9 @@ class InternalServerErrorTween(object):
                 ts=now.strftime('%Y%m%d-%H%M%S'),
                 uid=random.randint(100000, 999999))
             log.exception("Internal Server Error {0}".format(error_id))
-            recipient = self.registry.settings.get('ise_recipient')
-            if recipient:
+            recipients = self.registry.settings.get('ise_recipients')
+            if recipients:
+                recipients = recipients.split(', ')
                 traceback_file = StringIO()
                 traceback.print_exc(file=traceback_file)
                 lines = []
@@ -37,8 +38,9 @@ class InternalServerErrorTween(object):
                 ise_text = '\n'.join(lines)
                 request._ise_text = ise_text
                 subject = '[ferlyapi.com ISE] {0}]'.format(error_id)
-                send_email(request, recipient, subject, ise_text,
-                           from_email='ise@ferly.com')
+                for recipient in recipients:
+                    send_email(request, recipient, subject, ise_text,
+                            from_email='ise@ferly.com')
             response = Response(json={
                 'error': 'internal_server_error:%s' % error_id,
                 'error_description': (

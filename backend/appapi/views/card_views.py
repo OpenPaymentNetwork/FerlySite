@@ -8,6 +8,7 @@ from pyramid.view import view_config
 
 @view_config(name='verify-address',renderer='json')
 def verifyAddress(request):
+    """Verify their card address"""
     device = get_device(request)
     customer = device.customer
     card_request  = request.dbsession.query(CardRequest).filter(CardRequest.customer_id == customer.id).first()

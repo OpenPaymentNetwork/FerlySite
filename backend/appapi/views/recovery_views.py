@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 @view_config(name='recover', renderer='json')
 def recover(request):
+    """recovers/signs in to an account"""
     params = request.get_params(schemas.RecoverySchema())
 
     token = get_device_token(request)
@@ -61,6 +62,7 @@ def recover(request):
 
 @view_config(name='login', renderer='json')
 def login(request):
+    """logs into an account"""
     found = False
     params = request.get_params(schemas.LoginSchema())
     token = get_device_token(request, required=True)
@@ -90,6 +92,7 @@ def login(request):
 
 @view_config(name='recover-code', renderer='json')
 def recover_code(request):
+    """verifies recover code"""
     found = False
     params = request.get_params(schemas.RecoveryCodeSchema())
     token = get_device_token(request, required=True)
@@ -171,6 +174,7 @@ def add_uid(request):
 
 @view_config(name='confirm-uid', renderer='json')
 def confirm_uid(request):
+    """confirm with code sent to uid"""
     params = request.get_params(schemas.AddUIDCodeSchema())
     device = get_device(request)
     customer = device.customer

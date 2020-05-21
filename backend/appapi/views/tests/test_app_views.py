@@ -578,7 +578,7 @@ class TestRedemptionNotification(TestCase):
             'amount': '4.00',
             'completed': True,
             'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
-            'id': '6',
+            'id': '13',
             'sender_id': '12',
             'appdata.ferly.transactionType': 'gift'
         }
@@ -603,7 +603,7 @@ class TestRedemptionNotification(TestCase):
             'amount': '4.00',
             'completed': True,
             'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
-            'id': '7',
+            'id': '14',
             'sender_id': '12'
         }
         customer = self._add_recipient()
@@ -625,7 +625,7 @@ class TestRedemptionNotification(TestCase):
             'amount': '4.00',
             'completed': True,
             'movements': [{'loops': [{'loop_id': '42', 'currency': 'USD'}]}],
-            'id': '8',
+            'id': '15',
             'sender_id': '12',
             'appdata.ferly.transactionType': 'purchase'
         }
@@ -651,7 +651,7 @@ class TestRedemptionNotification(TestCase):
             'amount': '20.00',
             'completed': True,
             'movements': [{'loops': [{'loop_id': '0', 'currency': 'USD'}]}],
-            'id': '8',
+            'id': '16',
             'sender_id': '12',
         }
         customer = self._add_recipient()
@@ -679,7 +679,7 @@ class TestRedemptionNotification(TestCase):
             'amount': '0.10',
             'completed': True,
             'movements': [{'loops': [{'loop_id': '0', 'currency': 'USD'}]}],
-            'id': '8',
+            'id': '17',
             'sender_id': '12',
         }
         customer = self._add_recipient()

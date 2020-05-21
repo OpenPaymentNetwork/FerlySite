@@ -90,6 +90,10 @@ def redemption_notification(request):
                 continue
         if not completed:
             continue
+        global _last_transfer_notified
+        if _last_transfer_notified == transfer_id:
+            continue
+        _last_transfer_notified = transfer_id
         customer = dbsession.query(
             Customer).filter(Customer.wc_id == sender_id).first()
 
@@ -128,6 +132,8 @@ def redemption_notification(request):
             if ferlyCashDesign:
                 customer = dbsession.query(
                     Customer).filter(Customer.wc_id == recipient_id).first()
+                if not customer:
+                    continue
                 rewards = (decimal.Decimal(amount) * decimal.Decimal('0.05')).quantize(decimal.Decimal('0.01'))
                 params = {
                     'amounts': [amount],
@@ -170,6 +176,7 @@ def redemption_notification(request):
 
 @view_config(name='recaptcha-sitekey', renderer='json')
 def recaptcha_sitekey(request):
+    """Get the recaptcha sitekey"""
     response = wc_contact(
         request, 'GET', 'aa/recaptcha_invisible_sitekey', anon=True)
     return response.json()
@@ -186,7 +193,7 @@ def list_designs(request):
 
 @view_config(name='get-ferly-cash-design', renderer='json')
 def get_ferly_cash_design(request):
-    """List all the listable designs on Ferly."""
+    """Get the ferly cash design."""
     get_device(request)
     dbsession = request.dbsession
     design = dbsession.query(Design).filter(

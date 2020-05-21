@@ -5,6 +5,11 @@ API Changes
 2020
 ~~~~
 
+1.3 (2020-04-29)
+----------------
+
+* Added :http:post:`ferlyapi.com/refuse-trade` and added fields to :http:get:`ferlyapi.com/history` and :http:post:`ferlyapi.com/send` calls
+
 1.2 (2020-04-07)
 ----------------
 

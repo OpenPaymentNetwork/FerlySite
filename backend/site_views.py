@@ -94,3 +94,9 @@ def forbidden(context, request):
             'error_description': desc,
         })
     return HTTPForbidden(json_body={'error': 'forbidden'})
+
+@view_config(name='raise-error', renderer='json')
+def raiseError():
+    invalid_response = Invalid(
+        None, msg={'Test': "Testing Error."})
+    raise invalid_response

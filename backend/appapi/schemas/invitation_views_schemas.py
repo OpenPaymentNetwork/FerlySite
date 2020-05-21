@@ -1,4 +1,5 @@
 from colander import Length
+from colander import Integer
 from colander import OneOf
 from colander import Schema
 from colander import SchemaNode
@@ -28,5 +29,10 @@ class AcceptCodeSchema(Schema):
 class RetractSchema(Schema):
     transfer_id = SchemaNode(String())
 
+class changeCodeExpirationSchema(Schema):
+    transfer_id = SchemaNode(String())
+    code = SchemaNode(String())
+    seconds = SchemaNode(Integer())
+    
 class updateInvalidCodeCountSchema(Schema):
     invalid_result = SchemaNode(Boolean())

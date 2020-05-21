@@ -82,6 +82,7 @@ def get_distributor_token(request, permissions=['apply_design'], open_loop=False
 
 @view_config(name='purchase', renderer='json')
 def purchase(request):
+    """Purchase Cash to a design from a stripe source. No longer used"""
     params = request.get_params(schemas.PurchaseSchema())
     device = get_device(request)
     customer = device.customer

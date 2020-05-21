@@ -179,6 +179,10 @@ History
                         A string containing the transfer id.
                     ``sent_count``
                         If this transfer is an invitation, this attribute indicates how many times the invitation message has been sent. Apps may use this information to limit the number of times users are permitted to re-send invitation messages. This attribute is empty if the transfer is not an invitation.
+                    ``workflow_type``
+                        A string containing the category of transfer type.
+                    ``name``
+                        A string containing the name passed in the send call.
                     ``amount``
                         String containing a decimal amount.
                     ``transfer_type``
@@ -235,6 +239,9 @@ Send Cash
 
     :<json integer invitation_code_length:
         Optional number specifying how many characters should be in the invitation code (if the transfer is an invitation). A minimum of 6 characters is required. More characters mean the code takes longer to enter but is less guessable. The code consists of digits and uppercase letters. Apps may present invitation codes with embedded dashes (-) for readability; the platform ignores the dashes.
+
+    :<json string name:
+        Optional. A custom name to tie to the transfer.
 
     :statuscode 200:
         Successful. The response body is a JSON object with the following attribute:
@@ -355,7 +362,7 @@ Request Trade
     :<json array expect_loop_ids:
         Required. An array of string ids each being the id of the design cash where the corresponding amount will be received from the trade.
 
-    :<json open_loop:
+    :<json boolean open_loop:
         Required. True if converting open loop cash from ACH transfer to Ferly Cash.
 
     :statuscode 200:
@@ -386,7 +393,7 @@ Accept and Complete Trade
     :<json string transfer_id:
         Required. The transfer_id from the trade call.
 
-    :<json open_loop:
+    :<json boolean open_loop:
         Required. True if converting open loop cash from ACH transfer to Ferly Cash.
 
     :statuscode 200:
@@ -400,6 +407,33 @@ Accept and Complete Trade
             ``error``
                 A string explaining the error that occured.
 
+.. _Refuse Trade:
+
+Refuse Trade
+------------------------
+
+.. http:post:: ferlyapi.com/refuse-trade
+
+    Refuses the trade initiated in :http:post:`ferlyapi.com/trade` call.
+
+    :reqheader Authorization: See :ref:`Authorization Header`.
+
+    :<json string transfer_id:
+        Required. The transfer_id from the trade call.
+
+    :<json boolean open_loop:
+        Required. True if converting open loop cash from ACH transfer to Ferly Cash.
+
+    :statuscode 200:
+        **If successful the response body is a JSON object with the following attribute:**
+            ``transfer_id``
+                The id used to get transfer details if needed from :http:get:`ferlyapi.com/transfer` call.
+
+        **If unsuccessful the response body is a JSON object with one of the following attributes:**
+            ``invalid``
+                A string explaining why the input was invalid.
+            ``error``
+                A string explaining the error that occured.
 
 .. _Get ACH ACCOUNT:
 
